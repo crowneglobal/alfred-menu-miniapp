@@ -114,9 +114,28 @@
   .task.done .t { text-decoration: line-through; color: var(--faint); }
   .task.done .s { color: var(--faint); }
   .handle { color: var(--faint); font-size: 17px; cursor: grab; touch-action: none; flex:none; }
-  .cbox { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid #c7c8ca; flex:none;
-    display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; }
-  .cbox.on { background: var(--green); border-color: var(--green); }
+  .cbox { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #d3d4d6; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:12px; color:#c7c8ca; }
+  .cbox.on { background: var(--green); border-color: var(--green); color:#fff; }
+
+  /* search bar + filter chips (Asana search format) */
+  .searchbar { display:flex; align-items:center; gap:9px; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:10px 13px; margin-bottom:12px; }
+  .searchbar .si { color:var(--faint); font-size:15px; }
+  .searchbar input { border:none; outline:none; flex:1; font-size:14.5px; background:transparent; color:var(--txt); }
+  .searchbar .clr { color:var(--faint); font-size:16px; padding:0 2px; }
+  .fchips { display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; padding-bottom:2px; }
+  .fchip { flex:none; padding:6px 15px; border:1px solid var(--line); border-radius:20px; font-size:13px;
+    font-weight:600; color:var(--sub); background:var(--panel); }
+  .fchip.active { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+  .hl { font-weight:800; color:var(--txt); }
+  .res-sect { font-size:13px; font-weight:700; color:var(--sub); text-transform:uppercase;
+    letter-spacing:.4px; margin:4px 4px 8px; }
+  .rowicon { width:30px; height:30px; border-radius:8px; flex:none; display:flex; align-items:center;
+    justify-content:center; color:#fff; font-size:13px; font-weight:800; }
+  .ava-sm { width:26px; height:26px; border-radius:50%; flex:none; display:flex; align-items:center;
+    justify-content:center; color:#fff; font-weight:700; font-size:11px; }
+  .showmore { color:var(--accent); font-weight:600; font-size:13.5px; padding:12px 14px; }
   .arrows { display: flex; flex-direction: column; gap: 3px; flex: none; }
   .arrows button { background: var(--bg); border: none; color: var(--accent); width: 28px; height: 19px;
     border-radius: 5px; font-size: 10px; line-height: 1; }
@@ -196,23 +215,24 @@ const FEATURES = [
 ];
 
 const LISTS = ['QBO','VET','LIR','FER'];
+const LIST_CLR = {QBO:'#4573d2', VET:'#3f9142', LIR:'#b07d00', FER:'#e8384f'};
 let activeList = 'QBO';
 
 const DATA = {
   tasks: {
     QBO: [
-      {id:1, t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false},
-      {id:2, t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false},
-      {id:3, t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false},
-      {id:4, t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false},
-      {id:5, t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true},
+      {id:1, t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142'},
+      {id:2, t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00'},
+      {id:3, t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f'},
+      {id:4, t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2'},
+      {id:5, t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff'},
     ],
     VET: [
-      {id:11, t:'Order stock', s:'Inventory', pr:'P1', done:false},
-      {id:12, t:'Call supplier re invoice', s:'Finance', pr:'', done:false},
+      {id:11, t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00'},
+      {id:12, t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142'},
     ],
-    LIR: [ {id:21, t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false} ],
-    FER: [ {id:31, t:'Restock tools', s:'Tools', pr:'', done:false} ],
+    LIR: [ {id:21, t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00'} ],
+    FER: [ {id:31, t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f'} ],
   },
   contacts: [
     {id:1, name:'Alex Morgan', s:'Family · WhatsApp', clr:'#3f9142'},
@@ -253,6 +273,9 @@ const DATA = {
 /* ---------- state ---------- */
 let current = 'tasks';
 let taskMode = 'reorder'; // reorder | open | priority
+let taskQuery = '';
+let taskFilter = 'Tasks';
+const FILTERS = ['Tasks','Projects','People','Teams','Tags'];
 const main = document.getElementById('main');
 
 /* ---------- render ---------- */
@@ -277,36 +300,126 @@ function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>'
 function sect(lbl, cnt, right){ return `<div class="sect"><div class="lbl">${lbl}${cnt!=null?`<span class="cnt">${cnt}</span>`:''}</div>${right||''}</div>`; }
 
 function renderTasks(){
-  const list = DATA.tasks[activeList];
-  const openN = list.filter(t=>!t.done).length;
-  const doneN = list.length - openN;
-
-  let html = `<div class="seg">` + LISTS.map(l=>`<button class="${l===activeList?'active':''}" data-list="${l}">${l}</button>`).join('') + `</div>`;
-
-  const toggles = `<div class="mtoggle">
-       <button class="mbtn ${taskMode==='reorder'?'active':''}" data-mode="reorder" title="Reorder">↕️</button>
-       <button class="mbtn ${taskMode==='priority'?'active':''}" data-mode="priority" title="Priority">🥇</button>
-       <button class="mbtn ${taskMode==='open'?'active':''}" data-mode="open" title="Open">💎</button>
-     </div>`;
-  html += sect('To do', openN, toggles);
-
-  html += `<div class="panel" id="tasklist">`;
-  list.forEach((task,i)=>{ html += taskRow(task,i,list.length); });
-  html += `</div>`;
-
-  if(!list.length) html = `<div class="seg">` + LISTS.map(l=>`<button class="${l===activeList?'active':''}" data-list="${l}">${l}</button>`).join('') + `</div><div class="empty">No tasks in ${activeList}.<br>Tap + to add one.</div>`;
-
+  let html = `<div class="searchbar">
+      <span class="si">🔍</span>
+      <input id="tsearch" type="text" placeholder="Search" value="${esc(taskQuery)}" autocomplete="off">
+      ${taskQuery?'<span class="clr" id="tclear">✕</span>':''}
+    </div>`;
+  html += `<div class="fchips">` + FILTERS.map(f=>`<button class="fchip ${f===taskFilter?'active':''}" data-filter="${f}">${f}</button>`).join('') + `</div>`;
+  html += `<div id="results"></div>`;
   main.innerHTML = html;
 
-  main.querySelectorAll('.seg button').forEach(c=>c.onclick=()=>{ activeList=c.dataset.list; haptic(); render(); });
-  main.querySelectorAll('.mbtn').forEach(b=>b.onclick=()=>{ taskMode=b.dataset.mode; haptic(); render(); });
-  wireTaskRows();
+  const inp = document.getElementById('tsearch');
+  inp.oninput = ()=>{ taskQuery = inp.value; const c=document.getElementById('tclear');
+    renderResults();
+    // toggle clear button without losing focus
+    const sb=inp.parentElement;
+    let clr=sb.querySelector('.clr');
+    if(taskQuery && !clr){ clr=document.createElement('span'); clr.className='clr'; clr.id='tclear'; clr.textContent='✕'; clr.onclick=clearSearch; sb.appendChild(clr); }
+    else if(!taskQuery && clr){ clr.remove(); }
+  };
+  const clrBtn=document.getElementById('tclear'); if(clrBtn) clrBtn.onclick=clearSearch;
+  main.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{ taskFilter=b.dataset.filter; haptic(); renderResults();
+    main.querySelectorAll('.fchip').forEach(x=>x.classList.toggle('active', x.dataset.filter===taskFilter)); });
 
-  if(taskMode==='reorder' && window.Sortable){
-    const el=document.getElementById('tasklist');
-    Sortable.create(el,{ handle:'.handle', animation:160, ghostClass:'sortable-ghost', chosenClass:'sortable-chosen',
-      onEnd:(e)=>{ const arr=DATA.tasks[activeList]; const [m]=arr.splice(e.oldIndex,1); arr.splice(e.newIndex,0,m); haptic('medium'); render(); }});
+  renderResults();
+}
+
+function clearSearch(){ taskQuery=''; haptic(); render(); }
+
+function renderResults(){
+  const box = document.getElementById('results');
+  const q = taskQuery.trim().toLowerCase();
+
+  if(!q){
+    // default: To-do list for active list, with segmented list switcher + reorder handles
+    const list = DATA.tasks[activeList];
+    const openN = list.filter(t=>!t.done).length;
+    const toggles = `<div class="mtoggle">
+         <button class="mbtn ${taskMode==='reorder'?'active':''}" data-mode="reorder" title="Reorder">↕️</button>
+         <button class="mbtn ${taskMode==='priority'?'active':''}" data-mode="priority" title="Priority">🥇</button>
+         <button class="mbtn ${taskMode==='open'?'active':''}" data-mode="open" title="Open">💎</button>
+       </div>`;
+    let html = `<div class="seg">` + LISTS.map(l=>`<button class="${l===activeList?'active':''}" data-list="${l}">${l}</button>`).join('') + `</div>`;
+    html += sect('To do', openN, toggles);
+    if(!list.length){ html += `<div class="empty">No tasks in ${activeList}.<br>Tap + to add one.</div>`; }
+    else { html += `<div class="panel" id="tasklist">`; list.forEach((task,i)=>{ html += taskRow(task,i,list.length); }); html += `</div>`; }
+    box.innerHTML = html;
+
+    box.querySelectorAll('.seg button').forEach(c=>c.onclick=()=>{ activeList=c.dataset.list; haptic(); renderResults(); });
+    box.querySelectorAll('.mbtn').forEach(b=>b.onclick=()=>{ taskMode=b.dataset.mode; haptic(); renderResults(); });
+    wireTaskRows();
+    if(taskMode==='reorder' && window.Sortable){
+      const el=document.getElementById('tasklist');
+      if(el) Sortable.create(el,{ handle:'.handle', animation:160, ghostClass:'sortable-ghost', chosenClass:'sortable-chosen',
+        onEnd:(e)=>{ const arr=DATA.tasks[activeList]; const [m]=arr.splice(e.oldIndex,1); arr.splice(e.newIndex,0,m); haptic('medium'); renderResults(); }});
+    }
+    return;
   }
+
+  // search mode across all lists
+  const allTasks = [];
+  LISTS.forEach(l=>DATA.tasks[l].forEach(t=>allTasks.push({...t, list:l})));
+  const showTasks = taskFilter==='Tasks' || taskFilter==='Tags';
+  const showProjects = taskFilter==='Projects';
+  const showPeople = taskFilter==='People' || taskFilter==='Teams';
+
+  const matchTasks = (taskFilter==='Tasks'||taskFilter==='Tags') ? allTasks.filter(t=>t.t.toLowerCase().includes(q) || (t.s||'').toLowerCase().includes(q)) : [];
+  const projects = LISTS.map(l=>({name:l, n:DATA.tasks[l].length, clr: LIST_CLR[l]||'#4573d2'}));
+  const matchProjects = showProjects ? projects.filter(p=>p.name.toLowerCase().includes(q)) : [];
+  const matchPeople = showPeople ? DATA.contacts.filter(c=>c.name.toLowerCase().includes(q)) : [];
+
+  let html = '';
+  const TASK_CAP = 4;
+
+  if(showTasks && matchTasks.length){
+    html += `<div class="res-sect">Tasks</div><div class="panel">`;
+    matchTasks.slice(0,TASK_CAP).forEach(t=>{
+      const dot = t.pr ? `<span class="dot ${t.pr==='P1'?'p1':t.pr==='P2'?'p2':'p3'}"></span>` : '';
+      html += `<div class="row task ${t.done?'done':''}" data-sopen="${t.id}">
+        <div class="cbox ${t.done?'on':''}">✓</div>
+        <div class="body"><div class="t">${hlt(t.t,q)}</div>
+          <div class="s">${dot}<span>${t.list} · ${hlt(t.s||'',q)}</span></div></div>
+        ${t.as?`<div class="ava-sm" style="background:${t.ac}">${t.as.trim()[0]}</div>`:''}
+      </div>`;
+    });
+    if(matchTasks.length>TASK_CAP) html += `<div class="showmore">Show ${matchTasks.length-TASK_CAP} more</div>`;
+    html += `</div>`;
+  }
+
+  if(showProjects && matchProjects.length){
+    html += `<div class="res-sect">Projects</div><div class="panel">`;
+    matchProjects.forEach(p=>{
+      html += `<div class="row"><div class="rowicon" style="background:${p.clr}">${p.name[0]}</div>
+        <div class="body"><div class="t">${hlt(p.name,q)}</div><div class="s">${p.n} task${p.n===1?'':'s'}</div></div>
+        <span class="chev">›</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  if(showPeople && matchPeople.length){
+    html += `<div class="res-sect">People</div><div class="panel">`;
+    matchPeople.forEach(c=>{
+      html += `<div class="row"><div class="avatar" style="background:${c.clr}">${c.name.trim()[0]}</div>
+        <div class="body"><div class="t">${hlt(c.name,q)}</div><div class="s">${esc(c.s)}</div></div>
+        <span class="chev">›</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  if(!html) html = `<div class="empty">No results for “${esc(taskQuery)}”.</div>`;
+  box.innerHTML = html;
+
+  box.querySelectorAll('[data-sopen]').forEach(el=>el.onclick=()=>openTask(+el.dataset.sopen));
+  box.querySelectorAll('.showmore').forEach(el=>el.onclick=()=>haptic());
+}
+
+// highlight matched substring, HTML-escaped
+function hlt(text, q){
+  const s = esc(text||''); if(!q) return s;
+  const lc = (text||'').toLowerCase(); const i = lc.indexOf(q);
+  if(i<0) return s;
+  return esc(text.slice(0,i)) + `<span class="hl">` + esc(text.slice(i,i+q.length)) + `</span>` + esc(text.slice(i+q.length));
 }
 
 function taskRow(task,i,n){
@@ -315,26 +428,27 @@ function taskRow(task,i,n){
       <button data-up="${i}" ${i===0?'disabled':''}>▲</button>
       <button data-down="${i}" ${i===n-1?'disabled':''}>▼</button></div>` : '';
   const dot = task.pr ? `<span class="dot ${task.pr==='P1'?'p1':task.pr==='P2'?'p2':'p3'}"></span>` : '';
+  const ava = (task.as && taskMode!=='reorder') ? `<div class="ava-sm" style="background:${task.ac}">${task.as.trim()[0]}</div>` : '';
   return `<div class="row task ${task.done?'done':''}" data-id="${task.id}">
     ${drag}
-    <div class="cbox ${task.done?'on':''}" data-check="${task.id}">${task.done?'✓':''}</div>
+    <div class="cbox ${task.done?'on':''}" data-check="${task.id}">✓</div>
     <div class="body" data-open="${task.id}">
       <div class="t">${esc(task.t)}</div>
       <div class="s">${dot}<span>${esc(task.s)}</span></div>
     </div>
-    ${arrows}
+    ${arrows}${ava}
   </div>`;
 }
 
 function wireTaskRows(){
   main.querySelectorAll('[data-check]').forEach(el=>el.onclick=(ev)=>{ ev.stopPropagation();
-    const id=+el.dataset.check; const t=DATA.tasks[activeList].find(x=>x.id===id); t.done=!t.done; haptic(); render(); });
+    const id=+el.dataset.check; const t=DATA.tasks[activeList].find(x=>x.id===id); t.done=!t.done; haptic(); renderResults(); });
   main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ const id=+el.dataset.open; openTask(id); });
   main.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>move(+b.dataset.up,-1));
   main.querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>move(+b.dataset.down,1));
 }
 function move(i,dir){ const arr=DATA.tasks[activeList]; const j=i+dir; if(j<0||j>=arr.length) return;
-  [arr[i],arr[j]]=[arr[j],arr[i]]; haptic('medium'); render(); }
+  [arr[i],arr[j]]=[arr[j],arr[i]]; haptic('medium'); renderResults(); }
 
 function renderContacts(){
   let html = sect('People', DATA.contacts.length);
