@@ -53,15 +53,6 @@
   .rstar.sync .orb { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-soft); }
   .rsyncnote { color: var(--sub); font-size: 12.5px; margin: -2px 2px 12px; }
 
-  /* underline tab selector */
-  .seg { display: flex; gap: 22px; padding: 0 4px; margin-bottom: 18px;
-    border-bottom: 1px solid var(--line); overflow-x: auto; }
-  .seg button { flex: none; background: none; border: none; padding: 0 0 10px;
-    color: var(--sub); font-size: 14px; font-weight: 600; position: relative; }
-  .seg button.active { color: var(--txt); }
-  .seg button.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
-    height: 2px; border-radius: 2px; background: var(--accent); }
-
   /* section header above a panel */
   .sect { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 9px; }
   .sect .lbl { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;
@@ -328,24 +319,19 @@ function renderTasks(){
       <input id="tsearch" type="text" placeholder="Search" value="${esc(taskQuery)}" autocomplete="off">
       ${taskQuery?'<span class="clr" id="tclear">✕</span>':''}
     </div>`;
-  const syncSummary = activeRocstarObj().syncedTo.length ? `Synced to ${activeRocstarObj().syncedTo.map(id=>rocstarById(id)?.name||id).join(', ')}` : 'Not synced yet';
-  let html = `<div class="rstars">` + ROCSTARS.map(r=>`<button class="rstar ${r.id===activeRocstar?'active':''}" data-rstar="${r.id}"><div class="orb txt" style="background:${r.color}">${r.emoji}</div><div class="nm">${esc(r.name)}</div></button>`).join('') + `<button class="rstar sync" id="syncRocstar"><div class="orb">⇄</div><div class="nm">Sync</div></button></div><div class="rsyncnote">${esc(syncSummary)}</div>`;
-  html += `<div class="fchips">` + FILTERS.map(f=>`<button class="fchip ${f===taskFilter?'active':''}" data-filter="${f}">${f}</button>`).join('') + `</div>`;
+  let html = `<div class="rstars">` + ROCSTARS.map(r=>`<button class="rstar ${r.id===activeRocstar?'active':''}" data-rstar="${r.id}"><div class="orb txt" style="background:${r.color}">${r.emoji}</div><div class="nm">${esc(r.name)}</div></button>`).join('') + `<button class="rstar sync" id="syncRocstar"><div class="orb">⇄</div><div class="nm">Sync</div></button></div>`;
   html += `<div id="results"></div>`;
   main.innerHTML = html;
 
   const inp = document.getElementById('tsearch');
   inp.oninput = ()=>{ taskQuery = inp.value; const c=document.getElementById('tclear');
     renderResults();
-    // toggle clear button without losing focus
     const sb=inp.parentElement;
     let clr=sb.querySelector('.clr');
     if(taskQuery && !clr){ clr=document.createElement('span'); clr.className='clr'; clr.id='tclear'; clr.textContent='✕'; clr.onclick=clearSearch; sb.appendChild(clr); }
     else if(!taskQuery && clr){ clr.remove(); }
   };
   const clrBtn=document.getElementById('tclear'); if(clrBtn) clrBtn.onclick=clearSearch;
-  main.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{ taskFilter=b.dataset.filter; haptic(); renderResults();
-    main.querySelectorAll('.fchip').forEach(x=>x.classList.toggle('active', x.dataset.filter===taskFilter)); });
   main.querySelectorAll('[data-rstar]').forEach(b=>b.onclick=()=>{ activeRocstar=b.dataset.rstar; haptic(); renderTasks(); });
   const syncBtn=document.getElementById('syncRocstar'); if(syncBtn) syncBtn.onclick=()=>openRocstarSync();
 
@@ -367,8 +353,7 @@ function renderResults(){
          <button class="mbtn ${taskMode==='priority'?'active':''}" data-mode="priority" title="Priority">🥇</button>
          <button class="mbtn ${taskMode==='open'?'active':''}" data-mode="open" title="Open">💎</button>
        </div>`;
-    let html = `<div class="seg">` + LISTS.map(l=>`<button class="${l===activeList?'active':''}" data-list="${l}">${l}</button>`).join('') + `</div>`;
-    html += sect('To do', openN, toggles);
+    let html = sect('To do', openN, toggles);
     if(!list.length){ html += `<div class="empty">No tasks in ${activeList}.<br>Tap + to add one.</div>`; }
     else { html += `<div class="panel" id="tasklist">`; list.forEach((task,i)=>{ html += taskRow(task,i,list.length); }); html += `</div>`; }
     box.innerHTML = html;
