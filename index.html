@@ -166,7 +166,9 @@
   .kv { display:flex; justify-content:space-between; padding: 12px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
   .kv:last-of-type { border-bottom: none; }
   .kv .k { color: var(--sub); }
-  .taskmeta-line { color: var(--sub); font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+  .taskhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+  .taskhead h3 { margin: 0; }
+  .taskmeta-line { color: var(--sub); font-size: 14px; font-weight: 600; white-space: nowrap; text-align: right; }
   .cmtwrap { margin-top: 18px; }
   .cmtlist { display: flex; flex-direction: column; gap: 10px; }
   .cmt { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; }
@@ -523,7 +525,7 @@ function openTask(id, listKey=activeList){
   const list = DATA.tasks[listKey] || [];
   const t=list.find(x=>x.id===id); if(!t) return;
   const comments = (t.comments || []).slice(0,3).map(c=>`<div class="cmt"><div class="cmtmeta"><span class="cmtname">${esc(c.name)}</span><span class="cmttime">${esc(c.time)}</span></div><div class="cmtbody">${esc(c.body)}</div></div>`).join('') || `<div class="cmt"><div class="cmtbody">No comments yet.</div></div>`;
-  showSheet(`<h3>${esc(t.t)}</h3><div class="taskmeta-line">${t.done?'Done':'Open'} - ${esc(t.pr||'No priority')} - ${listKey}</div>
+  showSheet(`<div class="taskhead"><h3>${esc(t.t)}</h3><div class="taskmeta-line">${t.done?'Done':'Open'} - ${esc(t.pr||'No priority')} - ${listKey}</div></div>
     <div class="cmtwrap"><div class="cmtlist">${comments}</div></div>
     <div class="composer"><textarea id="taskCommentInput" placeholder="Write a comment here"></textarea></div>
     <div class="actrow" style="margin-top:12px">
