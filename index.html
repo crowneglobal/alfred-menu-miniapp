@@ -42,6 +42,17 @@
 
   main { flex: 1; overflow-y: auto; padding: 12px 14px 112px; -webkit-overflow-scrolling: touch; }
 
+  /* rocstars */
+  .rstars { display:flex; gap:14px; overflow-x:auto; padding: 2px 2px 10px; margin-bottom: 12px; }
+  .rstar { flex:none; background:none; border:none; padding:0; display:flex; flex-direction:column; align-items:center; gap:7px; color:var(--sub); }
+  .rstar .orb { width:58px; height:58px; border-radius:50%; border:2px solid #dadbdd; background:var(--panel); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; overflow:hidden; }
+  .rstar .orb.txt { color:#fff; }
+  .rstar .nm { font-size:12px; font-weight:600; max-width:66px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rstar.active .orb { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(69,115,210,.12); }
+  .rstar.active .nm { color: var(--txt); }
+  .rstar.sync .orb { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-soft); }
+  .rsyncnote { color: var(--sub); font-size: 12.5px; margin: -2px 2px 12px; }
+
   /* underline tab selector */
   .seg { display: flex; gap: 22px; padding: 0 4px; margin-bottom: 18px;
     border-bottom: 1px solid var(--line); overflow-x: auto; }
@@ -219,22 +230,30 @@ const FEATURES = [
 const LISTS = ['QBO','VET','LIR','FER'];
 const LIST_CLR = {QBO:'#4573d2', VET:'#3f9142', LIR:'#b07d00', FER:'#e8384f'};
 let activeList = 'QBO';
+let activeRocstar = 'dro';
+
+const ROCSTARS = [
+  {id:'dro', name:'DRO', emoji:'🕶️', color:'#4573d2', syncedTo:['clara','fio']},
+  {id:'clara', name:'Clara', emoji:'💪', color:'#e8384f', syncedTo:[]},
+  {id:'sami', name:'Sami', emoji:'🧠', color:'#7b61ff', syncedTo:[]},
+  {id:'fio', name:'Fio', emoji:'🎤', color:'#3f9142', syncedTo:['dro']},
+];
 
 const DATA = {
   tasks: {
     QBO: [
-      {id:1, t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'DRO', time:'2m ago', body:'Push the supplier for a final number today.'},{name:'Casey Kim', time:'18m ago', body:'Waiting on revised quote with shipping included.'},{name:'Alex Morgan', time:'1h ago', body:'Initial response landed, but they missed the rush option.'}]},
-      {id:2, t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'Casey Kim', time:'9m ago', body:'Invoice PDF is in Drive and ready to clear.'},{name:'DRO', time:'26m ago', body:'Pay this after confirming the meter reading.'},{name:'Alex Morgan', time:'54m ago', body:'Amount matches last month plus the late fee reversal.'}]},
-      {id:3, t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'ALF Code Servers', srcThread:'Task Board', srcUrl:'https://t.me/c/1571211776/1', comments:[{name:'Jordan Lee', time:'6m ago', body:'I have 3 of the 5 serials, still missing the pump pair.'},{name:'DRO', time:'21m ago', body:'Post the list back in the maintenance thread once clean.'},{name:'Alex Morgan', time:'48m ago', body:'Using the old service sheet as the source of truth for now.'}]},
-      {id:4, t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2', srcGroup:'Java User Menus Interface UI', srcThread:'Mini app UI', srcUrl:'https://t.me/c/1549786300/1279', comments:[{name:'DRO', time:'1m ago', body:'Comment needs to live inside the task menu and show the last 3 comments.'},{name:'Sami', time:'14m ago', body:'Button render is still dropping in the synced view.'},{name:'Alfred', time:'31m ago', body:'V1 task source jump is live on the public mini app link.'}]},
-      {id:5, t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff', srcGroup:'Mission Control', srcThread:'Command Center', srcUrl:'https://t.me/c/3716119745/4', comments:[{name:'Sam Rivera', time:'11m ago', body:'Crew confirmed the Thursday handoff.'},{name:'DRO', time:'37m ago', body:'Lock Friday before posting the recap.'},{name:'Alex Morgan', time:'1h ago', body:'Only waiting on the airport pickup slot.'}]},
+      {id:1, rocstar:'dro', t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'DRO', time:'2m ago', body:'Push the supplier for a final number today.'},{name:'Casey Kim', time:'18m ago', body:'Waiting on revised quote with shipping included.'},{name:'Alex Morgan', time:'1h ago', body:'Initial response landed, but they missed the rush option.'}]},
+      {id:2, rocstar:'clara', t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'Casey Kim', time:'9m ago', body:'Invoice PDF is in Drive and ready to clear.'},{name:'DRO', time:'26m ago', body:'Pay this after confirming the meter reading.'},{name:'Alex Morgan', time:'54m ago', body:'Amount matches last month plus the late fee reversal.'}]},
+      {id:3, rocstar:'dro', t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'ALF Code Servers', srcThread:'Task Board', srcUrl:'https://t.me/c/1571211776/1', comments:[{name:'Jordan Lee', time:'6m ago', body:'I have 3 of the 5 serials, still missing the pump pair.'},{name:'DRO', time:'21m ago', body:'Post the list back in the maintenance thread once clean.'},{name:'Alex Morgan', time:'48m ago', body:'Using the old service sheet as the source of truth for now.'}]},
+      {id:4, rocstar:'sami', t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2', srcGroup:'Java User Menus Interface UI', srcThread:'Mini app UI', srcUrl:'https://t.me/c/1549786300/1279', comments:[{name:'DRO', time:'1m ago', body:'Comment needs to live inside the task menu and show the last 3 comments.'},{name:'Sami', time:'14m ago', body:'Button render is still dropping in the synced view.'},{name:'Alfred', time:'31m ago', body:'V1 task source jump is live on the public mini app link.'}]},
+      {id:5, rocstar:'fio', t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff', srcGroup:'Mission Control', srcThread:'Command Center', srcUrl:'https://t.me/c/3716119745/4', comments:[{name:'Sam Rivera', time:'11m ago', body:'Crew confirmed the Thursday handoff.'},{name:'DRO', time:'37m ago', body:'Lock Friday before posting the recap.'},{name:'Alex Morgan', time:'1h ago', body:'Only waiting on the airport pickup slot.'}]},
     ],
     VET: [
-      {id:11, t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Casey Kim', time:'4m ago', body:'Need final count from the barn before placing the order.'},{name:'DRO', time:'22m ago', body:'Keep this one in the vet thread, not general ops.'},{name:'Alex Morgan', time:'58m ago', body:'Supplier can still ship tomorrow if we confirm by 5.'}]},
-      {id:12, t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Alex Morgan', time:'7m ago', body:'They asked for the old invoice number first.'},{name:'DRO', time:'24m ago', body:'If they stall, move this to priority.'},{name:'Casey Kim', time:'1h ago', body:'Last callback ended before they confirmed the balance.'}]},
+      {id:11, rocstar:'clara', t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Casey Kim', time:'4m ago', body:'Need final count from the barn before placing the order.'},{name:'DRO', time:'22m ago', body:'Keep this one in the vet thread, not general ops.'},{name:'Alex Morgan', time:'58m ago', body:'Supplier can still ship tomorrow if we confirm by 5.'}]},
+      {id:12, rocstar:'fio', t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Alex Morgan', time:'7m ago', body:'They asked for the old invoice number first.'},{name:'DRO', time:'24m ago', body:'If they stall, move this to priority.'},{name:'Casey Kim', time:'1h ago', body:'Last callback ended before they confirmed the balance.'}]},
     ],
-    LIR: [ {id:21, t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'HR', srcUrl:'https://t.me/c/3716119745/8', comments:[{name:'Casey Kim', time:'3m ago', body:'Need two final hour totals before payroll closes.'},{name:'DRO', time:'19m ago', body:'Post the draft numbers in HR first.'},{name:'Sam Rivera', time:'46m ago', body:'Overtime line is updated for the ranch crew.'}] } ],
-    FER: [ {id:31, t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'LHE Operations', srcThread:'Maintenance', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Jordan Lee', time:'5m ago', body:'Missing sockets and two diamond blades.'},{name:'DRO', time:'17m ago', body:'Keep the order small, just what the crew needs this week.'},{name:'Alex Morgan', time:'42m ago', body:'Local shop has everything except the heavy drill bits.'}] } ],
+    LIR: [ {id:21, rocstar:'dro', t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'HR', srcUrl:'https://t.me/c/3716119745/8', comments:[{name:'Casey Kim', time:'3m ago', body:'Need two final hour totals before payroll closes.'},{name:'DRO', time:'19m ago', body:'Post the draft numbers in HR first.'},{name:'Sam Rivera', time:'46m ago', body:'Overtime line is updated for the ranch crew.'}] } ],
+    FER: [ {id:31, rocstar:'sami', t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'LHE Operations', srcThread:'Maintenance', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Jordan Lee', time:'5m ago', body:'Missing sockets and two diamond blades.'},{name:'DRO', time:'17m ago', body:'Keep the order small, just what the crew needs this week.'},{name:'Alex Morgan', time:'42m ago', body:'Local shop has everything except the heavy drill bits.'}] } ],
   },
   contacts: [
     {id:1, name:'Alex Morgan', s:'Family · WhatsApp', clr:'#3f9142'},
@@ -311,7 +330,9 @@ function renderTasks(){
       <input id="tsearch" type="text" placeholder="Search" value="${esc(taskQuery)}" autocomplete="off">
       ${taskQuery?'<span class="clr" id="tclear">✕</span>':''}
     </div>`;
-  let html = `<div class="fchips">` + FILTERS.map(f=>`<button class="fchip ${f===taskFilter?'active':''}" data-filter="${f}">${f}</button>`).join('') + `</div>`;
+  const syncSummary = activeRocstarObj().syncedTo.length ? `Synced to ${activeRocstarObj().syncedTo.map(id=>rocstarById(id)?.name||id).join(', ')}` : 'Not synced yet';
+  let html = `<div class="rstars">` + ROCSTARS.map(r=>`<button class="rstar ${r.id===activeRocstar?'active':''}" data-rstar="${r.id}"><div class="orb txt" style="background:${r.color}">${r.emoji}</div><div class="nm">${esc(r.name)}</div></button>`).join('') + `<button class="rstar sync" id="syncRocstar"><div class="orb">⇄</div><div class="nm">Sync</div></button></div><div class="rsyncnote">${esc(syncSummary)}</div>`;
+  html += `<div class="fchips">` + FILTERS.map(f=>`<button class="fchip ${f===taskFilter?'active':''}" data-filter="${f}">${f}</button>`).join('') + `</div>`;
   html += `<div id="results"></div>`;
   main.innerHTML = html;
 
@@ -327,6 +348,8 @@ function renderTasks(){
   const clrBtn=document.getElementById('tclear'); if(clrBtn) clrBtn.onclick=clearSearch;
   main.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{ taskFilter=b.dataset.filter; haptic(); renderResults();
     main.querySelectorAll('.fchip').forEach(x=>x.classList.toggle('active', x.dataset.filter===taskFilter)); });
+  main.querySelectorAll('[data-rstar]').forEach(b=>b.onclick=()=>{ activeRocstar=b.dataset.rstar; haptic(); renderTasks(); });
+  const syncBtn=document.getElementById('syncRocstar'); if(syncBtn) syncBtn.onclick=()=>openRocstarSync();
 
   renderResults();
 }
@@ -338,8 +361,8 @@ function renderResults(){
   const q = taskQuery.trim().toLowerCase();
 
   if(!q){
-    // default: To-do list for active list, with segmented list switcher + reorder handles
-    const list = DATA.tasks[activeList];
+    // default: To-do list for active list, filtered by rocstar
+    const list = DATA.tasks[activeList].filter(t=>taskVisibleForActiveRocstar(t));
     const openN = list.filter(t=>!t.done).length;
     const toggles = `<div class="mtoggle">
          <button class="mbtn ${taskMode==='reorder'?'active':''}" data-mode="reorder" title="Reorder">↕️</button>
@@ -365,7 +388,7 @@ function renderResults(){
 
   // search mode across all lists
   const allTasks = [];
-  LISTS.forEach(l=>DATA.tasks[l].forEach(t=>allTasks.push({...t, list:l})));
+  LISTS.forEach(l=>DATA.tasks[l].forEach(t=>{ if(taskVisibleForActiveRocstar(t)) allTasks.push({...t, list:l}); }));
   const showTasks = taskFilter==='Tasks' || taskFilter==='Tags';
   const showProjects = taskFilter==='Projects';
   const showPeople = taskFilter==='People' || taskFilter==='Teams';
@@ -453,8 +476,16 @@ function wireTaskRows(){
   main.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>move(+b.dataset.up,-1));
   main.querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>move(+b.dataset.down,1));
 }
-function move(i,dir){ const arr=DATA.tasks[activeList]; const j=i+dir; if(j<0||j>=arr.length) return;
-  [arr[i],arr[j]]=[arr[j],arr[i]]; haptic('medium'); renderResults(); }
+function move(i,dir){ const all=DATA.tasks[activeList]; const visibleIdx = all.map((t,idx)=>taskVisibleForActiveRocstar(t)?idx:-1).filter(idx=>idx!==-1); const from=visibleIdx[i], to=visibleIdx[i+dir]; if(from==null||to==null) return;
+  const [m]=all.splice(from,1); all.splice(to,0,m); haptic('medium'); renderResults(); }
+
+function rocstarById(id){ return ROCSTARS.find(r=>r.id===id); }
+function activeRocstarObj(){ return rocstarById(activeRocstar) || ROCSTARS[0]; }
+function taskVisibleForActiveRocstar(task){
+  if(!task.rocstar || task.rocstar===activeRocstar) return true;
+  const owner = rocstarById(task.rocstar);
+  return !!(owner && owner.syncedTo.includes(activeRocstar));
+}
 
 function renderContacts(){
   let html = sect('People', DATA.contacts.length);
@@ -578,6 +609,22 @@ function openGeneric(key,id){
       <button class="act primary">Message</button>
       <button class="act">Details</button></div>`);
   sheetContent.querySelectorAll('.act').forEach(b=>b.onclick=hideSheet);
+}
+
+function openRocstarSync(){
+  const current = activeRocstarObj();
+  const options = ROCSTARS.filter(r=>r.id!==current.id).map(r=>`<button class="act ${current.syncedTo.includes(r.id)?'primary':''}" data-sync-user="${r.id}">${esc(r.name)}</button>`).join('');
+  showSheet(`<h3>Sync ${esc(current.name)}</h3><div class="meta">Choose which Rocstar menus should show ${esc(current.name)}'s tasks.</div><div class="actrow">${options}</div><div class="actrow" style="margin-top:10px"><button class="act" id="closeSync">Close</button></div>`);
+  sheetContent.querySelectorAll('[data-sync-user]').forEach(b=>b.onclick=()=>toggleRocstarSync(b.dataset.syncUser));
+  document.getElementById('closeSync').onclick=()=>{ hideSheet(); renderTasks(); };
+}
+
+function toggleRocstarSync(targetId){
+  const current = activeRocstarObj();
+  const idx = current.syncedTo.indexOf(targetId);
+  if(idx>=0) current.syncedTo.splice(idx,1); else current.syncedTo.push(targetId);
+  haptic('medium');
+  openRocstarSync();
 }
 
 /* ---------- nav ---------- */
