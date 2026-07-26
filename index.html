@@ -591,17 +591,7 @@ function renderNav(){
 /* ---------- Telegram MainButton ---------- */
 function updateMainButton(){
   if(!tg||!tg.MainButton) return;
-  if(current==='tasks'){ tg.MainButton.setText('Add task'); tg.MainButton.show(); }
-  else tg.MainButton.hide();
-}
-if(tg&&tg.MainButton){ tg.MainButton.onClick(()=>addTask()); }
-const fab = document.getElementById('fab');
-if (fab) fab.onclick=()=>addTask();
-
-function addTask(){
-  const doAdd=(txt)=>{ if(!txt) return; const arr=DATA.tasks[activeList];
-    arr.unshift({id:Date.now(), t:txt, s:'just now', pr:'', done:false}); haptic('medium'); render(); };
-  const txt=prompt('New task in '+activeList+':'); doAdd(txt&&txt.trim());
+  tg.MainButton.hide();
 }
 
 render();
