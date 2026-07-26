@@ -40,7 +40,13 @@
     border: 3px solid var(--gframe); border-radius: 22px; overflow: hidden;
     box-shadow: inset 0 0 0 1px rgba(47,180,87,.25), 0 0 18px rgba(47,180,87,.28); position: relative; }
 
-  main { flex: 1; overflow-y: auto; padding: 12px 14px 112px; -webkit-overflow-scrolling: touch; }
+  main { flex: 1; overflow: hidden; padding: 0; -webkit-overflow-scrolling: touch; position: relative; }
+  .tasks-shell { position: relative; height: 100%; overflow: hidden; }
+  .tasks-track { display: flex; width: 200%; height: 100%; transform: translateX(0); transition: transform .28s cubic-bezier(.2,.8,.2,1); }
+  .tasks-track.detail-open { transform: translateX(-50%); }
+  .tasks-pane { width: 50%; min-width: 50%; height: 100%; }
+  .tasks-list-pane { padding: 12px 14px 112px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg); }
+  .tasks-detail-pane { position: relative; padding: 12px 14px 112px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: transparent; }
 
   /* rocstars */
   .rstars { display:flex; gap:14px; overflow-x:auto; padding: 2px 2px 10px; margin-bottom: 12px; }
@@ -67,6 +73,16 @@
   /* white panel holding rows */
   .panel { background: var(--panel); border: 1px solid var(--gline); border-radius: 12px;
     overflow: hidden; margin-bottom: 20px; }
+  .task-stage { display: grid; grid-template-columns: 16px 1fr; gap: 10px; align-items: stretch; }
+  .task-rail { background: var(--panel); border: 1px solid var(--gline); border-radius: 12px; padding: 10px 0; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .rail-dot { width: 7px; height: 46px; border-radius: 999px; opacity: .3; }
+  .rail-dot.active { width: 10px; opacity: 1; box-shadow: 0 0 0 3px rgba(69,115,210,.08); }
+  .rail-gap { width:2px; flex:1; background: var(--line); border-radius:999px; }
+  .task-shell { position: relative; overflow: hidden; }
+  .task-card { transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .22s ease; }
+  .task-shell.has-active .task-card { transform: translateX(18px); }
+  .task-shell.has-active .task-card.active { transform: translateX(0); }
+  .task-shell.has-active .task-card:not(.active) { opacity: .88; }
   .row { display: flex; align-items: center; gap: 12px; padding: 13px 14px;
     border-bottom: 1px solid var(--line); }
   .row:last-child { border-bottom: none; }
@@ -187,6 +203,20 @@
     background: rgba(255,255,255,.94); color: var(--sub); border: 1px solid var(--line);
     font-size: 13px; font-weight: 700; box-shadow: 0 8px 22px rgba(30,31,33,.12); z-index: 31;
     display:flex; align-items:center; justify-content:center; }
+  .detail-wrap { border-radius: 18px; border: 2px solid var(--accent); background: rgba(255,255,255,.9); box-shadow: 0 12px 28px rgba(30,31,33,.12); overflow: hidden; }
+  .detail-top { display:flex; align-items:center; justify-content:space-between; gap:12px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.92); }
+  .detail-top .back { background:none; border:none; color: var(--accent); font-size:14px; font-weight:700; padding:0; }
+  .detail-badge { font-size: 11px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; color: var(--accent); }
+  .detail-body { padding: 14px; }
+  .detail-title { font-size: 21px; font-weight: 800; line-height: 1.1; margin: 0 0 8px; }
+  .detail-sub { color: var(--sub); font-size: 13px; margin-bottom: 14px; }
+  .detail-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 14px; }
+  .detail-section { margin-top: 16px; }
+  .detail-section h4 { margin: 0 0 10px; font-size: 12px; font-weight: 800; letter-spacing: .35px; text-transform: uppercase; color: var(--sub); }
+  .detail-actions { display:flex; gap:10px; margin-top:16px; }
+  .detail-actions button { flex:1; border:none; border-radius: 10px; padding: 12px 10px; font-size: 14px; font-weight: 700; }
+  .detail-actions .pri { background: var(--accent); color:#fff; }
+  .detail-actions .sec { background: var(--bg); color: var(--txt); border:1px solid var(--line); }
 </style>
 </head>
 <body>
@@ -285,6 +315,7 @@ let current = 'tasks';
 let taskMode = 'reorder'; // reorder | open | priority
 let taskQuery = '';
 let taskFilter = 'Tasks';
+let selectedTask = null;
 const FILTERS = ['Tasks','Projects','People','Teams','Tags'];
 const main = document.getElementById('main');
 const searchDock = document.getElementById('searchDock');
@@ -320,12 +351,20 @@ function renderTasks(){
   const list = [];
   LISTS.forEach(l=>DATA.tasks[l].forEach(t=>{ if(taskVisibleForActiveRocstar(t)) list.push({...t, list:l}); }));
   const openN = list.filter(t=>!t.done).length;
-  let html = `<div class="rstars">` + ROCSTARS.map(r=>`<button class="rstar ${r.id===activeRocstar?'active':''}" data-rstar="${r.id}"><div class="orb txt" style="background:${r.color}">${r.emoji}</div><div class="nm">${esc(r.name)}</div></button>`).join('') + `</div>`;
+  const activeTask = selectedTask ? list.find(t => t.id === selectedTask.id && t.list === selectedTask.list) || null : null;
+  const accent = activeTask ? taskAccent(activeTask) : 'var(--accent)';
+  let html = `<div class="tasks-shell"><div class="tasks-track ${activeTask?'detail-open':''}">`;
+  html += `<section class="tasks-pane tasks-list-pane"><div class="rstars">` + ROCSTARS.map(r=>`<button class="rstar ${r.id===activeRocstar?'active':''}" data-rstar="${r.id}"><div class="orb txt" style="background:${r.color}">${r.emoji}</div><div class="nm">${esc(r.name)}</div></button>`).join('') + `</div>`;
   html += sect('To do', openN, '');
-  html += `<div class="panel" id="tasklist">` + list.map((task,i)=>taskRow(task,i,list.length)).join('') + `</div>`;
+  html += `<div class="task-stage"><div class="task-rail">${renderTaskRail(list, activeTask)}</div><div class="task-shell ${activeTask?'has-active':''}"><div class="panel" id="tasklist">` + list.map((task,i)=>taskRow(task,i,list.length, activeTask)).join('') + `</div></div></div></section>`;
+  html += `<section class="tasks-pane tasks-detail-pane">${activeTask ? taskDetailPane(activeTask, accent) : ''}</section>`;
+  html += `</div></div>`;
   main.innerHTML = html;
-  main.querySelectorAll('[data-rstar]').forEach(b=>b.onclick=()=>{ activeRocstar=b.dataset.rstar; haptic(); renderTasks(); });
+  if(activeTask) main.style.setProperty('--accent', accent);
+  else main.style.removeProperty('--accent');
+  main.querySelectorAll('[data-rstar]').forEach(b=>b.onclick=()=>{ activeRocstar=b.dataset.rstar; selectedTask=null; haptic(); renderTasks(); });
   wireTaskRows();
+  wireTaskDetail(activeTask);
 }
 
 function clearSearch(){ taskQuery=''; haptic(); render(); }
@@ -340,9 +379,10 @@ function hlt(text, q){
   return esc(text.slice(0,i)) + `<span class="hl">` + esc(text.slice(i,i+q.length)) + `</span>` + esc(text.slice(i+q.length));
 }
 
-function taskRow(task,i,n){
+function taskRow(task,i,n,activeTask){
   const dot = task.pr ? `<span class="dot ${task.pr==='P1'?'p1':task.pr==='P2'?'p2':'p3'}"></span>` : '';
-  return `<div class="row task ${task.done?'done':''}" data-id="${task.id}">
+  const isActive = !!(activeTask && activeTask.id===task.id && activeTask.list===task.list);
+  return `<div class="row task task-card ${task.done?'done':''} ${isActive?'active':''}" data-id="${task.id}">
     <div class="body" data-open="${task.id}" data-list="${task.list||activeList}">
       <div class="t">${esc(task.t)}</div>
       <div class="s">${dot}<span>${esc(task.s)}</span></div>
@@ -351,7 +391,55 @@ function taskRow(task,i,n){
 }
 
 function wireTaskRows(){
-  main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ const id=+el.dataset.open; openTask(id, el.dataset.list || activeList); });
+  main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ const id=+el.dataset.open; selectedTask = { id, list: el.dataset.list || activeList }; haptic('medium'); renderTasks(); });
+}
+
+function renderTaskRail(list, activeTask){
+  if(!list.length) return `<div class="rail-gap"></div>`;
+  return list.map((task, idx)=>{
+    const clr = taskAccent(task);
+    const active = activeTask && activeTask.id===task.id && activeTask.list===task.list;
+    return `<div class="rail-dot ${active?'active':''}" style="background:${clr}"></div>${idx<list.length-1?'<div class="rail-gap"></div>':''}`;
+  }).join('');
+}
+
+function taskAccent(task){
+  return LIST_CLR[task.list] || task.ac || '#4573d2';
+}
+
+function taskDetailPane(task, accent){
+  const comments = (task.comments || []).slice(0,3).map(c=>`<div class="cmt"><div class="cmtmeta"><span class="cmtname">${esc(c.name)}</span><span class="cmttime">${esc(c.time)}</span></div><div class="cmtbody">${esc(c.body)}</div></div>`).join('');
+  return `<div class="detail-wrap" style="border-color:${accent}">
+    <div class="detail-top">
+      <button class="back" id="taskBack">Close</button>
+      <div class="detail-badge">${esc(task.list)} task</div>
+    </div>
+    <div class="detail-body">
+      <h2 class="detail-title">${esc(task.t)}</h2>
+      <div class="detail-sub">${esc(task.s)}</div>
+      <div class="detail-chips">
+        ${task.pr ? `<span class="pill blue">${esc(task.pr)}</span>` : ``}
+        <span class="pill ${task.done?'green':'violet'}">${task.done?'Done':'Open'}</span>
+        <span class="pill gold">${esc(task.list)}</span>
+      </div>
+      <div class="detail-section"><h4>Latest comments</h4><div class="cmtlist">${comments || `<div class="cmt"><div class="cmtbody">No comments yet.</div></div>`}</div></div>
+      <div class="composer"><textarea id="taskCommentInput" placeholder="Write a comment here"></textarea></div>
+      <div class="detail-actions">
+        <button class="pri" id="aComment">Post</button>
+        <button class="sec" id="aSource">Group</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function wireTaskDetail(activeTask){
+  if(!activeTask) return;
+  const back = document.getElementById('taskBack');
+  if(back) back.onclick = ()=>{ selectedTask = null; haptic(); renderTasks(); };
+  const comment = document.getElementById('aComment');
+  if(comment) comment.onclick = ()=>postTaskComment(activeTask, activeTask.list);
+  const source = document.getElementById('aSource');
+  if(source) source.onclick = ()=>openTaskSource(activeTask);
 }
 function move(i,dir){ const all=DATA.tasks[activeList]; const visibleIdx = all.map((t,idx)=>taskVisibleForActiveRocstar(t)?idx:-1).filter(idx=>idx!==-1); const from=visibleIdx[i], to=visibleIdx[i+dir]; if(from==null||to==null) return;
   const [m]=all.splice(from,1); all.splice(to,0,m); haptic('medium'); renderResults(); }
