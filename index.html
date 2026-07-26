@@ -166,6 +166,14 @@
   .kv { display:flex; justify-content:space-between; padding: 12px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
   .kv:last-of-type { border-bottom: none; }
   .kv .k { color: var(--sub); }
+  .cmtwrap { margin-top: 18px; }
+  .cmthead { font-size: 12px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--sub); margin-bottom: 10px; }
+  .cmtlist { display: flex; flex-direction: column; gap: 10px; }
+  .cmt { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; }
+  .cmtmeta { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 5px; }
+  .cmtname { font-size: 13px; font-weight: 700; color: var(--txt); }
+  .cmttime { font-size: 12px; color: var(--faint); }
+  .cmtbody { font-size: 13.5px; color: var(--sub); line-height: 1.35; }
   .empty { text-align:center; color: var(--faint); padding: 48px 20px; font-size: 14px; }
   .ctxfab { position: fixed; right: 16px; bottom: calc(62px + env(safe-area-inset-bottom));
     min-width: 58px; height: 50px; padding: 0 16px; border-radius: 25px;
@@ -210,18 +218,18 @@ let activeList = 'QBO';
 const DATA = {
   tasks: {
     QBO: [
-      {id:1, t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7'},
-      {id:2, t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7'},
-      {id:3, t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'ALF Code Servers', srcThread:'Task Board', srcUrl:'https://t.me/c/1571211776/1'},
-      {id:4, t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2', srcGroup:'Java User Menus Interface UI', srcThread:'Mini app UI', srcUrl:'https://t.me/c/1549786300/1279'},
-      {id:5, t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff', srcGroup:'Mission Control', srcThread:'Command Center', srcUrl:'https://t.me/c/3716119745/4'},
+      {id:1, t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'DRO', time:'2m ago', body:'Push the supplier for a final number today.'},{name:'Casey Kim', time:'18m ago', body:'Waiting on revised quote with shipping included.'},{name:'Alex Morgan', time:'1h ago', body:'Initial response landed, but they missed the rush option.'}]},
+      {id:2, t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'Casey Kim', time:'9m ago', body:'Invoice PDF is in Drive and ready to clear.'},{name:'DRO', time:'26m ago', body:'Pay this after confirming the meter reading.'},{name:'Alex Morgan', time:'54m ago', body:'Amount matches last month plus the late fee reversal.'}]},
+      {id:3, t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'ALF Code Servers', srcThread:'Task Board', srcUrl:'https://t.me/c/1571211776/1', comments:[{name:'Jordan Lee', time:'6m ago', body:'I have 3 of the 5 serials, still missing the pump pair.'},{name:'DRO', time:'21m ago', body:'Post the list back in the maintenance thread once clean.'},{name:'Alex Morgan', time:'48m ago', body:'Using the old service sheet as the source of truth for now.'}]},
+      {id:4, t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2', srcGroup:'Java User Menus Interface UI', srcThread:'Mini app UI', srcUrl:'https://t.me/c/1549786300/1279', comments:[{name:'DRO', time:'1m ago', body:'Comment needs to live inside the task menu and show the last 3 comments.'},{name:'Sami', time:'14m ago', body:'Button render is still dropping in the synced view.'},{name:'Alfred', time:'31m ago', body:'V1 task source jump is live on the public mini app link.'}]},
+      {id:5, t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff', srcGroup:'Mission Control', srcThread:'Command Center', srcUrl:'https://t.me/c/3716119745/4', comments:[{name:'Sam Rivera', time:'11m ago', body:'Crew confirmed the Thursday handoff.'},{name:'DRO', time:'37m ago', body:'Lock Friday before posting the recap.'},{name:'Alex Morgan', time:'1h ago', body:'Only waiting on the airport pickup slot.'}]},
     ],
     VET: [
-      {id:11, t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6'},
-      {id:12, t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6'},
+      {id:11, t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Casey Kim', time:'4m ago', body:'Need final count from the barn before placing the order.'},{name:'DRO', time:'22m ago', body:'Keep this one in the vet thread, not general ops.'},{name:'Alex Morgan', time:'58m ago', body:'Supplier can still ship tomorrow if we confirm by 5.'}]},
+      {id:12, t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Alex Morgan', time:'7m ago', body:'They asked for the old invoice number first.'},{name:'DRO', time:'24m ago', body:'If they stall, move this to priority.'},{name:'Casey Kim', time:'1h ago', body:'Last callback ended before they confirmed the balance.'}]},
     ],
-    LIR: [ {id:21, t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'HR', srcUrl:'https://t.me/c/3716119745/8'} ],
-    FER: [ {id:31, t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'LHE Operations', srcThread:'Maintenance', srcUrl:'https://t.me/c/3716119745/6'} ],
+    LIR: [ {id:21, t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'HR', srcUrl:'https://t.me/c/3716119745/8', comments:[{name:'Casey Kim', time:'3m ago', body:'Need two final hour totals before payroll closes.'},{name:'DRO', time:'19m ago', body:'Post the draft numbers in HR first.'},{name:'Sam Rivera', time:'46m ago', body:'Overtime line is updated for the ranch crew.'}] } ],
+    FER: [ {id:31, t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'LHE Operations', srcThread:'Maintenance', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Jordan Lee', time:'5m ago', body:'Missing sockets and two diamond blades.'},{name:'DRO', time:'17m ago', body:'Keep the order small, just what the crew needs this week.'},{name:'Alex Morgan', time:'42m ago', body:'Local shop has everything except the heavy drill bits.'}] } ],
   },
   contacts: [
     {id:1, name:'Alex Morgan', s:'Family · WhatsApp', clr:'#3f9142'},
@@ -511,14 +519,16 @@ sheetBack.onclick=hideSheet;
 function openTask(id, listKey=activeList){
   const list = DATA.tasks[listKey] || [];
   const t=list.find(x=>x.id===id); if(!t) return;
+  const comments = (t.comments || []).slice(0,3).map(c=>`<div class="cmt"><div class="cmtmeta"><span class="cmtname">${esc(c.name)}</span><span class="cmttime">${esc(c.time)}</span></div><div class="cmtbody">${esc(c.body)}</div></div>`).join('') || `<div class="cmt"><div class="cmtbody">No comments yet.</div></div>`;
   showSheet(`<h3>${esc(t.t)}</h3><div class="meta">${listKey} · ${esc(t.s)}</div>
     <div class="kv"><span class="k">Status</span><span>${t.done?'Done':'Open'}</span></div>
     <div class="kv"><span class="k">Priority</span><span>${t.pr||'None'}</span></div>
     <div class="kv"><span class="k">List</span><span>${listKey}</span></div>
     <div class="kv"><span class="k">Group</span><span>${esc(t.srcGroup||'Unknown')}</span></div>
     <div class="kv"><span class="k">Thread</span><span>${esc(t.srcThread||'Main')}</span></div>
+    <div class="cmtwrap"><div class="cmthead">Recent comments</div><div class="cmtlist">${comments}</div></div>
     <div class="actrow" style="margin-top:18px">
-      <button class="act primary" id="aSource">Comment there</button>
+      <button class="act primary" id="aSource">Group</button>
       <button class="act" id="aDone">${t.done?'Reopen':'Complete'}</button>
       <button class="act" id="aClose">Close</button></div>`);
   document.getElementById('aSource').onclick=()=>openTaskSource(t);
