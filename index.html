@@ -524,8 +524,6 @@ function openTask(id, listKey=activeList){
   const t=list.find(x=>x.id===id); if(!t) return;
   const comments = (t.comments || []).slice(0,3).map(c=>`<div class="cmt"><div class="cmtmeta"><span class="cmtname">${esc(c.name)}</span><span class="cmttime">${esc(c.time)}</span></div><div class="cmtbody">${esc(c.body)}</div></div>`).join('') || `<div class="cmt"><div class="cmtbody">No comments yet.</div></div>`;
   showSheet(`<h3>${esc(t.t)}</h3><div class="taskmeta-line">${t.done?'Done':'Open'} - ${esc(t.pr||'No priority')} - ${listKey}</div>
-    <div class="kv"><span class="k">Group</span><span>${esc(t.srcGroup||'Unknown')}</span></div>
-    <div class="kv"><span class="k">Thread</span><span>${esc(t.srcThread||'Main')}</span></div>
     <div class="cmtwrap"><div class="cmtlist">${comments}</div></div>
     <div class="composer"><textarea id="taskCommentInput" placeholder="Write a comment here"></textarea></div>
     <div class="actrow" style="margin-top:12px">
