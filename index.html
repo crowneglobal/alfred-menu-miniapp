@@ -210,18 +210,18 @@ let activeList = 'QBO';
 const DATA = {
   tasks: {
     QBO: [
-      {id:1, t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142'},
-      {id:2, t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00'},
-      {id:3, t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f'},
-      {id:4, t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2'},
-      {id:5, t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff'},
+      {id:1, t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7'},
+      {id:2, t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7'},
+      {id:3, t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'ALF Code Servers', srcThread:'Task Board', srcUrl:'https://t.me/c/1571211776/1'},
+      {id:4, t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2', srcGroup:'Java User Menus Interface UI', srcThread:'Mini app UI', srcUrl:'https://t.me/c/1549786300/1279'},
+      {id:5, t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff', srcGroup:'Mission Control', srcThread:'Command Center', srcUrl:'https://t.me/c/3716119745/4'},
     ],
     VET: [
-      {id:11, t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00'},
-      {id:12, t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142'},
+      {id:11, t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6'},
+      {id:12, t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6'},
     ],
-    LIR: [ {id:21, t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00'} ],
-    FER: [ {id:31, t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f'} ],
+    LIR: [ {id:21, t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'HR', srcUrl:'https://t.me/c/3716119745/8'} ],
+    FER: [ {id:31, t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'LHE Operations', srcThread:'Maintenance', srcUrl:'https://t.me/c/3716119745/6'} ],
   },
   contacts: [
     {id:1, name:'Alex Morgan', s:'Family · WhatsApp', clr:'#3f9142'},
@@ -369,7 +369,7 @@ function renderResults(){
     html += `<div class="res-sect">Tasks</div><div class="panel">`;
     matchTasks.slice(0,TASK_CAP).forEach(t=>{
       const dot = t.pr ? `<span class="dot ${t.pr==='P1'?'p1':t.pr==='P2'?'p2':'p3'}"></span>` : '';
-      html += `<div class="row task ${t.done?'done':''}" data-sopen="${t.id}">
+      html += `<div class="row task ${t.done?'done':''}" data-sopen="${t.id}" data-slist="${t.list}">
         <div class="cbox ${t.done?'on':''}">✓</div>
         <div class="body"><div class="t">${hlt(t.t,q)}</div>
           <div class="s">${dot}<span>${t.list} · ${hlt(t.s||'',q)}</span></div></div>
@@ -403,7 +403,7 @@ function renderResults(){
   if(!html) html = `<div class="empty">No results for “${esc(taskQuery)}”.</div>`;
   box.innerHTML = html;
 
-  box.querySelectorAll('[data-sopen]').forEach(el=>el.onclick=()=>openTask(+el.dataset.sopen));
+  box.querySelectorAll('[data-sopen]').forEach(el=>el.onclick=()=>openTask(+el.dataset.sopen, el.dataset.slist));
   box.querySelectorAll('.showmore').forEach(el=>el.onclick=()=>haptic());
 }
 
@@ -425,7 +425,7 @@ function taskRow(task,i,n){
   return `<div class="row task ${task.done?'done':''}" data-id="${task.id}">
     ${drag}
     <div class="cbox ${task.done?'on':''}" data-check="${task.id}">✓</div>
-    <div class="body" data-open="${task.id}">
+    <div class="body" data-open="${task.id}" data-list="${activeList}">
       <div class="t">${esc(task.t)}</div>
       <div class="s">${dot}<span>${esc(task.s)}</span></div>
     </div>
@@ -436,7 +436,7 @@ function taskRow(task,i,n){
 function wireTaskRows(){
   main.querySelectorAll('[data-check]').forEach(el=>el.onclick=(ev)=>{ ev.stopPropagation();
     const id=+el.dataset.check; const t=DATA.tasks[activeList].find(x=>x.id===id); t.done=!t.done; haptic(); renderResults(); });
-  main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ const id=+el.dataset.open; openTask(id); });
+  main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ const id=+el.dataset.open; openTask(id, el.dataset.list || activeList); });
   main.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>move(+b.dataset.up,-1));
   main.querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>move(+b.dataset.down,1));
 }
@@ -508,17 +508,35 @@ function showSheet(html){ sheetContent.innerHTML=html; sheet.classList.add('on')
 function hideSheet(){ sheet.classList.remove('on'); sheetBack.classList.remove('on'); }
 sheetBack.onclick=hideSheet;
 
-function openTask(id){
-  const t=DATA.tasks[activeList].find(x=>x.id===id); if(!t) return;
-  showSheet(`<h3>${esc(t.t)}</h3><div class="meta">${activeList} · ${esc(t.s)}</div>
+function openTask(id, listKey=activeList){
+  const list = DATA.tasks[listKey] || [];
+  const t=list.find(x=>x.id===id); if(!t) return;
+  showSheet(`<h3>${esc(t.t)}</h3><div class="meta">${listKey} · ${esc(t.s)}</div>
     <div class="kv"><span class="k">Status</span><span>${t.done?'Done':'Open'}</span></div>
-    <div class="kv"><span class="k">Priority</span><span>${t.pr||'—'}</span></div>
-    <div class="kv"><span class="k">List</span><span>${activeList}</span></div>
+    <div class="kv"><span class="k">Priority</span><span>${t.pr||'None'}</span></div>
+    <div class="kv"><span class="k">List</span><span>${listKey}</span></div>
+    <div class="kv"><span class="k">Group</span><span>${esc(t.srcGroup||'Unknown')}</span></div>
+    <div class="kv"><span class="k">Thread</span><span>${esc(t.srcThread||'Main')}</span></div>
     <div class="actrow" style="margin-top:18px">
-      <button class="act primary" id="aDone">${t.done?'Reopen':'Complete'}</button>
+      <button class="act primary" id="aSource">Comment there</button>
+      <button class="act" id="aDone">${t.done?'Reopen':'Complete'}</button>
       <button class="act" id="aClose">Close</button></div>`);
+  document.getElementById('aSource').onclick=()=>openTaskSource(t);
   document.getElementById('aDone').onclick=()=>{ t.done=!t.done; hideSheet(); render(); };
   document.getElementById('aClose').onclick=hideSheet;
+}
+
+function openTaskSource(task){
+  const url = task && task.srcUrl;
+  if(!url) return;
+  haptic('medium');
+  try {
+    if(tg && tg.openTelegramLink && /^(https?:\/\/)?t\.me\//.test(url)) tg.openTelegramLink(url);
+    else if(tg && tg.openLink) tg.openLink(url);
+    else window.open(url, '_blank', 'noopener');
+  } catch (e) {
+    window.open(url, '_blank', 'noopener');
+  }
 }
 function openReminder(id){
   const r=DATA.reminders.find(x=>x.id===id);
