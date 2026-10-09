@@ -1,611 +1,368 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Alfred</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<style>
-  :root {
-    --bg: #f6f7f8;
-    --panel: #ffffff;
-    --txt: #1e1f21;
-    --sub: #6d6e6f;
-    --faint: #9b9c9e;
-    --line: #edecea;
-    --accent: #4573d2;
-    --accent-soft: #eaf0fb;
-    --p1: #e8384f;
-    --p2: #ec8c1c;
-    --p3: #4573d2;
-    --green: #3f9142;
-    --green-soft: #e7f2e7;
-    --gframe: #2fb457;
-    --gline: #cfe6d4;
-    --amber: #b07d00;
-    --amber-soft: #fbf1d8;
-    --red-soft: #fdeaec;
-    --violet: #7b61ff;
-    --violet-soft: #eeeaff;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--bg); color: var(--txt);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 15px; overflow: hidden; -webkit-font-smoothing: antialiased;
-  }
-  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh;
-    border: 3px solid var(--gframe); border-radius: 22px; overflow: hidden;
-    box-shadow: inset 0 0 0 1px rgba(47,180,87,.25), 0 0 18px rgba(47,180,87,.28); position: relative; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Alfred Tasks</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      background: #0d0d1a;
+      color: #fff;
+      min-height: 100vh;
+      padding: 14px 14px 80px;
+    }
 
-  main { flex: 1; overflow: hidden; padding: 0; -webkit-overflow-scrolling: touch; position: relative; }
-  .tasks-shell { position: relative; height: 100%; overflow: hidden; }
-  .tasks-track { display: flex; width: 200%; height: 100%; transform: translateX(0); transition: transform .28s cubic-bezier(.2,.8,.2,1); }
-  .tasks-track.detail-open { transform: translateX(-50%); }
-  .tasks-pane { width: 50%; min-width: 50%; height: 100%; }
-  .tasks-list-pane { padding: 12px 14px 112px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg); }
-  .tasks-detail-pane { position: relative; padding: 12px 14px 112px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: transparent; }
+    /* Focus task banner */
+    .focus-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #1d3a6e, #2d1b6e);
+      border: 1px solid rgba(99,130,220,0.3);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .focus-icon { font-size: 20px; flex-shrink: 0; }
+    .focus-label { font-size: 10px; font-weight: 700; color: #8899cc; text-transform: uppercase; letter-spacing: 0.8px; }
+    .focus-task-name { font-size: 16px; font-weight: 700; color: #fff; margin-top: 1px; }
+    .focus-hidden { display: none; }
 
-  /* rocstars */
-  .rstars { display:flex; gap:14px; overflow-x:auto; padding: 2px 2px 10px; margin-bottom: 12px; }
-  .rstar { flex:none; background:none; border:none; padding:0; display:flex; flex-direction:column; align-items:center; gap:7px; color:var(--sub); }
-  .rstar .orb { width:58px; height:58px; border-radius:50%; border:2px solid #dadbdd; background:var(--panel); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; overflow:hidden; }
-  .rstar .orb.txt { color:#fff; }
-  .rstar .nm { font-size:12px; font-weight:600; max-width:66px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .rstar.active .orb { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(69,115,210,.12); }
-  .rstar.active .nm { color: var(--txt); }
-  .rstar.sync .orb { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-soft); }
-  .rsyncnote { color: var(--sub); font-size: 12.5px; margin: -2px 2px 12px; }
+    .filter-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      background: #1e2035;
+      color: #888;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .filter-chip.chip-stuck.active    { background: rgba(239,68,68,0.22);  color: #ef4444; }
+    .filter-chip.chip-progress.active { background: rgba(245,158,11,0.22); color: #f59e0b; }
+    .filter-chip.chip-done.active     { background: rgba(34,197,94,0.22);  color: #22c55e; }
 
-  /* section header above a panel */
-  .sect { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 9px; }
-  .sect .lbl { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;
-    color: var(--sub); text-transform: uppercase; letter-spacing: .4px; }
-  .sect .cnt { background: var(--bg); color: var(--sub); font-size: 11px; font-weight: 700;
-    padding: 1px 8px; border-radius: 20px; }
-  .sect .mtoggle { display: flex; gap: 6px; }
-  .mbtn { background: var(--panel); color: var(--sub); border: 1px solid var(--line);
-    border-radius: 8px; width: 32px; height: 30px; font-size: 15px; display:flex; align-items:center; justify-content:center; }
-  .mbtn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+    .week-section { margin-bottom: 20px; }
+    .week-section.week-hidden { display: none; }
 
-  /* white panel holding rows */
-  .panel { background: var(--panel); border: 1px solid var(--gline); border-radius: 12px;
-    overflow: hidden; margin-bottom: 20px; }
-  .task-stage { display: grid; grid-template-columns: 16px 1fr; gap: 10px; align-items: stretch; }
-  .task-rail { background: var(--panel); border: 1px solid var(--gline); border-radius: 12px; padding: 10px 0; display:flex; flex-direction:column; align-items:center; gap:10px; }
-  .rail-dot { width: 7px; height: 46px; border-radius: 999px; opacity: .3; }
-  .rail-dot.active { width: 10px; opacity: 1; box-shadow: 0 0 0 3px rgba(69,115,210,.08); }
-  .rail-gap { width:2px; flex:1; background: var(--line); border-radius:999px; }
-  .task-shell { position: relative; overflow: hidden; }
-  .task-card { transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .22s ease; }
-  .task-shell.has-active .task-card { transform: translateX(18px); }
-  .task-shell.has-active .task-card.active { transform: translateX(0); }
-  .task-shell.has-active .task-card:not(.active) { opacity: .88; }
-  .row { display: flex; align-items: center; gap: 12px; padding: 13px 14px;
-    border-bottom: 1px solid var(--line); }
-  .row:last-child { border-bottom: none; }
-  .row:active { background: #fafafa; }
-  .row .body { flex: 1; min-width: 0; }
-  .row .t { font-weight: 600; font-size: 14.5px; color: var(--txt);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .row .s { color: var(--sub); font-size: 12.5px; margin-top: 3px;
-    display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .row .chev { color: var(--faint); font-size: 18px; flex: none; }
+    /* Small compact pill — NOT full-width banner */
+    .week-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .label-41    { background: #1d6fe8; color: #fff; }
+    .label-42    { background: #7c3aed; color: #fff; }
+    .label-group { background: #2d3142; color: #ccc; }
+    .week-chevron { font-size: 10px; opacity: 0.7; transition: transform 0.2s; }
+    .week-section.collapsed .week-chevron { transform: rotate(-90deg); }
 
-  /* priority dot */
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-  .dot.p1 { background: var(--p1); }
-  .dot.p2 { background: var(--p2); }
-  .dot.p3 { background: var(--p3); }
+    .task-list {
+      overflow: hidden;
+      max-height: 2000px;
+      transition: max-height 0.25s ease;
+    }
+    .week-section.collapsed .task-list { max-height: 0; }
 
-  /* pills */
-  .pill { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex:none; }
-  .pill.green { background: var(--green-soft); color: var(--green); }
-  .pill.amber { background: var(--amber-soft); color: var(--amber); }
-  .pill.coral { background: var(--red-soft); color: var(--p1); }
-  .pill.violet{ background: var(--violet-soft); color: var(--violet); }
-  .pill.gold  { background: var(--amber-soft); color: var(--amber); }
-  .pill.blue  { background: var(--accent-soft); color: var(--accent); }
+    /* Layout: [accent 4px] [avatar 38px] [task name flex] [badge] */
+    .task-row {
+      display: flex;
+      align-items: center;
+      background: #16182a;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      height: 62px;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+    }
+    .task-row:active { background: #1e2040; cursor: grabbing; }
+    .task-row.hidden { display: none; }
+    .task-row.sortable-ghost { opacity: 0.35; }
+    .task-row.sortable-drag  { opacity: 0.95; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border-radius: 10px; }
 
-  .amt { font-weight: 700; font-size: 14.5px; flex: none; }
-  .amt.pos { color: var(--green); }
-  .amt.neg { color: var(--txt); }
+    .accent { width: 4px; height: 100%; flex-shrink: 0; }
+    .accent-done     { background: #22c55e; }
+    .accent-progress { background: #f59e0b; }
+    .accent-stuck    { background: #ef4444; }
 
-  .avatar { width: 34px; height: 34px; border-radius: 50%; flex:none;
-    display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:14px; }
+    /* Avatar LEFT — between accent and task name */
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      object-fit: cover;
+      margin-left: 10px;
+      cursor: pointer;
+      transition: outline 0.1s;
+    }
+    .avatar.active-filter { outline: 2.5px solid #fff; outline-offset: 1px; }
 
-  /* task row: checkbox + drag */
-  .task.done .t { text-decoration: line-through; color: var(--faint); }
-  .task.done .s { color: var(--faint); }
-  .handle { color: var(--faint); font-size: 17px; cursor: grab; touch-action: none; flex:none; }
-  .cbox { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #d3d4d6; flex:none;
-    display:flex; align-items:center; justify-content:center; font-size:12px; color:#c7c8ca; }
-  .cbox.on { background: var(--green); border-color: var(--green); color:#fff; }
+    .task-name {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 10px;
+    }
 
-  /* search bar + filter chips (Asana search format) */
-  .searchbar { display:flex; align-items:center; gap:9px; background:var(--panel); border:1.5px solid var(--gline);
-    border-radius:10px; padding:10px 13px; margin-bottom:12px; }
-  .searchdock { position: fixed; left: 14px; right: 14px; bottom: calc(62px + env(safe-area-inset-bottom)); z-index: 29; }
-  .searchdock .searchbar { margin-bottom: 0; box-shadow: 0 8px 24px rgba(30,31,33,.10); }
-  .searchbar .si { color:var(--faint); font-size:15px; }
-  .searchbar input { border:none; outline:none; flex:1; font-size:14.5px; background:transparent; color:var(--txt); }
-  .searchbar .clr { color:var(--faint); font-size:16px; padding:0 2px; }
-  .fchips { display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; padding-bottom:2px; }
-  .fchip { flex:none; padding:6px 15px; border:1px solid var(--line); border-radius:20px; font-size:13px;
-    font-weight:600; color:var(--sub); background:var(--panel); }
-  .fchip.active { color:var(--green); border-color:var(--gframe); background:var(--green-soft); }
-  .hl { font-weight:800; color:var(--txt); }
-  .res-sect { font-size:13px; font-weight:700; color:var(--sub); text-transform:uppercase;
-    letter-spacing:.4px; margin:4px 4px 8px; }
-  .rowicon { width:30px; height:30px; border-radius:8px; flex:none; display:flex; align-items:center;
-    justify-content:center; color:#fff; font-size:13px; font-weight:800; }
-  .ava-sm { width:26px; height:26px; border-radius:50%; flex:none; display:flex; align-items:center;
-    justify-content:center; color:#fff; font-weight:700; font-size:11px; }
-  .showmore { color:var(--accent); font-weight:600; font-size:13.5px; padding:12px 14px; }
-  .arrows { display: flex; flex-direction: column; gap: 3px; flex: none; }
-  .arrows button { background: var(--bg); border: none; color: var(--accent); width: 28px; height: 19px;
-    border-radius: 5px; font-size: 10px; line-height: 1; }
-  .arrows button:disabled { color: #d5d6d8; }
-  .sortable-ghost { opacity: .4; }
-  .sortable-chosen { background: #f4f7fd; }
+    .badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 10px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .badge-done     { background: #22c55e; color: #fff; }
+    .badge-progress { background: #f59e0b; color: #fff; }
+    .badge-stuck    { background: #ef4444; color: #fff; }
 
-  /* pay button */
-  .paybtn { background: var(--accent); color: #fff; border: none; border-radius: 8px;
-    padding: 6px 14px; font-size: 12.5px; font-weight: 700; flex: none; }
-
-  nav {
-    display: flex; background: var(--panel); border-top: 1px solid var(--line);
-    padding: 4px 2px calc(4px + env(safe-area-inset-bottom)); flex: none;
-  }
-  nav button {
-    flex: 1; background: none; border: none; color: var(--faint); padding: 7px 0 5px;
-    display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; position: relative;
-  }
-  nav button .ne { font-size: 18px; line-height: 1; filter: grayscale(1) opacity(.6); }
-  nav button.active { color: var(--accent); }
-  nav button.active .ne { filter: none; }
-  nav button.active .nl { color: var(--accent); font-weight: 700; }
-
-  .sheet-back { position: fixed; inset: 0; background: rgba(30,31,33,.4); opacity:0; pointer-events:none; transition: opacity .2s; z-index: 40; }
-  .sheet-back.on { opacity: 1; pointer-events: auto; }
-  .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel);
-    border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom));
-    transform: translateY(100%); transition: transform .25s cubic-bezier(.2,.8,.2,1); z-index: 41; max-height: 82vh; overflow-y:auto; }
-  .sheet.on { transform: translateY(0); }
-  .sheet .grip { width: 38px; height: 4px; border-radius: 4px; background: #dcdcdc; margin: 6px auto 16px; }
-  .sheet h3 { margin: 0 0 4px; font-size: 18px; }
-  .sheet .meta { color: var(--sub); font-size: 13px; margin-bottom: 18px; }
-  .actrow { display: flex; gap: 10px; flex-wrap: wrap; }
-  .act { flex: 1; min-width: 44%; background: var(--bg); border: 1px solid var(--line); color: var(--txt);
-    border-radius: 10px; padding: 13px; font-size: 14.5px; font-weight: 600; display:flex; align-items:center; justify-content:center; gap:8px; }
-  .act.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .kv { display:flex; justify-content:space-between; padding: 12px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
-  .kv:last-of-type { border-bottom: none; }
-  .kv .k { color: var(--sub); }
-  .taskhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
-  .taskhead h3 { margin: 0; }
-  .taskmeta-line { color: var(--sub); font-size: 14px; font-weight: 600; white-space: nowrap; text-align: right; }
-  .cmtwrap { margin-top: 18px; }
-  .cmtlist { display: flex; flex-direction: column; gap: 10px; }
-  .cmt { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; }
-  .cmtmeta { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 5px; }
-  .cmtname { font-size: 13px; font-weight: 700; color: var(--txt); }
-  .cmttime { font-size: 12px; color: var(--faint); }
-  .cmtbody { font-size: 13.5px; color: var(--sub); line-height: 1.35; }
-  .composer { margin-top: 16px; }
-  .composer textarea { width: 100%; min-height: 88px; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; font: inherit; color: var(--txt); background: var(--bg); outline: none; }
-  .composer textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(69,115,210,.10); }
-  .empty { text-align:center; color: var(--faint); padding: 48px 20px; font-size: 14px; }
-  .ctxfab { position: fixed; right: 16px; bottom: calc(62px + env(safe-area-inset-bottom));
-    min-width: 58px; height: 50px; padding: 0 16px; border-radius: 25px;
-    background: rgba(255,255,255,.94); color: var(--sub); border: 1px solid var(--line);
-    font-size: 13px; font-weight: 700; box-shadow: 0 8px 22px rgba(30,31,33,.12); z-index: 31;
-    display:flex; align-items:center; justify-content:center; }
-  .detail-wrap { border-radius: 18px; border: 2px solid var(--accent); background: rgba(255,255,255,.9); box-shadow: 0 12px 28px rgba(30,31,33,.12); overflow: hidden; }
-  .detail-top { display:flex; align-items:center; justify-content:space-between; gap:12px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.92); }
-  .detail-top .back { background:none; border:none; color: var(--accent); font-size:14px; font-weight:700; padding:0; }
-  .detail-badge { font-size: 11px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; color: var(--accent); }
-  .detail-body { padding: 14px; }
-  .detail-title { font-size: 21px; font-weight: 800; line-height: 1.1; margin: 0 0 8px; }
-  .detail-sub { color: var(--sub); font-size: 13px; margin-bottom: 14px; }
-  .detail-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 14px; }
-  .detail-section { margin-top: 16px; }
-  .detail-section h4 { margin: 0 0 10px; font-size: 12px; font-weight: 800; letter-spacing: .35px; text-transform: uppercase; color: var(--sub); }
-  .detail-actions { display:flex; gap:10px; margin-top:16px; }
-  .detail-actions button { flex:1; border:none; border-radius: 10px; padding: 12px 10px; font-size: 14px; font-weight: 700; }
-  .detail-actions .pri { background: var(--accent); color:#fff; }
-  .detail-actions .sec { background: var(--bg); color: var(--txt); border:1px solid var(--line); }
-</style>
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: #fff;
+      font-size: 30px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(239,68,68,0.45);
+      line-height: 1;
+      padding-bottom: 2px;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
 </head>
 <body>
-<div id="app">
-  <main id="main"></main>
-  <nav id="nav"></nav>
-</div>
-<div class="searchdock" id="searchDock" style="display:none"></div>
-<button class="ctxfab" id="ctxFab">DRO</button>
-<div class="sheet-back" id="sheetBack"></div>
-<div class="sheet" id="sheet"><div class="grip"></div><div id="sheetContent"></div></div>
 
-<script>
-const tg = window.Telegram ? window.Telegram.WebApp : null;
-try { if (tg) { tg.ready(); tg.expand();
-  if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
-  if (tg.setBackgroundColor) tg.setBackgroundColor('#f6f7f8');
-} } catch(e){}
-function haptic(t){ try{ tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(t||'light'); }catch(e){} }
-
-/* ---------- mock data (shapes mirror the real Alfred menu) ---------- */
-const FEATURES = [
-  {key:'tasks', em:'✅', label:'Tasks'},
-  {key:'contacts', em:'🪪', label:'Contacts'},
-  {key:'reminders', em:'⏰', label:'Reminders'},
-  {key:'expenses', em:'💰', label:'Expenses'},
-  {key:'payments', em:'💳', label:'Pay'},
-  {key:'team', em:'👥', label:'Team'},
-  {key:'bhc', em:'🐞', label:'Bugs'},
-];
-
-const LISTS = ['QBO','VET','LIR','FER'];
-const LIST_CLR = {QBO:'#4573d2', VET:'#3f9142', LIR:'#b07d00', FER:'#e8384f'};
-let activeList = 'QBO';
-let activeRocstar = 'dro';
-
-const ROCSTARS = [
-  {id:'dro', name:'DRO', emoji:'🕶️', color:'#4573d2', syncedTo:['fio']},
-  {id:'fio', name:'Fio', emoji:'🎤', color:'#3f9142', syncedTo:['dro']},
-];
-
-const DATA = {
-  tasks: {
-    QBO: [
-      {id:1, rocstar:'dro', t:'Follow up supplier quote', s:'Ops · due today', pr:'P1', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'DRO', time:'2m ago', body:'Push the supplier for a final number today.'},{name:'Casey Kim', time:'18m ago', body:'Waiting on revised quote with shipping included.'},{name:'Alex Morgan', time:'1h ago', body:'Initial response landed, but they missed the rush option.'}]},
-      {id:2, rocstar:'fio', t:'Pay utility invoice', s:'Finance · $1,240', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'Revenue and Finance', srcUrl:'https://t.me/c/3716119745/7', comments:[{name:'Casey Kim', time:'9m ago', body:'Invoice PDF is in Drive and ready to clear.'},{name:'DRO', time:'26m ago', body:'Pay this after confirming the meter reading.'},{name:'Alex Morgan', time:'54m ago', body:'Amount matches last month plus the late fee reversal.'}]},
-      {id:3, rocstar:'dro', t:'Send parts list', s:'Maintenance · 5 items', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'ALF Code Servers', srcThread:'Task Board', srcUrl:'https://t.me/c/1571211776/1', comments:[{name:'Jordan Lee', time:'6m ago', body:'I have 3 of the 5 serials, still missing the pump pair.'},{name:'DRO', time:'21m ago', body:'Post the list back in the maintenance thread once clean.'},{name:'Alex Morgan', time:'48m ago', body:'Using the old service sheet as the source of truth for now.'}]},
-      {id:4, rocstar:'dro', t:'Review pull request', s:'Dev · reorder feature', pr:'P3', done:false, as:'Dev Contact', ac:'#4573d2', srcGroup:'Java User Menus Interface UI', srcThread:'Mini app UI', srcUrl:'https://t.me/c/1549786300/1279', comments:[{name:'DRO', time:'1m ago', body:'Comment needs to live inside the task menu and show the last 3 comments.'},{name:'Alfred', time:'14m ago', body:'Button render is still dropping in the synced view.'},{name:'Alfred', time:'31m ago', body:'V1 task source jump is live on the public mini app link.'}]},
-      {id:5, rocstar:'fio', t:'Confirm weekly schedule', s:'Team · this week', pr:'', done:true, as:'Sam Rivera', ac:'#7b61ff', srcGroup:'Mission Control', srcThread:'Command Center', srcUrl:'https://t.me/c/3716119745/4', comments:[{name:'Sam Rivera', time:'11m ago', body:'Crew confirmed the Thursday handoff.'},{name:'DRO', time:'37m ago', body:'Lock Friday before posting the recap.'},{name:'Alex Morgan', time:'1h ago', body:'Only waiting on the airport pickup slot.'}]},
-    ],
-    VET: [
-      {id:11, rocstar:'fio', t:'Order stock', s:'Inventory', pr:'P1', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Casey Kim', time:'4m ago', body:'Need final count from the barn before placing the order.'},{name:'DRO', time:'22m ago', body:'Keep this one in the vet thread, not general ops.'},{name:'Alex Morgan', time:'58m ago', body:'Supplier can still ship tomorrow if we confirm by 5.'}]},
-      {id:12, rocstar:'fio', t:'Call supplier re invoice', s:'Finance', pr:'', done:false, as:'Alex Morgan', ac:'#3f9142', srcGroup:'LHE Operations', srcThread:'Vet', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Alex Morgan', time:'7m ago', body:'They asked for the old invoice number first.'},{name:'DRO', time:'24m ago', body:'If they stall, move this to priority.'},{name:'Casey Kim', time:'1h ago', body:'Last callback ended before they confirmed the balance.'}]},
-    ],
-    LIR: [ {id:21, rocstar:'dro', t:'Run staff payroll', s:'Due Fri', pr:'P2', done:false, as:'Casey Kim', ac:'#b07d00', srcGroup:'Mission Control', srcThread:'HR', srcUrl:'https://t.me/c/3716119745/8', comments:[{name:'Casey Kim', time:'3m ago', body:'Need two final hour totals before payroll closes.'},{name:'DRO', time:'19m ago', body:'Post the draft numbers in HR first.'},{name:'Sam Rivera', time:'46m ago', body:'Overtime line is updated for the ranch crew.'}] } ],
-    FER: [ {id:31, rocstar:'fio', t:'Restock tools', s:'Tools', pr:'', done:false, as:'Jordan Lee', ac:'#e8384f', srcGroup:'LHE Operations', srcThread:'Maintenance', srcUrl:'https://t.me/c/3716119745/6', comments:[{name:'Jordan Lee', time:'5m ago', body:'Missing sockets and two diamond blades.'},{name:'DRO', time:'17m ago', body:'Keep the order small, just what the crew needs this week.'},{name:'Alex Morgan', time:'42m ago', body:'Local shop has everything except the heavy drill bits.'}] } ],
-  },
-  contacts: [
-    {id:1, name:'Alex Morgan', s:'Family · WhatsApp', clr:'#3f9142'},
-    {id:2, name:'Sam Rivera', s:'Advisor · call', clr:'#7b61ff'},
-    {id:3, name:'Jordan Lee', s:'Maintenance', clr:'#e8384f'},
-    {id:4, name:'Dev Contact', s:'Engineering', clr:'#4573d2'},
-    {id:5, name:'Casey Kim', s:'Operations', clr:'#b07d00'},
-  ],
-  reminders: [
-    {id:1, t:'Fresh-cut fruit delivery', s:'in 30 min', badge:'30m', clr:'green'},
-    {id:2, t:'Flight deal check', s:'Today 4:00 PM', badge:'today', clr:'coral'},
-    {id:3, t:'Filing deadline', s:'in 3 days', badge:'3d', clr:'gold'},
-    {id:4, t:'Weekly plan review', s:'Tomorrow 8 AM', badge:'1d', clr:'violet'},
-  ],
-  expenses: [
-    {id:1, t:'Groceries', s:'Home ledger', amt:'-$182.40', pos:false},
-    {id:2, t:'Resale payout', s:'Arbitrage', amt:'+$540.00', pos:true},
-    {id:3, t:'Currency transfer', s:'~1.5% fee', amt:'-$21.50', pos:false},
-    {id:4, t:'Filing fee', s:'Ops', amt:'-$95.00', pos:false},
-  ],
-  payments: [
-    {id:1, t:'Staff A', s:'Weekly · pending', amt:'$120', due:true},
-    {id:2, t:'Vendor B', s:'Parts reimburse', amt:'$88', due:true},
-    {id:3, t:'Contractor C', s:'Invoice · paid', amt:'$450', due:false},
-  ],
-  team: [
-    {id:1, name:'Staff A', s:'Housekeeping · clocked in', clr:'#b07d00', on:true},
-    {id:2, name:'Vendor B', s:'Maintenance · off', clr:'#e8384f', on:false},
-    {id:3, name:'Crew', s:'3 staff · payroll Fri', clr:'#3f9142', on:true},
-  ],
-  bhc: [
-    {id:1, t:'Sample bug one', s:'x3 · in progress', st:'open', clr:'coral'},
-    {id:2, t:'Sample bug two', s:'x2 · triaged', st:'open', clr:'gold'},
-    {id:3, t:'Sample bug three', s:'resolved', st:'done', clr:'green'},
-  ],
-};
-
-/* ---------- state ---------- */
-let current = 'tasks';
-let taskMode = 'reorder'; // reorder | open | priority
-let taskQuery = '';
-let taskFilter = 'Tasks';
-let selectedTask = null;
-const FILTERS = ['Tasks','Projects','People','Teams','Tags'];
-const main = document.getElementById('main');
-const searchDock = document.getElementById('searchDock');
-
-/* ---------- render ---------- */
-function setHeader(label){ document.title = label ? `Alfred · ${label}` : 'Alfred'; }
-
-function render(){
-  const f = FEATURES.find(x=>x.key===current);
-  setHeader(f.label);
-  const fab = document.getElementById('fab');
-  if (fab) fab.style.display = (current==='tasks') ? 'flex' : 'none';
-  searchDock.style.display = current==='tasks' ? 'block' : 'none';
-  searchDock.innerHTML = '';
-  if (current==='tasks') renderTasks();
-  else if (current==='contacts') renderContacts();
-  else if (current==='reminders') renderReminders();
-  else if (current==='expenses') renderExpenses();
-  else if (current==='payments') renderPayments();
-  else if (current==='team') renderTeam();
-  else if (current==='bhc') renderBHC();
-  renderNav();
-  updateMainButton();
-}
-
-function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-function sect(lbl, cnt, right){ return `<div class="sect"><div class="lbl">${lbl}${cnt!=null?`<span class="cnt">${cnt}</span>`:''}</div>${right||''}</div>`; }
-
-function renderTasks(){
-  searchDock.style.display='none';
-  searchDock.innerHTML = '';
-  const ctx = document.getElementById('ctxFab'); if(ctx) ctx.style.display='none';
-  const list = [];
-  LISTS.forEach(l=>DATA.tasks[l].forEach(t=>{ if(taskVisibleForActiveRocstar(t)) list.push({...t, list:l}); }));
-  const openN = list.filter(t=>!t.done).length;
-  const activeTask = selectedTask ? list.find(t => t.id === selectedTask.id && t.list === selectedTask.list) || null : null;
-  const accent = activeTask ? taskAccent(activeTask) : 'var(--accent)';
-  let html = `<div class="tasks-shell"><div class="tasks-track ${activeTask?'detail-open':''}">`;
-  html += `<section class="tasks-pane tasks-list-pane"><div class="rstars">` + ROCSTARS.map(r=>`<button class="rstar ${r.id===activeRocstar?'active':''}" data-rstar="${r.id}"><div class="orb txt" style="background:${r.color}">${r.emoji}</div><div class="nm">${esc(r.name)}</div></button>`).join('') + `</div>`;
-  html += sect('To do', openN, '');
-  html += `<div class="task-stage"><div class="task-rail">${renderTaskRail(list, activeTask)}</div><div class="task-shell ${activeTask?'has-active':''}"><div class="panel" id="tasklist">` + list.map((task,i)=>taskRow(task,i,list.length, activeTask)).join('') + `</div></div></div></section>`;
-  html += `<section class="tasks-pane tasks-detail-pane">${activeTask ? taskDetailPane(activeTask, accent) : ''}</section>`;
-  html += `</div></div>`;
-  main.innerHTML = html;
-  if(activeTask) main.style.setProperty('--accent', accent);
-  else main.style.removeProperty('--accent');
-  main.querySelectorAll('[data-rstar]').forEach(b=>b.onclick=()=>{ activeRocstar=b.dataset.rstar; selectedTask=null; haptic(); renderTasks(); });
-  wireTaskRows();
-  wireTaskDetail(activeTask);
-}
-
-function clearSearch(){ taskQuery=''; haptic(); render(); }
-
-function renderResults(){ renderTasks(); }
-
-// highlight matched substring, HTML-escaped
-function hlt(text, q){
-  const s = esc(text||''); if(!q) return s;
-  const lc = (text||'').toLowerCase(); const i = lc.indexOf(q);
-  if(i<0) return s;
-  return esc(text.slice(0,i)) + `<span class="hl">` + esc(text.slice(i,i+q.length)) + `</span>` + esc(text.slice(i+q.length));
-}
-
-function taskRow(task,i,n,activeTask){
-  const dot = task.pr ? `<span class="dot ${task.pr==='P1'?'p1':task.pr==='P2'?'p2':'p3'}"></span>` : '';
-  const isActive = !!(activeTask && activeTask.id===task.id && activeTask.list===task.list);
-  return `<div class="row task task-card ${task.done?'done':''} ${isActive?'active':''}" data-id="${task.id}">
-    <div class="body" data-open="${task.id}" data-list="${task.list||activeList}">
-      <div class="t">${esc(task.t)}</div>
-      <div class="s">${dot}<span>${esc(task.s)}</span></div>
+  <!-- Per-user focus task — populated by JS -->
+  <div class="focus-banner focus-hidden" id="focus-banner">
+    <span class="focus-icon">🎯</span>
+    <div>
+      <div class="focus-label">Focus</div>
+      <div class="focus-task-name" id="focus-task-name"></div>
     </div>
-  </div>`;
-}
+  </div>
 
-function wireTaskRows(){
-  main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>{ const id=+el.dataset.open; selectedTask = { id, list: el.dataset.list || activeList }; haptic('medium'); renderTasks(); });
-}
+  <div class="filter-bar">
+    <div class="filter-chip chip-stuck"    data-status="stuck">🔴 Stuck</div>
+    <div class="filter-chip chip-progress" data-status="progress">🟡 In Progress</div>
+    <div class="filter-chip chip-done"     data-status="done">🟢 Done</div>
+  </div>
 
-function renderTaskRail(list, activeTask){
-  if(!list.length) return `<div class="rail-gap"></div>`;
-  return list.map((task, idx)=>{
-    const clr = taskAccent(task);
-    const active = activeTask && activeTask.id===task.id && activeTask.list===task.list;
-    return `<div class="rail-dot ${active?'active':''}" style="background:${clr}"></div>${idx<list.length-1?'<div class="rail-gap"></div>':''}`;
-  }).join('');
-}
-
-function taskAccent(task){
-  return LIST_CLR[task.list] || task.ac || '#4573d2';
-}
-
-function taskDetailPane(task, accent){
-  const comments = (task.comments || []).slice(0,3).map(c=>`<div class="cmt"><div class="cmtmeta"><span class="cmtname">${esc(c.name)}</span><span class="cmttime">${esc(c.time)}</span></div><div class="cmtbody">${esc(c.body)}</div></div>`).join('');
-  return `<div class="detail-wrap" style="border-color:${accent}">
-    <div class="detail-top">
-      <button class="back" id="taskBack">Close</button>
-      <div class="detail-badge">${esc(task.list)} task</div>
+  <!-- Week 41 -->
+  <div class="week-section" id="section-41">
+    <div class="week-label label-41" onclick="toggleSection('section-41')">
+      Week 41 <span class="week-chevron">▼</span>
     </div>
-    <div class="detail-body">
-      <h2 class="detail-title">${esc(task.t)}</h2>
-      <div class="detail-sub">${esc(task.s)}</div>
-      <div class="detail-chips">
-        ${task.pr ? `<span class="pill blue">${esc(task.pr)}</span>` : ``}
-        <span class="pill ${task.done?'green':'violet'}">${task.done?'Done':'Open'}</span>
-        <span class="pill gold">${esc(task.list)}</span>
+    <div class="task-list" id="list-41">
+      <div class="task-row" data-status="done" data-person="12">
+        <div class="accent accent-done"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPerson(event,'12')">
+        <span class="task-name">Finca security</span>
+        <span class="badge badge-done">Done</span>
       </div>
-      <div class="detail-section"><h4>Latest comments</h4><div class="cmtlist">${comments || `<div class="cmt"><div class="cmtbody">No comments yet.</div></div>`}</div></div>
-      <div class="composer"><textarea id="taskCommentInput" placeholder="Write a comment here"></textarea></div>
-      <div class="detail-actions">
-        <button class="pri" id="aComment">Post</button>
-        <button class="sec" id="aSource">Group</button>
+      <div class="task-row" data-status="progress" data-person="5">
+        <div class="accent accent-progress"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=5" alt="" onclick="filterPerson(event,'5')">
+        <span class="task-name">COB review</span>
+        <span class="badge badge-progress">In Progress</span>
+      </div>
+      <div class="task-row" data-status="stuck" data-person="33">
+        <div class="accent accent-stuck"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=33" alt="" onclick="filterPerson(event,'33')">
+        <span class="task-name">Legal Arata</span>
+        <span class="badge badge-stuck">Stuck</span>
       </div>
     </div>
-  </div>`;
-}
+  </div>
 
-function wireTaskDetail(activeTask){
-  if(!activeTask) return;
-  const back = document.getElementById('taskBack');
-  if(back) back.onclick = ()=>{ selectedTask = null; haptic(); renderTasks(); };
-  const comment = document.getElementById('aComment');
-  if(comment) comment.onclick = ()=>postTaskComment(activeTask, activeTask.list);
-  const source = document.getElementById('aSource');
-  if(source) source.onclick = ()=>openTaskSource(activeTask);
-}
-function move(i,dir){ const all=DATA.tasks[activeList]; const visibleIdx = all.map((t,idx)=>taskVisibleForActiveRocstar(t)?idx:-1).filter(idx=>idx!==-1); const from=visibleIdx[i], to=visibleIdx[i+dir]; if(from==null||to==null) return;
-  const [m]=all.splice(from,1); all.splice(to,0,m); haptic('medium'); renderResults(); }
+  <!-- Week 42 -->
+  <div class="week-section" id="section-42">
+    <div class="week-label label-42" onclick="toggleSection('section-42')">
+      Week 42 <span class="week-chevron">▼</span>
+    </div>
+    <div class="task-list" id="list-42">
+      <div class="task-row" data-status="progress" data-person="47">
+        <div class="accent accent-progress"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=47" alt="" onclick="filterPerson(event,'47')">
+        <span class="task-name">LHE HR screening</span>
+        <span class="badge badge-progress">In Progress</span>
+      </div>
+      <div class="task-row" data-status="progress" data-person="22">
+        <div class="accent accent-progress"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=22" alt="" onclick="filterPerson(event,'22')">
+        <span class="task-name">Casa remodelacion</span>
+        <span class="badge badge-progress">In Progress</span>
+      </div>
+      <div class="task-row" data-status="stuck" data-person="18">
+        <div class="accent accent-stuck"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=18" alt="" onclick="filterPerson(event,'18')">
+        <span class="task-name">Gate camera install</span>
+        <span class="badge badge-stuck">Stuck</span>
+      </div>
+      <div class="task-row" data-status="progress" data-person="9">
+        <div class="accent accent-progress"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=9" alt="" onclick="filterPerson(event,'9')">
+        <span class="task-name">Maids recruitment</span>
+        <span class="badge badge-progress">In Progress</span>
+      </div>
+    </div>
+  </div>
 
-function rocstarById(id){ return ROCSTARS.find(r=>r.id===id); }
-function activeRocstarObj(){ return rocstarById(activeRocstar) || ROCSTARS[0]; }
-function taskVisibleForActiveRocstar(task){
-  if(!task.rocstar || task.rocstar===activeRocstar) return true;
-  const owner = rocstarById(task.rocstar);
-  return !!(owner && owner.syncedTo.includes(activeRocstar));
-}
+  <!-- This group — drag tasks up into planner -->
+  <div class="week-section" id="section-group">
+    <div class="week-label label-group" onclick="toggleSection('section-group')">
+      📍 This group <span class="week-chevron">▼</span>
+    </div>
+    <div class="task-list" id="list-group">
+      <div class="task-row" data-status="stuck" data-person="4">
+        <div class="accent accent-stuck"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPerson(event,'4')">
+        <span class="task-name">Fix Baileys sync bug</span>
+        <span class="badge badge-stuck">Stuck</span>
+      </div>
+      <div class="task-row" data-status="progress" data-person="7">
+        <div class="accent accent-progress"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=7" alt="" onclick="filterPerson(event,'7')">
+        <span class="task-name">Java UI deployment</span>
+        <span class="badge badge-progress">In Progress</span>
+      </div>
+    </div>
+  </div>
 
-function renderContacts(){
-  let html = sect('People', DATA.contacts.length);
-  html += `<div class="panel">` + DATA.contacts.map(c=>`
-    <div class="row" data-open="${c.id}">
-      <div class="avatar" style="background:${c.clr}">${c.name.trim()[0]}</div>
-      <div class="body"><div class="t">${esc(c.name)}</div><div class="s">${esc(c.s)}</div></div>
-      <span class="chev">›</span></div>`).join('') + `</div>`;
-  main.innerHTML = html;
-  main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>openGeneric('contacts',+el.dataset.open));
-}
+  <button class="fab">+</button>
 
-function renderReminders(){
-  let html = sect('Upcoming', DATA.reminders.length);
-  html += `<div class="panel">` + DATA.reminders.map(r=>`
-    <div class="row" data-open="${r.id}">
-      <div class="body"><div class="t">${esc(r.t)}</div><div class="s">${esc(r.s)}</div></div>
-      <span class="pill ${r.clr}">${r.badge}</span></div>`).join('') + `</div>`;
-  main.innerHTML = html;
-  main.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>openReminder(+el.dataset.open));
-}
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      tg.expand();
+      tg.setBackgroundColor('#0d0d1a');
+      tg.setHeaderColor('#0d0d1a');
+    }
 
-function renderExpenses(){
-  const net = DATA.expenses.reduce((a,e)=>a + parseFloat(e.amt.replace(/[^-\d.]/g,'')),0);
-  let html = sect('This week', null, `<span class="amt ${net>=0?'pos':'neg'}">${net>=0?'+':''}$${Math.abs(net).toFixed(2)}</span>`);
-  html += `<div class="panel">` + DATA.expenses.map(e=>`
-    <div class="row"><div class="body"><div class="t">${esc(e.t)}</div><div class="s">${esc(e.s)}</div></div>
-      <span class="amt ${e.pos?'pos':'neg'}">${esc(e.amt)}</span></div>`).join('') + `</div>`;
-  main.innerHTML = html;
-}
+    // Per-user focus task map (user ID → top task name)
+    const FOCUS = {
+      '1078092674': 'COB review',      // DRO
+    };
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
+      ? String(tg.initDataUnsafe.user.id)
+      : null;
+    if (userId && FOCUS[userId]) {
+      document.getElementById('focus-task-name').textContent = FOCUS[userId];
+      document.getElementById('focus-banner').classList.remove('focus-hidden');
+    }
 
-function renderPayments(){
-  const due = DATA.payments.filter(p=>p.due).length;
-  let html = sect('Outgoing', due + ' due');
-  html += `<div class="panel">` + DATA.payments.map(p=>`
-    <div class="row"><div class="body"><div class="t">${esc(p.t)}</div><div class="s">${esc(p.s)}</div></div>
-      ${p.due?`<span class="amt neg" style="margin-right:2px">${esc(p.amt)}</span><button class="paybtn" data-pay="${p.id}">Pay</button>`
-             :`<span class="amt neg" style="margin-right:2px">${esc(p.amt)}</span><span class="pill green">paid</span>`}</div>`).join('') + `</div>`;
-  main.innerHTML = html;
-  main.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>{ haptic('medium'); tg&&tg.showConfirm?tg.showConfirm('Send this payment?',()=>{}):alert('(demo) payment confirm'); });
-}
+    const sortableOpts = {
+      group: 'tasks',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      dragClass: 'sortable-drag',
+      delay: 120,
+      delayOnTouchOnly: true,
+      forceFallback: true,
+      fallbackTolerance: 3,
+    };
+    ['list-41', 'list-42', 'list-group'].forEach(id => {
+      Sortable.create(document.getElementById(id), sortableOpts);
+    });
 
-function renderTeam(){
-  let html = sect('Staff', DATA.team.length);
-  html += `<div class="panel">` + DATA.team.map(t=>`
-    <div class="row"><div class="avatar" style="background:${t.clr}">${t.name.trim()[0]}</div>
-      <div class="body"><div class="t">${esc(t.name)}</div><div class="s">${esc(t.s)}</div></div>
-      <span class="pill ${t.on?'green':'violet'}">${t.on?'on':'off'}</span></div>`).join('') + `</div>`;
-  main.innerHTML = html;
-}
+    let focusedWeek = null;
+    function toggleSection(id) {
+      const sections = document.querySelectorAll('.week-section');
+      if (focusedWeek === id) {
+        // Already focused — show all
+        focusedWeek = null;
+        sections.forEach(s => s.classList.remove('week-hidden'));
+      } else {
+        // Focus on this week: hide all others
+        focusedWeek = id;
+        sections.forEach(s => {
+          if (s.id === id) s.classList.remove('week-hidden');
+          else s.classList.add('week-hidden');
+        });
+      }
+    }
 
-function renderBHC(){
-  const open = DATA.bhc.filter(b=>b.st!=='done').length;
-  let html = sect('Bugs', open + ' open');
-  html += `<div class="panel">` + DATA.bhc.map(b=>`
-    <div class="row"><div class="body"><div class="t">${esc(b.t)}</div><div class="s">${esc(b.s)}</div></div>
-      <span class="pill ${b.clr}">${b.st}</span></div>`).join('') + `</div>`;
-  main.innerHTML = html;
-}
+    let activePersonId = null;
+    function filterPerson(e, personId) {
+      e.stopPropagation();
+      if (activePersonId === personId) {
+        activePersonId = null;
+        document.querySelectorAll('.avatar').forEach(a => a.classList.remove('active-filter'));
+      } else {
+        activePersonId = personId;
+        document.querySelectorAll('.avatar').forEach(a => a.classList.remove('active-filter'));
+        e.target.classList.add('active-filter');
+      }
+      applyAllFilters();
+    }
 
-/* ---------- detail sheets ---------- */
-const sheet=document.getElementById('sheet'), sheetBack=document.getElementById('sheetBack'), sheetContent=document.getElementById('sheetContent');
-function showSheet(html){ sheetContent.innerHTML=html; sheet.classList.add('on'); sheetBack.classList.add('on'); haptic(); }
-function hideSheet(){ sheet.classList.remove('on'); sheetBack.classList.remove('on'); }
-sheetBack.onclick=hideSheet;
+    let activeStatus = null;
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const s = chip.dataset.status;
+        if (activeStatus === s) {
+          activeStatus = null;
+          chip.classList.remove('active');
+        } else {
+          activeStatus = s;
+          document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        }
+        applyAllFilters();
+      });
+    });
 
-function openTask(id, listKey=activeList){
-  const list = DATA.tasks[listKey] || [];
-  const t=list.find(x=>x.id===id); if(!t) return;
-  const comments = (t.comments || []).slice(0,3).map(c=>`<div class="cmt"><div class="cmtmeta"><span class="cmtname">${esc(c.name)}</span><span class="cmttime">${esc(c.time)}</span></div><div class="cmtbody">${esc(c.body)}</div></div>`).join('') || `<div class="cmt"><div class="cmtbody">No comments yet.</div></div>`;
-  showSheet(`<div class="taskhead"><h3>${esc(t.t)}</h3><div class="taskmeta-line">${t.done?'Done':'Open'} - ${esc(t.pr||'No priority')} - ${listKey}</div></div>
-    <div class="cmtwrap"><div class="cmtlist">${comments}</div></div>
-    <div class="composer"><textarea id="taskCommentInput" placeholder="Write a comment here"></textarea></div>
-    <div class="actrow" style="margin-top:12px">
-      <button class="act primary" id="aComment">Post comment</button>
-      <button class="act" id="aSource">Group</button></div>
-    <div class="actrow" style="margin-top:10px">
-      <button class="act" id="aDone">${t.done?'Reopen':'Complete'}</button>
-      <button class="act" id="aClose">Close</button></div>`);
-  document.getElementById('aComment').onclick=()=>postTaskComment(t, listKey);
-  document.getElementById('aSource').onclick=()=>openTaskSource(t);
-  document.getElementById('aDone').onclick=()=>{ t.done=!t.done; hideSheet(); render(); };
-  document.getElementById('aClose').onclick=hideSheet;
-}
-
-function postTaskComment(task, listKey){
-  const input = document.getElementById('taskCommentInput');
-  const body = input && input.value ? input.value.trim() : '';
-  if(!body) return;
-  task.comments = task.comments || [];
-  task.comments.unshift({name:'DRO', time:'just now', body});
-  haptic('medium');
-  openTask(task.id, listKey);
-}
-
-function openTaskSource(task){
-  const url = task && task.srcUrl;
-  if(!url) return;
-  haptic('medium');
-  try {
-    if(tg && tg.openTelegramLink && /^(https?:\/\/)?t\.me\//.test(url)) tg.openTelegramLink(url);
-    else if(tg && tg.openLink) tg.openLink(url);
-    else window.open(url, '_blank', 'noopener');
-  } catch (e) {
-    window.open(url, '_blank', 'noopener');
-  }
-}
-function openReminder(id){
-  const r=DATA.reminders.find(x=>x.id===id);
-  showSheet(`<h3>${esc(r.t)}</h3><div class="meta">${esc(r.s)}</div>
-    <div class="actrow">
-      <button class="act">30m</button><button class="act">15m</button>
-      <button class="act primary" style="min-width:100%">Completed</button></div>`);
-  sheetContent.querySelectorAll('.act').forEach(b=>b.onclick=hideSheet);
-}
-function openGeneric(key,id){
-  const item=DATA[key].find(x=>x.id===id); if(!item) return;
-  const name=item.name||item.t;
-  showSheet(`<h3>${esc(name)}</h3><div class="meta">${esc(item.s||'')}</div>
-    <div class="actrow">
-      <button class="act primary">Message</button>
-      <button class="act">Details</button></div>`);
-  sheetContent.querySelectorAll('.act').forEach(b=>b.onclick=hideSheet);
-}
-
-function openRocstarSync(){
-  const current = activeRocstarObj();
-  const options = ROCSTARS.filter(r=>r.id!==current.id).map(r=>`<button class="act ${current.syncedTo.includes(r.id)?'primary':''}" data-sync-user="${r.id}">${esc(r.name)}</button>`).join('');
-  showSheet(`<h3>Sync ${esc(current.name)}</h3><div class="meta">Choose which Rocstar menus should show ${esc(current.name)}'s tasks.</div><div class="actrow">${options}</div><div class="actrow" style="margin-top:10px"><button class="act" id="closeSync">Close</button></div>`);
-  sheetContent.querySelectorAll('[data-sync-user]').forEach(b=>b.onclick=()=>toggleRocstarSync(b.dataset.syncUser));
-  document.getElementById('closeSync').onclick=()=>{ hideSheet(); renderTasks(); };
-}
-
-function toggleRocstarSync(targetId){
-  const current = activeRocstarObj();
-  const idx = current.syncedTo.indexOf(targetId);
-  if(idx>=0) current.syncedTo.splice(idx,1); else current.syncedTo.push(targetId);
-  haptic('medium');
-  openRocstarSync();
-}
-
-/* ---------- nav ---------- */
-function renderNav(){
-  const nav=document.getElementById('nav');
-  nav.innerHTML='';
-  nav.style.display='none';
-}
-
-/* ---------- Telegram MainButton ---------- */
-function updateMainButton(){
-  if(!tg||!tg.MainButton) return;
-  tg.MainButton.hide();
-}
-
-render();
-</script>
+    function applyAllFilters() {
+      document.querySelectorAll('.task-row').forEach(row => {
+        const statusOk = !activeStatus || row.dataset.status === activeStatus;
+        const personOk = !activePersonId || row.dataset.person === activePersonId;
+        row.classList.toggle('hidden', !(statusOk && personOk));
+      });
+    }
+  </script>
 </body>
 </html>
