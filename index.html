@@ -314,6 +314,7 @@
     }
     if (tg) {
       tg.expand();
+      if (tg.requestFullscreen) tg.requestFullscreen();
       tg.onEvent('themeChanged', applyTheme);
     }
     applyTheme();
