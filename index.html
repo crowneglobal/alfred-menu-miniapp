@@ -51,33 +51,40 @@
 
     .filter-bar {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
+      flex-direction: row;
+      align-items: center;
+      gap: 0;
       margin-bottom: 16px;
+      border-bottom: 1.5px solid rgba(255,255,255,0.1);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
+    .filter-bar::-webkit-scrollbar { display: none; }
     .filter-chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      border-radius: 20px;
+      padding: 8px 18px;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       user-select: none;
-      color: #fff;
+      color: #888;
       white-space: nowrap;
       flex-shrink: 0;
-      transition: all 0.15s;
+      border-bottom: 2.5px solid transparent;
+      margin-bottom: -1.5px;
+      transition: color 0.15s, border-color 0.15s;
       -webkit-tap-highlight-color: transparent;
+      background: none;
     }
-    .filter-chip.chip-stuck    { background: #b91c1c; }
-    .filter-chip.chip-progress { background: #b45309; }
-    .filter-chip.chip-done     { background: #15803d; }
-    .filter-chip.chip-stuck.active    { background: #ef4444; outline: 2px solid #fff; outline-offset: 2px; }
-    .filter-chip.chip-progress.active { background: #f59e0b; outline: 2px solid #fff; outline-offset: 2px; }
-    .filter-chip.chip-done.active     { background: #22c55e; outline: 2px solid #fff; outline-offset: 2px; }
+    .filter-chip.chip-stuck.active    { color: #ef4444; border-bottom-color: #ef4444; font-weight: 700; }
+    .filter-chip.chip-progress.active { color: #f59e0b; border-bottom-color: #f59e0b; font-weight: 700; }
+    .filter-chip.chip-done.active     { color: #22c55e; border-bottom-color: #22c55e; font-weight: 700; }
+    .filter-chip:not(.active):hover   { color: #ccc; }
+    body.light .filter-bar { border-bottom-color: rgba(0,0,0,0.12); }
+    body.light .filter-chip { color: #999; }
+    body.light .filter-chip:not(.active):hover { color: #333; }
 
     .week-section { margin-bottom: 20px; }
     .week-section.week-hidden { display: none; }
