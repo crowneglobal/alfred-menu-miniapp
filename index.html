@@ -13,82 +13,76 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-      background: #0d0d1a;
-      color: #fff;
-      min-height: 100vh;
-      padding: 14px 14px 72px;
+      background: #0d0d1a; color: #fff;
+      min-height: 100vh; padding: 12px 12px 70px;
       transition: background 0.2s, color 0.2s;
     }
 
     /* ── Light mode ── */
-    body.light { background: #f0f2f8; color: #111; }
+    body.light { background: #f4f5fb; color: #111; }
     body.light .focus-banner { background: linear-gradient(135deg,#dbeafe,#ede9fe); border-color: rgba(99,130,220,0.4); }
     body.light .focus-label  { color: #6366f1; }
     body.light .focus-task-name { color: #111; }
-    body.light .task-row     { background: #fff; }
+    body.light .task-row     { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
     body.light .task-row:active { background: #e8eaf6; }
-    body.light .task-assignee { color: #999; }
-    body.light .week-label.label-group { background: #d1d5e8; color: #333; }
-    body.light .bottom-nav { background: #fff; border-top-color: rgba(0,0,0,0.1); }
-    body.light .nav-tab { color: #aaa; }
-    body.light .nav-tab:not(.active):hover { color: #333; }
-    body.light .people-bar { background: #e8eaf6; }
-    body.light .modal-sheet { background: #fff; }
-    body.light .modal-input { background: #f0f2f8; color: #111; border-color: rgba(0,0,0,0.15); }
-    body.light .modal-select { background: #f0f2f8; color: #111; border-color: rgba(0,0,0,0.15); }
-    body.light .modal-label { color: #555; }
+    body.light .task-assignee { color: #aaa; }
+    body.light .section-sep  { color: #aaa; }
+    body.light .section-sep::before, body.light .section-sep::after { background: rgba(0,0,0,0.1); }
+    body.light .bottom-nav   { background: #fff; border-top-color: rgba(0,0,0,0.09); }
+    body.light .nav-tab      { color: #aaa; }
+    body.light .expand-panel { background: #fff; box-shadow: 0 -4px 20px rgba(0,0,0,0.12); border-top: 1px solid rgba(0,0,0,0.08); }
+    body.light .expand-btn   { background: rgba(0,0,0,0.05); color: #444; }
+    body.light .expand-btn.active { color: #fff; }
+    body.light .modal-sheet  { background: #fff; }
+    body.light .modal-input, body.light .modal-select { background: #f0f2f8; color: #111; border-color: rgba(0,0,0,0.12); }
+    body.light .modal-label  { color: #666; }
 
     /* Focus banner */
     .focus-banner {
       display: flex; align-items: center; gap: 10px;
       background: linear-gradient(135deg,#1d3a6e,#2d1b6e);
       border: 1px solid rgba(99,130,220,0.3);
-      border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+      border-radius: 12px; padding: 11px 14px; margin-bottom: 12px;
     }
-    .focus-icon { font-size: 20px; flex-shrink: 0; }
-    .focus-label { font-size: 10px; font-weight: 700; color: #8899cc; text-transform: uppercase; letter-spacing: 0.8px; }
-    .focus-task-name { font-size: 16px; font-weight: 700; color: #fff; margin-top: 1px; }
+    .focus-icon { font-size: 18px; flex-shrink: 0; }
+    .focus-label { font-size: 9px; font-weight: 700; color: #8899cc; text-transform: uppercase; letter-spacing: 0.8px; }
+    .focus-task-name { font-size: 15px; font-weight: 700; color: #fff; margin-top: 1px; }
     .focus-hidden { display: none; }
 
-    /* People filter strip */
-    .people-bar {
-      display: none; flex-direction: row; align-items: center; gap: 10px;
-      background: rgba(255,255,255,0.05); border-radius: 12px;
-      padding: 10px 12px; margin-bottom: 14px; overflow-x: auto;
-      -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    }
-    .people-bar::-webkit-scrollbar { display: none; }
-    .people-bar.visible { display: flex; }
-    .people-bar .avatar {
-      width: 38px; height: 38px; border-radius: 50%;
-      object-fit: cover; flex-shrink: 0; cursor: pointer;
-      transition: outline 0.1s;
-    }
-    .people-bar .avatar.active-filter { outline: 2.5px solid #fff; outline-offset: 2px; }
-    body.light .people-bar .avatar.active-filter { outline-color: #333; }
-
     /* Week sections */
-    .week-section { margin-bottom: 20px; }
+    .week-section { margin-bottom: 12px; }
     .week-section.week-hidden { display: none; }
+    .week-section.section-empty { display: none; }
+
     .week-label {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
-      margin-bottom: 10px; cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 700;
+      margin-bottom: 8px; cursor: pointer; user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
     .label-41    { background: #1d6fe8; color: #fff; }
     .label-42    { background: #7c3aed; color: #fff; }
-    .label-group { background: #2d3142; color: #ccc; }
-    .week-chevron { font-size: 10px; opacity: 0.7; transition: transform 0.2s; }
+    .week-chevron { font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
     .week-section.collapsed .week-chevron { transform: rotate(-90deg); }
     .task-list { overflow: hidden; max-height: 2000px; transition: max-height 0.25s ease; }
     .week-section.collapsed .task-list { max-height: 0; }
 
+    /* Group separator — clean text divider */
+    .section-sep {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase;
+      letter-spacing: 0.8px; margin: 6px 0 8px; cursor: pointer;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .section-sep::before, .section-sep::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1);
+    }
+
     /* Task rows */
     .task-row {
       display: flex; align-items: center;
-      background: #16182a; border-radius: 10px; margin-bottom: 6px;
-      height: 62px; overflow: hidden; cursor: grab;
+      background: #16182a; border-radius: 10px; margin-bottom: 5px;
+      height: 58px; overflow: hidden; cursor: grab;
       touch-action: none; -webkit-tap-highlight-color: transparent;
       transition: background 0.1s;
     }
@@ -96,19 +90,24 @@
     .task-row.hidden { display: none; }
     .task-row.sortable-ghost { opacity: 0.35; }
     .task-row.sortable-drag  { opacity: 0.95; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border-radius: 10px; }
+
     .accent { width: 4px; height: 100%; flex-shrink: 0; }
     .accent-done     { background: #22c55e; }
     .accent-progress { background: #f59e0b; }
     .accent-stuck    { background: #ef4444; }
+
     .avatar {
-      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-      object-fit: cover; margin-left: 10px; cursor: pointer; transition: outline 0.1s;
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      object-fit: cover; margin-left: 9px; cursor: pointer; transition: outline 0.1s;
     }
-    .task-row .avatar.active-filter { outline: 2.5px solid #fff; outline-offset: 1px; }
+    .avatar.active-filter { outline: 2.5px solid #fff; outline-offset: 1px; }
+    body.light .avatar.active-filter { outline-color: #333; }
+
     .task-info { flex: 1; display: flex; flex-direction: column; padding: 0 10px; overflow: hidden; }
-    .task-name  { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .task-assignee { font-size: 11px; color: #666; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-right: 10px; flex-shrink: 0; white-space: nowrap; }
+    .task-name  { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-assignee { font-size: 11px; color: #555; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .badge { padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; margin-right: 9px; flex-shrink: 0; white-space: nowrap; }
     .badge-done     { background: #22c55e; color: #fff; }
     .badge-progress { background: #f59e0b; color: #fff; }
     .badge-stuck    { background: #ef4444; color: #fff; }
@@ -116,16 +115,16 @@
     /* ── Bottom nav ── */
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0;
-      background: #111220; border-top: 1px solid rgba(255,255,255,0.08);
+      background: #111220; border-top: 1px solid rgba(255,255,255,0.07);
       display: flex; flex-direction: row; align-items: stretch;
-      height: 58px; z-index: 100;
+      height: 54px; z-index: 100;
       overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
     .bottom-nav::-webkit-scrollbar { display: none; }
     .nav-tab {
       display: inline-flex; align-items: center; justify-content: center;
-      padding: 0 14px; font-size: 12px; font-weight: 600;
-      color: #777; white-space: nowrap; flex-shrink: 0; cursor: pointer;
+      padding: 0 13px; font-size: 12px; font-weight: 600; color: #666;
+      white-space: nowrap; flex-shrink: 0; cursor: pointer;
       border-top: 2.5px solid transparent;
       transition: color 0.15s, border-color 0.15s;
       -webkit-tap-highlight-color: transparent; user-select: none;
@@ -133,12 +132,34 @@
     .nav-tab.chip-stuck.active    { color: #ef4444; border-top-color: #ef4444; font-weight: 700; }
     .nav-tab.chip-progress.active { color: #f59e0b; border-top-color: #f59e0b; font-weight: 700; }
     .nav-tab.chip-done.active     { color: #22c55e; border-top-color: #22c55e; font-weight: 700; }
-    .nav-tab.tab-week.active    { color: #60a5fa; border-top-color: #60a5fa; font-weight: 700; }
-    .nav-tab.tab-people.active  { color: #a78bfa; border-top-color: #a78bfa; font-weight: 700; }
-    .nav-tab.tab-group.active   { color: #94a3b8; border-top-color: #94a3b8; font-weight: 700; }
-    .nav-tab.tab-new            { color: #ef4444; font-weight: 800; font-size: 13px; }
-    .nav-tab:not(.active):not(.tab-new):hover { color: #ccc; }
-    .nav-divider { width: 1px; background: rgba(255,255,255,0.08); align-self: stretch; margin: 10px 0; flex-shrink: 0; }
+    .nav-tab.tab-week.active      { color: #60a5fa; border-top-color: #60a5fa; font-weight: 700; }
+    .nav-tab.tab-people.active    { color: #a78bfa; border-top-color: #a78bfa; font-weight: 700; }
+    .nav-tab.tab-group.active     { color: #94a3b8; border-top-color: #94a3b8; font-weight: 700; }
+    .nav-tab.tab-new              { color: #ef4444; font-weight: 800; font-size: 13px; }
+    .nav-divider { width: 1px; background: rgba(255,255,255,0.07); align-self: stretch; margin: 10px 0; flex-shrink: 0; }
+
+    /* ── Expand panel (floats above nav) ── */
+    .expand-panel {
+      display: none; position: fixed; bottom: 54px; left: 0; right: 0;
+      background: #1a1c2e; border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 14px; z-index: 99;
+      flex-direction: row; gap: 8px; flex-wrap: wrap;
+    }
+    .expand-panel.open { display: flex; }
+    .expand-btn {
+      display: inline-flex; align-items: center;
+      padding: 7px 14px; border-radius: 20px;
+      background: rgba(255,255,255,0.07); color: #bbb;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: none; -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .expand-btn.active { font-weight: 700; }
+    .expand-btn.btn-all.active  { background: rgba(255,255,255,0.15); color: #fff; }
+    .expand-btn.btn-41.active   { background: #1d6fe8; color: #fff; }
+    .expand-btn.btn-42.active   { background: #7c3aed; color: #fff; }
+    .expand-btn.btn-p.active    { outline: 2.5px solid #fff; outline-offset: 2px; }
+    .expand-btn .p-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; margin-right: 6px; pointer-events: none; }
 
     /* +New modal */
     .modal-overlay {
@@ -147,11 +168,11 @@
     }
     .modal-overlay.open { display: flex; }
     .modal-sheet {
-      background: #1a1c2e; border-radius: 18px 18px 0 0; padding: 20px 18px 34px;
+      background: #1a1c2e; border-radius: 18px 18px 0 0; padding: 20px 18px 36px;
       width: 100%; max-height: 70vh; overflow-y: auto;
     }
-    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-    .modal-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; margin-top: 14px; }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+    .modal-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 5px; margin-top: 12px; }
     .modal-input, .modal-select {
       width: 100%; padding: 10px 12px; border-radius: 10px;
       background: #0d0d1a; color: #fff; font-size: 14px;
@@ -159,15 +180,9 @@
       -webkit-appearance: none; appearance: none;
     }
     .modal-input:focus { border-color: rgba(99,130,220,0.5); }
-    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-    .btn-add {
-      flex: 1; padding: 12px; border-radius: 10px; background: #ef4444;
-      color: #fff; font-size: 14px; font-weight: 700; border: none; cursor: pointer;
-    }
-    .btn-cancel {
-      padding: 12px 18px; border-radius: 10px; background: rgba(255,255,255,0.08);
-      color: #ccc; font-size: 14px; font-weight: 600; border: none; cursor: pointer;
-    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .btn-add    { flex: 1; padding: 12px; border-radius: 10px; background: #ef4444; color: #fff; font-size: 14px; font-weight: 700; border: none; cursor: pointer; }
+    .btn-cancel { padding: 12px 18px; border-radius: 10px; background: rgba(255,255,255,0.08); color: #ccc; font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -181,16 +196,9 @@
     </div>
   </div>
 
-  <!-- People filter strip (shown when People tab active) -->
-  <div class="people-bar" id="people-bar">
-    <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" data-person="12" title="Darren">
-    <img class="avatar" src="https://i.pravatar.cc/72?img=5"  alt="" data-person="5"  title="Fiorella">
-    <img class="avatar" src="https://i.pravatar.cc/72?img=4"  alt="" data-person="4"  title="Alfred">
-  </div>
-
   <!-- Week 41 -->
   <div class="week-section" id="section-41">
-    <div class="week-label label-41" onclick="toggleSection('section-41')">
+    <div class="week-label label-41" onclick="toggleCollapse('section-41')">
       Week 41 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-41">
@@ -217,7 +225,7 @@
 
   <!-- Week 42 -->
   <div class="week-section" id="section-42">
-    <div class="week-label label-42" onclick="toggleSection('section-42')">
+    <div class="week-label label-42" onclick="toggleCollapse('section-42')">
       Week 42 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-42">
@@ -248,10 +256,10 @@
     </div>
   </div>
 
-  <!-- This group tasks -->
+  <!-- This group — clean separator style -->
   <div class="week-section" id="section-group">
-    <div class="week-label label-group" onclick="toggleSection('section-group')">
-      📍 This group <span class="week-chevron">▼</span>
+    <div class="section-sep" onclick="toggleCollapse('section-group')">
+      This Group <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-group">
       <div class="task-row" data-status="stuck" data-person="4">
@@ -282,6 +290,29 @@
     <div class="nav-tab tab-new"    id="tab-new">+ New</div>
   </nav>
 
+  <!-- Week expand panel -->
+  <div class="expand-panel" id="panel-week">
+    <button class="expand-btn btn-all active" data-week="all">All Weeks</button>
+    <button class="expand-btn btn-41" data-week="41">Week 41</button>
+    <button class="expand-btn btn-42" data-week="42">Week 42</button>
+  </div>
+
+  <!-- People expand panel -->
+  <div class="expand-panel" id="panel-people">
+    <button class="expand-btn btn-p active" data-person="all">
+      All People
+    </button>
+    <button class="expand-btn btn-p" data-person="12">
+      <img class="p-avatar" src="https://i.pravatar.cc/72?img=12"> Darren
+    </button>
+    <button class="expand-btn btn-p" data-person="5">
+      <img class="p-avatar" src="https://i.pravatar.cc/72?img=5"> Fiorella
+    </button>
+    <button class="expand-btn btn-p" data-person="4">
+      <img class="p-avatar" src="https://i.pravatar.cc/72?img=4"> Alfred
+    </button>
+  </div>
+
   <!-- +New modal -->
   <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -311,7 +342,7 @@
     function applyTheme() {
       const isLight = tg && tg.colorScheme === 'light';
       document.body.classList.toggle('light', isLight);
-      const bg = isLight ? '#f0f2f8' : '#0d0d1a';
+      const bg = isLight ? '#f4f5fb' : '#0d0d1a';
       if (tg) { tg.setBackgroundColor(bg); tg.setHeaderColor(bg); }
     }
     if (tg) {
@@ -331,52 +362,54 @@
     }
 
     // Drag-and-drop
-    const sortableOpts = {
-      group: 'tasks', animation: 150,
-      ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-      delay: 120, delayOnTouchOnly: true, forceFallback: true, fallbackTolerance: 3,
-    };
     ['list-41','list-42','list-group'].forEach(id => {
-      Sortable.create(document.getElementById(id), sortableOpts);
+      Sortable.create(document.getElementById(id), {
+        group: 'tasks', animation: 150,
+        ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+        delay: 120, delayOnTouchOnly: true, forceFallback: true, fallbackTolerance: 3,
+      });
     });
 
-    // Section collapse/expand
-    let focusedWeek = null;
-    function toggleSection(id) {
-      const el = document.getElementById(id);
-      if (el) el.classList.toggle('collapsed');
+    // Collapse/expand individual sections
+    function toggleCollapse(id) {
+      document.getElementById(id).classList.toggle('collapsed');
     }
 
-    // ── Filters ──
+    // ── State ──
     let activeStatus = null;
     let activePersonId = null;
-    let weekFilter = null;   // null=all, '41', '42'
+    let weekFilter = 'all';
     let groupVisible = true;
 
+    // Auto-hide sections with no visible tasks
+    function updateSectionVisibility() {
+      ['section-41','section-42','section-group'].forEach(secId => {
+        const sec = document.getElementById(secId);
+        const visibleRows = sec.querySelectorAll('.task-row:not(.hidden)');
+        sec.classList.toggle('section-empty', visibleRows.length === 0);
+      });
+      // Week filter overrides
+      document.getElementById('section-41').classList.toggle('week-hidden', weekFilter === '42');
+      document.getElementById('section-42').classList.toggle('week-hidden', weekFilter === '41');
+      document.getElementById('section-group').classList.toggle('week-hidden', !groupVisible);
+    }
+
     function applyAllFilters() {
-      // Status + person filters on rows
       document.querySelectorAll('.task-row').forEach(row => {
         const statusOk = !activeStatus || row.dataset.status === activeStatus;
         const personOk = !activePersonId || row.dataset.person === activePersonId;
         row.classList.toggle('hidden', !(statusOk && personOk));
       });
-      // Week filter: show/hide sections
-      const s41 = document.getElementById('section-41');
-      const s42 = document.getElementById('section-42');
-      if (weekFilter === '41') { s41.classList.remove('week-hidden'); s42.classList.add('week-hidden'); }
-      else if (weekFilter === '42') { s41.classList.add('week-hidden'); s42.classList.remove('week-hidden'); }
-      else { s41.classList.remove('week-hidden'); s42.classList.remove('week-hidden'); }
-      // Group section
-      document.getElementById('section-group').classList.toggle('week-hidden', !groupVisible);
+      updateSectionVisibility();
     }
 
-    // Status tabs (bottom nav)
+    // Status tabs
     document.querySelectorAll('.nav-tab[data-status]').forEach(tab => {
       tab.addEventListener('click', () => {
+        closeAllPanels();
         const s = tab.dataset.status;
         if (activeStatus === s) {
-          activeStatus = null;
-          tab.classList.remove('active');
+          activeStatus = null; tab.classList.remove('active');
         } else {
           activeStatus = s;
           document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
@@ -386,63 +419,67 @@
       });
     });
 
-    // Week tab
-    const weekCycle = [null, '41', '42'];
-    let weekIdx = 0;
+    // Week tab — toggle panel
     const tabWeek = document.getElementById('tab-week');
+    const panelWeek = document.getElementById('panel-week');
     tabWeek.addEventListener('click', () => {
-      weekIdx = (weekIdx + 1) % weekCycle.length;
-      weekFilter = weekCycle[weekIdx];
-      if (weekFilter) {
-        tabWeek.classList.add('active');
-        tabWeek.textContent = 'Wk ' + weekFilter;
-      } else {
-        tabWeek.classList.remove('active');
-        tabWeek.textContent = 'Week';
-      }
-      applyAllFilters();
+      const open = panelWeek.classList.toggle('open');
+      if (open) { panelPeople.classList.remove('open'); tabPeople.classList.remove('active'); }
+      tabWeek.classList.toggle('active', open);
     });
-
-    // People tab
-    const tabPeople = document.getElementById('tab-people');
-    const peopleBar = document.getElementById('people-bar');
-    tabPeople.addEventListener('click', () => {
-      const on = tabPeople.classList.toggle('active');
-      peopleBar.classList.toggle('visible', on);
-      if (!on) {
-        activePersonId = null;
-        peopleBar.querySelectorAll('.avatar').forEach(a => a.classList.remove('active-filter'));
-        applyAllFilters();
-      }
-    });
-    peopleBar.querySelectorAll('.avatar').forEach(av => {
-      av.addEventListener('click', () => {
-        const pid = av.dataset.person;
-        if (activePersonId === pid) {
-          activePersonId = null;
-          av.classList.remove('active-filter');
-        } else {
-          activePersonId = pid;
-          peopleBar.querySelectorAll('.avatar').forEach(a => a.classList.remove('active-filter'));
-          av.classList.add('active-filter');
-        }
+    panelWeek.querySelectorAll('.expand-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        weekFilter = btn.dataset.week;
+        panelWeek.querySelectorAll('.expand-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        tabWeek.textContent = weekFilter === 'all' ? 'Week' : 'Wk ' + weekFilter;
+        panelWeek.classList.remove('open');
+        tabWeek.classList.toggle('active', weekFilter !== 'all');
         applyAllFilters();
       });
     });
 
-    // Clicking avatar inside task row also filters
+    // People tab — toggle panel
+    const tabPeople = document.getElementById('tab-people');
+    const panelPeople = document.getElementById('panel-people');
+    tabPeople.addEventListener('click', () => {
+      const open = panelPeople.classList.toggle('open');
+      if (open) { panelWeek.classList.remove('open'); tabWeek.classList.remove('active'); }
+      tabPeople.classList.toggle('active', open || !!activePersonId);
+    });
+    panelPeople.querySelectorAll('.expand-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = btn.dataset.person;
+        activePersonId = pid === 'all' ? null : pid;
+        panelPeople.querySelectorAll('.expand-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // sync task-row avatars
+        document.querySelectorAll('.task-row .avatar').forEach(a => a.classList.remove('active-filter'));
+        panelPeople.classList.remove('open');
+        tabPeople.classList.toggle('active', !!activePersonId);
+        applyAllFilters();
+      });
+    });
+
+    // Avatar tap in task row
     function filterPersonAvatar(e, personId) {
       e.stopPropagation();
+      closeAllPanels();
       if (activePersonId === personId) {
         activePersonId = null;
         document.querySelectorAll('.task-row .avatar').forEach(a => a.classList.remove('active-filter'));
+        tabPeople.classList.remove('active');
+        panelPeople.querySelectorAll('.expand-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.person === 'all');
+        });
       } else {
         activePersonId = personId;
         document.querySelectorAll('.task-row .avatar').forEach(a => a.classList.remove('active-filter'));
         e.target.classList.add('active-filter');
-        // Also activate People tab
         tabPeople.classList.add('active');
-        peopleBar.classList.add('visible');
+        panelPeople.querySelectorAll('.expand-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.person === personId);
+        });
       }
       applyAllFilters();
     }
@@ -450,15 +487,30 @@
     // Group tab
     const tabGroup = document.getElementById('tab-group');
     tabGroup.addEventListener('click', () => {
+      closeAllPanels();
       groupVisible = !groupVisible;
       tabGroup.classList.toggle('active', groupVisible);
-      applyAllFilters();
+      updateSectionVisibility();
+    });
+    tabGroup.classList.add('active');
+
+    function closeAllPanels() {
+      panelWeek.classList.remove('open');
+      panelPeople.classList.remove('open');
+    }
+
+    // Close panels on body tap
+    document.body.addEventListener('click', e => {
+      if (!e.target.closest('.expand-panel') && !e.target.closest('#tab-week') && !e.target.closest('#tab-people')) {
+        closeAllPanels();
+      }
     });
 
-    // +New modal
+    // +New
     document.getElementById('tab-new').addEventListener('click', () => {
+      closeAllPanels();
       document.getElementById('modal-overlay').classList.add('open');
-      document.getElementById('new-task-name').focus();
+      setTimeout(() => document.getElementById('new-task-name').focus(), 100);
     });
     function closeModal(e) {
       if (!e || e.target === document.getElementById('modal-overlay')) {
@@ -469,30 +521,24 @@
       const name = document.getElementById('new-task-name').value.trim();
       if (!name) return;
       const status = document.getElementById('new-task-status').value;
-      const week = document.getElementById('new-task-week').value;
-      const listId = 'list-' + week;
-      const row = document.createElement('div');
-      row.className = 'task-row';
-      row.dataset.status = status;
-      row.dataset.person = '4'; // Alfred by default
-      const badgeClass = status === 'done' ? 'badge-done' : status === 'stuck' ? 'badge-stuck' : 'badge-progress';
+      const week   = document.getElementById('new-task-week').value;
+      const badgeClass  = status === 'done' ? 'badge-done' : status === 'stuck' ? 'badge-stuck' : 'badge-progress';
       const accentClass = status === 'done' ? 'accent-done' : status === 'stuck' ? 'accent-stuck' : 'accent-progress';
-      const badgeLabel = status === 'done' ? 'Done' : status === 'stuck' ? 'Stuck' : 'In Progress';
-      row.innerHTML = `
-        <div class="accent ${accentClass}"></div>
+      const badgeLabel  = status === 'done' ? 'Done' : status === 'stuck' ? 'Stuck' : 'In Progress';
+      const row = document.createElement('div');
+      row.className = 'task-row'; row.dataset.status = status; row.dataset.person = '4';
+      row.innerHTML = `<div class="accent ${accentClass}"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')">
         <div class="task-info"><span class="task-name">${name}</span><span class="task-assignee">Alfred</span></div>
-        <span class="badge ${badgeClass}">${badgeLabel}</span>
-      `;
-      document.getElementById(listId).appendChild(row);
+        <span class="badge ${badgeClass}">${badgeLabel}</span>`;
+      document.getElementById('list-' + week).appendChild(row);
       document.getElementById('new-task-name').value = '';
       document.getElementById('modal-overlay').classList.remove('open');
       applyAllFilters();
     }
 
-    // Init: show group section by default with Group tab active
-    tabGroup.classList.add('active');
-    groupVisible = true;
+    // Init
+    applyAllFilters();
   </script>
 </body>
 </html>
