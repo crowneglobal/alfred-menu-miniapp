@@ -17,7 +17,21 @@
       color: #fff;
       min-height: 100vh;
       padding: 14px 14px 80px;
+      transition: background 0.2s, color 0.2s;
     }
+
+    /* ── Light mode overrides ── */
+    body.light { background: #f0f2f8; color: #111; }
+    body.light .focus-banner {
+      background: linear-gradient(135deg, #dbeafe, #ede9fe);
+      border-color: rgba(99,130,220,0.4);
+    }
+    body.light .focus-label   { color: #6366f1; }
+    body.light .focus-task-name { color: #111; }
+    body.light .task-row      { background: #fff; }
+    body.light .task-row:active { background: #e8eaf6; }
+    body.light .task-assignee { color: #999; }
+    body.light .week-label.label-group { background: #d1d5e8; color: #333; }
 
     /* Focus task banner */
     .focus-banner {
@@ -292,11 +306,17 @@
 
   <script>
     const tg = window.Telegram && window.Telegram.WebApp;
+    function applyTheme() {
+      const isLight = tg && tg.colorScheme === 'light';
+      document.body.classList.toggle('light', isLight);
+      const bg = isLight ? '#f0f2f8' : '#0d0d1a';
+      if (tg) { tg.setBackgroundColor(bg); tg.setHeaderColor(bg); }
+    }
     if (tg) {
       tg.expand();
-      tg.setBackgroundColor('#0d0d1a');
-      tg.setHeaderColor('#0d0d1a');
+      tg.onEvent('themeChanged', applyTheme);
     }
+    applyTheme();
 
     // Per-user focus task map (user ID → top task name)
     const FOCUS = {
