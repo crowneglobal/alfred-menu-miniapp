@@ -37,6 +37,9 @@
     body.light .modal-sheet  { background: #fff; }
     body.light .modal-input, body.light .modal-select { background: #f0f2f8; color: #111; border-color: rgba(0,0,0,0.12); }
     body.light .modal-label  { color: #666; }
+    body.light .detail-sheet { background: #fff; }
+    body.light .search-input { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); }
+    body.light .board-card { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
 
     /* Focus banner */
     .focus-banner {
@@ -49,6 +52,9 @@
     .focus-label { font-size: 9px; font-weight: 700; color: #8899cc; text-transform: uppercase; letter-spacing: 0.8px; }
     .focus-task-name { font-size: 15px; font-weight: 700; color: #fff; margin-top: 1px; }
     .focus-hidden { display: none; }
+    .search-wrap { margin-bottom: 10px; }
+    .search-input { width: 100%; padding: 9px 14px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 13px; outline: none; }
+    .search-input:focus { border-color: rgba(99,130,220,0.5); }
 
     /* Week sections */
     .week-section { margin-bottom: 12px; }
@@ -80,6 +86,15 @@
     }
 
     /* Task rows */
+    .swipe-wrapper { position: relative; overflow: hidden; border-radius: 10px; margin-bottom: 5px; }
+    .swipe-wrapper.hidden-wrapper { display: none; }
+    .swipe-wrapper.sortable-ghost { opacity: 0.35; }
+    .swipe-wrapper.sortable-drag { opacity: 0.95; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; flex-direction: row; align-items: stretch; }
+    .swipe-btn { width: 70px; border: 0; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .sa-done { background: #22c55e; }
+    .sa-status { background: #f59e0b; }
+    .sa-delete { background: #ef4444; }
     .task-row {
       display: flex; align-items: center;
       background: #16182a; border-radius: 10px; margin-bottom: 5px;
@@ -87,6 +102,12 @@
       touch-action: none; -webkit-tap-highlight-color: transparent;
       transition: background 0.1s;
     }
+    .swipe-wrapper .task-row { position: relative; margin-bottom: 0; border-radius: 0; transition: transform 0.22s ease, background 0.1s, opacity 0.25s, height 0.25s; }
+    .task-row.swiped-open { transform: translateX(-210px); }
+    .task-row.done-flash { animation: doneFlash 0.45s ease; }
+    @keyframes doneFlash { 0%,100% { background: #16182a; } 45% { background: #166534; } }
+    @keyframes doneFlashLight { 0%,100% { background: #fff; } 45% { background: #bbf7d0; } }
+    body.light .task-row.done-flash { animation-name: doneFlashLight; }
     .task-row:active { background: #1e2040; cursor: grabbing; }
     .task-row.hidden { display: none; }
     .task-row.sortable-ghost { opacity: 0.35; }
@@ -107,6 +128,14 @@
     .task-info { flex: 1; display: flex; flex-direction: column; padding: 0 10px; overflow: hidden; }
     .task-name  { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .task-assignee { font-size: 11px; color: #555; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .priority-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-right: 5px; display: inline-block; vertical-align: middle; }
+    .dot-p1 { background: #ef4444; }
+    .dot-p2 { background: #f59e0b; }
+    .dot-p3 { background: #3b82f6; }
+    .due-chip { font-size: 10px; font-weight: 600; margin-top: 2px; display: inline-block; }
+    .due-chip.overdue { color: #ef4444; }
+    .due-chip.due-today { color: #f59e0b; }
+    .due-chip.due-soon { color: #94a3b8; }
 
     .badge { padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; margin-right: 9px; flex-shrink: 0; white-space: nowrap; }
     .badge-done     { background: #22c55e; color: #fff; }
@@ -137,6 +166,7 @@
     .nav-tab.tab-week.active      { color: #60a5fa; border-top-color: #60a5fa; font-weight: 700; }
     .nav-tab.tab-people.active    { color: #a78bfa; border-top-color: #a78bfa; font-weight: 700; }
     .nav-tab.tab-group.active     { color: #94a3b8; border-top-color: #94a3b8; font-weight: 700; }
+    .nav-tab.tab-board.active     { color: #34d399; border-top-color: #34d399; font-weight: 700; }
     .nav-tab.tab-new              { color: #ef4444; font-weight: 800; font-size: 13px; }
     .nav-divider { width: 1px; background: rgba(255,255,255,0.07); align-self: stretch; margin: 10px 0; flex-shrink: 0; }
 
@@ -185,6 +215,37 @@
     .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
     .btn-add    { flex: 1; padding: 12px; border-radius: 10px; background: #ef4444; color: #fff; font-size: 14px; font-weight: 700; border: none; cursor: pointer; }
     .btn-cancel { padding: 12px 18px; border-radius: 10px; background: rgba(255,255,255,0.08); color: #ccc; font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
+
+    .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 210; display: none; align-items: flex-end; }
+    .detail-overlay.open { display: flex; }
+    .detail-sheet { background: #1a1c2e; border-radius: 20px 20px 0 0; padding: 12px 18px 36px; width: 100%; max-height: 80vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s ease; }
+    .detail-overlay.open .detail-sheet { transform: translateY(0); }
+    .detail-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 14px; }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .detail-title-text { font-size: 16px; font-weight: 700; }
+    .detail-close { background: none; border: none; color: #888; font-size: 18px; cursor: pointer; }
+    .detail-section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 5px; margin-top: 12px; }
+    .detail-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; margin-top: 4px; }
+    .detail-pill { padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.07); color: #bbb; cursor: pointer; border: none; }
+    .detail-pill.active.pill-stuck, .detail-pill.active.pill-p1 { background: #ef4444; color: #fff; }
+    .detail-pill.active.pill-progress, .detail-pill.active.pill-p2 { background: #f59e0b; color: #fff; }
+    .detail-pill.active.pill-done { background: #22c55e; color: #fff; }
+    .detail-pill.active.pill-p3 { background: #3b82f6; color: #fff; }
+    .detail-overdue { color: #ef4444; font-size: 12px; margin-top: 4px; }
+    .detail-notes { resize: vertical; min-height: 70px; }
+
+    #board-view { position: fixed; inset: calc(env(safe-area-inset-top,0px) + 0px) 0 calc(54px + env(safe-area-inset-bottom,0px)) 0; overflow: hidden; background: inherit; z-index: 90; }
+    .board-columns { display: flex; height: 100%; overflow-x: auto; gap: 10px; padding: 12px; scroll-snap-type: x mandatory; }
+    .board-col { min-width: calc(80vw); max-width: calc(80vw); flex-shrink: 0; display: flex; flex-direction: column; scroll-snap-align: start; }
+    .board-col-header { padding: 8px 12px; font-size: 12px; font-weight: 700; border-radius: 8px 8px 0 0; margin-bottom: 6px; }
+    .col-header-stuck { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .col-header-progress { background: rgba(245,158,11,0.2); color: #f59e0b; }
+    .col-header-done { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .board-col-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .board-card { background: #16182a; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; }
+    .board-card-name { font-size: 13px; font-weight: 500; flex: 1; }
+    .board-card-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+    .board-card .priority-dot { width: 7px; height: 7px; }
   </style>
 </head>
 <body>
@@ -198,28 +259,32 @@
     </div>
   </div>
 
+  <div class="search-wrap" id="search-wrap">
+    <input class="search-input" id="search-input" type="search" placeholder="🔍 Search tasks...">
+  </div>
+
   <!-- Week 41 -->
   <div class="week-section" id="section-41">
     <div class="week-label label-41" onclick="toggleCollapse('section-41')">
       Week 41 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-41">
-      <div class="task-row" data-status="done" data-person="12">
+      <div class="task-row" data-status="done" data-person="12" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-done"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
-        <div class="task-info"><span class="task-name">Finca security</span><span class="task-assignee">Darren</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Finca security</span><span class="task-assignee">Darren</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-done">Done</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="5">
+      <div class="task-row" data-status="progress" data-person="5" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=5" alt="" onclick="filterPersonAvatar(event,'5')">
-        <div class="task-info"><span class="task-name">COB review</span><span class="task-assignee">Fiorella</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">COB review</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="stuck" data-person="33">
+      <div class="task-row" data-status="stuck" data-person="33" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=33" alt="" onclick="filterPersonAvatar(event,'33')">
-        <div class="task-info"><span class="task-name">Legal Arata</span><span class="task-assignee">Darren</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Legal Arata</span><span class="task-assignee">Darren</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
     </div>
@@ -231,28 +296,28 @@
       Week 42 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-42">
-      <div class="task-row" data-status="progress" data-person="47">
+      <div class="task-row" data-status="progress" data-person="47" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=47" alt="" onclick="filterPersonAvatar(event,'47')">
-        <div class="task-info"><span class="task-name">LHE HR screening</span><span class="task-assignee">Fiorella</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">LHE HR screening</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="22">
+      <div class="task-row" data-status="progress" data-person="22" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=22" alt="" onclick="filterPersonAvatar(event,'22')">
-        <div class="task-info"><span class="task-name">Casa remodelacion</span><span class="task-assignee">Fiorella</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Casa remodelacion</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="stuck" data-person="18">
+      <div class="task-row" data-status="stuck" data-person="18" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=18" alt="" onclick="filterPersonAvatar(event,'18')">
-        <div class="task-info"><span class="task-name">Gate camera install</span><span class="task-assignee">Darren</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Gate camera install</span><span class="task-assignee">Darren</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="9">
+      <div class="task-row" data-status="progress" data-person="9" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=9" alt="" onclick="filterPersonAvatar(event,'9')">
-        <div class="task-info"><span class="task-name">Maids recruitment</span><span class="task-assignee">Fiorella</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Maids recruitment</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
     </div>
@@ -264,18 +329,26 @@
       This Group <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-group">
-      <div class="task-row" data-status="stuck" data-person="4">
+      <div class="task-row" data-status="stuck" data-person="4" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')">
-        <div class="task-info"><span class="task-name">Fix Baileys sync bug</span><span class="task-assignee">Alfred</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Fix Baileys sync bug</span><span class="task-assignee">Alfred</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="7">
+      <div class="task-row" data-status="progress" data-person="7" data-priority="p2" data-due="" data-notes="">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=7" alt="" onclick="filterPersonAvatar(event,'7')">
-        <div class="task-info"><span class="task-name">Java UI deployment</span><span class="task-assignee">Alfred</span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Java UI deployment</span><span class="task-assignee">Alfred</span><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
+    </div>
+  </div>
+
+  <div id="board-view" class="board-view" style="display:none">
+    <div class="board-columns">
+      <div class="board-col" id="col-stuck"><div class="board-col-header col-header-stuck">🔴 Stuck</div><div class="board-col-body" id="col-body-stuck"></div></div>
+      <div class="board-col" id="col-progress"><div class="board-col-header col-header-progress">🟡 In Progress</div><div class="board-col-body" id="col-body-progress"></div></div>
+      <div class="board-col" id="col-done"><div class="board-col-header col-header-done">✅ Done</div><div class="board-col-body" id="col-body-done"></div></div>
     </div>
   </div>
 
@@ -288,6 +361,7 @@
     <div class="nav-tab tab-week"   id="tab-week">Week</div>
     <div class="nav-tab tab-people" id="tab-people">People</div>
     <div class="nav-tab tab-group"  id="tab-group">Group</div>
+    <div class="nav-tab tab-board"  id="tab-board">Board</div>
     <div class="nav-divider"></div>
     <div class="nav-tab tab-new"    id="tab-new">+ New</div>
   </nav>
@@ -339,6 +413,23 @@
     </div>
   </div>
 
+  <div class="detail-overlay" id="detail-overlay">
+    <div class="detail-sheet" id="detail-sheet">
+      <div class="detail-handle"></div>
+      <div class="detail-header"><span class="detail-title-text" id="detail-title">Task name</span><button class="detail-close" id="detail-close">✕</button></div>
+      <div class="detail-section-label">Status</div>
+      <div class="detail-pills" id="detail-status-pills"><div class="detail-pill pill-stuck" data-s="stuck">Stuck</div><div class="detail-pill pill-progress" data-s="progress">In Progress</div><div class="detail-pill pill-done" data-s="done">Done</div></div>
+      <div class="detail-section-label">Priority</div>
+      <div class="detail-pills" id="detail-priority-pills"><div class="detail-pill pill-p1" data-p="p1">🔴 P1</div><div class="detail-pill pill-p2" data-p="p2">🟡 P2</div><div class="detail-pill pill-p3" data-p="p3">🔵 P3</div></div>
+      <div class="detail-section-label">Due Date</div>
+      <input class="modal-input" type="date" id="detail-due">
+      <div id="detail-overdue" class="detail-overdue" style="display:none">⚠️ Overdue</div>
+      <div class="detail-section-label">Notes</div>
+      <textarea class="modal-input detail-notes" id="detail-notes" rows="3" placeholder="Add notes..."></textarea>
+      <div class="modal-actions"><button class="btn-cancel" id="detail-cancel">Cancel</button><button class="btn-add" id="detail-save">Save</button></div>
+    </div>
+  </div>
+
   <script>
     const tg = window.Telegram && window.Telegram.WebApp;
     function applyTheme() {
@@ -364,8 +455,9 @@
     }
 
     // Drag-and-drop
+    const sortables = {};
     ['list-41','list-42','list-group'].forEach(id => {
-      Sortable.create(document.getElementById(id), {
+      sortables[id] = Sortable.create(document.getElementById(id), {
         group: 'tasks', animation: 150,
         ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
         delay: 120, delayOnTouchOnly: true, forceFallback: true, fallbackTolerance: 3,
@@ -382,6 +474,7 @@
     let activePersonId = null;
     let weekFilter = 'all';
     let groupVisible = true;
+    let searchQuery = '';
 
     // Auto-hide sections with no visible tasks
     function updateSectionVisibility() {
@@ -400,10 +493,20 @@
       document.querySelectorAll('.task-row').forEach(row => {
         const statusOk = !activeStatus || row.dataset.status === activeStatus;
         const personOk = !activePersonId || row.dataset.person === activePersonId;
-        row.classList.toggle('hidden', !(statusOk && personOk));
+        const searchOk = !searchQuery || row.querySelector('.task-name').textContent.toLowerCase().includes(searchQuery.toLowerCase());
+        const hidden = !(statusOk && personOk && searchOk);
+        row.classList.toggle('hidden', hidden);
+        const wrapper = row.closest('.swipe-wrapper');
+        if (wrapper) wrapper.classList.toggle('hidden-wrapper', hidden);
       });
       updateSectionVisibility();
+      if (typeof boardActive !== 'undefined' && boardActive) buildBoard();
     }
+
+    document.getElementById('search-input').addEventListener('input', event => {
+      searchQuery = event.target.value.trim();
+      applyAllFilters();
+    });
 
     // Status tabs
     document.querySelectorAll('.nav-tab[data-status]').forEach(tab => {
@@ -539,7 +642,273 @@
       applyAllFilters();
     }
 
-    // Init
+    // Advanced task interactions
+    const statusMeta = {
+      stuck: ['accent-stuck', 'badge-stuck', 'Stuck'],
+      progress: ['accent-progress', 'badge-progress', 'In Progress'],
+      done: ['accent-done', 'badge-done', 'Done']
+    };
+
+    function updateRowStatus(row, status, flash) {
+      row.dataset.status = status;
+      const meta = statusMeta[status];
+      row.querySelector('.accent').className = 'accent ' + meta[0];
+      const badge = row.querySelector('.badge');
+      badge.className = 'badge ' + meta[1];
+      badge.textContent = meta[2];
+      if (flash) {
+        row.classList.remove('done-flash');
+        void row.offsetWidth;
+        row.classList.add('done-flash');
+        setTimeout(() => row.classList.remove('done-flash'), 500);
+      }
+      applyAllFilters();
+    }
+
+    function snapClosed(row) {
+      row.style.transition = 'transform 0.22s ease';
+      row.style.transform = 'translateX(0)';
+      row.classList.remove('swiped-open');
+    }
+
+    function closeOtherSwipes(row) {
+      document.querySelectorAll('.task-row.swiped-open').forEach(other => {
+        if (other !== row) snapClosed(other);
+      });
+    }
+
+    function deleteRow(row) {
+      const wrapper = row.closest('.swipe-wrapper');
+      row.style.opacity = '0';
+      wrapper.style.height = wrapper.offsetHeight + 'px';
+      wrapper.style.transition = 'height 0.25s, margin 0.25s';
+      void wrapper.offsetHeight;
+      wrapper.style.height = '0';
+      wrapper.style.marginBottom = '0';
+      setTimeout(() => { wrapper.remove(); applyAllFilters(); }, 260);
+    }
+
+    function bindTaskRow(row) {
+      if (row.dataset.swipeBound === '1') return;
+      row.dataset.swipeBound = '1';
+      const wrapper = row.closest('.swipe-wrapper');
+      const listId = row.closest('.task-list').id;
+      let startX = 0, startY = 0, deltaX = 0, horizontal = false, moved = false;
+
+      row.addEventListener('touchstart', event => {
+        const touch = event.touches[0];
+        startX = touch.clientX; startY = touch.clientY;
+        deltaX = 0; horizontal = false; moved = false;
+        row.style.transition = 'none';
+        closeOtherSwipes(row);
+      }, { passive: true });
+
+      row.addEventListener('touchmove', event => {
+        const touch = event.touches[0];
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        if (!horizontal && Math.abs(dx) > Math.abs(dy) + 10) {
+          horizontal = true;
+          sortables[listId].option('disabled', true);
+        }
+        if (!horizontal) return;
+        event.preventDefault();
+        moved = true; deltaX = dx;
+        row.style.touchAction = 'pan-y';
+        row.style.transform = `translateX(${dx < 0 ? Math.max(dx, -210) : Math.min(dx, 60)}px)`;
+      }, { passive: false });
+
+      row.addEventListener('touchend', () => {
+        if (horizontal) sortables[listId].option('disabled', false);
+        row.style.touchAction = 'none';
+        row.style.transition = 'transform 0.22s ease';
+        if (deltaX < -100) {
+          row.style.transform = 'translateX(-210px)';
+          row.classList.add('swiped-open');
+        } else if (deltaX > 120) {
+          updateRowStatus(row, 'done', true);
+          snapClosed(row);
+        } else {
+          snapClosed(row);
+        }
+        if (moved) {
+          row.dataset.suppressClick = '1';
+          setTimeout(() => delete row.dataset.suppressClick, 350);
+        }
+      });
+
+      wrapper.querySelector('.sa-done').addEventListener('click', event => {
+        event.stopPropagation(); updateRowStatus(row, 'done', true); snapClosed(row);
+      });
+      wrapper.querySelector('.sa-status').addEventListener('click', event => {
+        event.stopPropagation();
+        updateRowStatus(row, { stuck: 'progress', progress: 'done', done: 'stuck' }[row.dataset.status], false);
+        snapClosed(row);
+      });
+      wrapper.querySelector('.sa-delete').addEventListener('click', event => {
+        event.stopPropagation(); deleteRow(row);
+      });
+      row.addEventListener('click', event => {
+        if (row.dataset.suppressClick || event.target.closest('.avatar')) return;
+        openDetail(row);
+      });
+    }
+
+    const TODAY = new Date('2026-10-09T00:00:00');
+    function refreshDueChip(row) {
+      const chip = row.querySelector('.due-chip');
+      const due = row.dataset.due || '';
+      chip.className = 'due-chip';
+      if (!due) { chip.style.display = 'none'; chip.textContent = ''; return; }
+      chip.style.display = 'inline-block';
+      const diff = Math.round((new Date(due + 'T00:00:00') - TODAY) / 86400000);
+      if (diff < 0) { chip.textContent = '⚠️ Overdue · ' + due; chip.classList.add('overdue'); }
+      else if (diff === 0) { chip.textContent = 'Due today'; chip.classList.add('due-today'); }
+      else { chip.textContent = 'Due ' + due; chip.classList.add('due-soon'); }
+    }
+
+    let currentDetailRow = null;
+    let selectedDetailStatus = 'progress';
+    let selectedDetailPriority = 'p2';
+    const detailOverlay = document.getElementById('detail-overlay');
+
+    function setActivePill(containerId, key, value) {
+      document.querySelectorAll(`#${containerId} .detail-pill`).forEach(pill => {
+        pill.classList.toggle('active', pill.dataset[key] === value);
+      });
+    }
+    function updateDetailOverdue() {
+      const value = document.getElementById('detail-due').value;
+      document.getElementById('detail-overdue').style.display = value && new Date(value + 'T00:00:00') < TODAY ? 'block' : 'none';
+    }
+    function openDetail(row) {
+      currentDetailRow = row;
+      selectedDetailStatus = row.dataset.status;
+      selectedDetailPriority = row.dataset.priority || 'p2';
+      document.getElementById('detail-title').textContent = row.querySelector('.task-name').textContent;
+      document.getElementById('detail-due').value = row.dataset.due || '';
+      document.getElementById('detail-notes').value = row.dataset.notes || '';
+      setActivePill('detail-status-pills', 's', selectedDetailStatus);
+      setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
+      updateDetailOverdue();
+      detailOverlay.classList.add('open');
+    }
+    function closeDetail() {
+      detailOverlay.classList.remove('open');
+      setTimeout(() => { currentDetailRow = null; }, 300);
+    }
+    document.querySelectorAll('#detail-status-pills .detail-pill').forEach(pill => pill.addEventListener('click', () => {
+      selectedDetailStatus = pill.dataset.s; setActivePill('detail-status-pills', 's', selectedDetailStatus);
+    }));
+    document.querySelectorAll('#detail-priority-pills .detail-pill').forEach(pill => pill.addEventListener('click', () => {
+      selectedDetailPriority = pill.dataset.p; setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
+    }));
+    document.getElementById('detail-due').addEventListener('change', updateDetailOverdue);
+    document.getElementById('detail-close').addEventListener('click', closeDetail);
+    document.getElementById('detail-cancel').addEventListener('click', closeDetail);
+    detailOverlay.addEventListener('click', event => { if (event.target === detailOverlay) closeDetail(); });
+    document.getElementById('detail-save').addEventListener('click', () => {
+      if (!currentDetailRow) return;
+      currentDetailRow.dataset.priority = selectedDetailPriority;
+      currentDetailRow.dataset.due = document.getElementById('detail-due').value;
+      currentDetailRow.dataset.notes = document.getElementById('detail-notes').value;
+      currentDetailRow.querySelector('.priority-dot').className = 'priority-dot dot-' + selectedDetailPriority;
+      updateRowStatus(currentDetailRow, selectedDetailStatus, selectedDetailStatus === 'done');
+      refreshDueChip(currentDetailRow);
+      closeDetail();
+    });
+
+    function makeSwipeWrapper(row) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'swipe-wrapper';
+      const actions = document.createElement('div');
+      actions.className = 'swipe-actions';
+      actions.innerHTML = '<button class="swipe-btn sa-done">✓ Done</button><button class="swipe-btn sa-status">⟳ Status</button><button class="swipe-btn sa-delete">✕ Delete</button>';
+      row.parentNode.insertBefore(wrapper, row);
+      wrapper.append(actions, row);
+      return wrapper;
+    }
+
+    function enhanceRow(row) {
+      row.dataset.priority = row.dataset.priority || 'p2';
+      row.dataset.due = row.dataset.due || '';
+      row.dataset.notes = row.dataset.notes || '';
+      const info = row.querySelector('.task-info');
+      if (!info.querySelector('.priority-dot')) {
+        const dot = document.createElement('span');
+        dot.className = 'priority-dot dot-' + row.dataset.priority;
+        info.insertBefore(dot, info.querySelector('.task-name'));
+      }
+      if (!info.querySelector('.due-chip')) {
+        const chip = document.createElement('span');
+        chip.className = 'due-chip';
+        chip.style.display = 'none';
+        info.appendChild(chip);
+      }
+      if (!row.closest('.swipe-wrapper')) makeSwipeWrapper(row);
+      bindTaskRow(row);
+      refreshDueChip(row);
+    }
+
+    function createTaskWrapper(name, status) {
+      const list = document.createElement('div');
+      const meta = statusMeta[status];
+      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes=""><div class="accent ${meta[0]}"></div><img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')"><div class="task-info"><span class="task-name"></span><span class="task-assignee">Alfred</span></div><span class="badge ${meta[1]}">${meta[2]}</span></div>`;
+      const row = list.firstElementChild;
+      row.querySelector('.task-name').textContent = name;
+      const holder = document.createElement('div');
+      holder.appendChild(row);
+      enhanceRow(row);
+      return row.closest('.swipe-wrapper');
+    }
+
+    function addTask() {
+      const input = document.getElementById('new-task-name');
+      const name = input.value.trim();
+      if (!name) return;
+      const status = document.getElementById('new-task-status').value;
+      const week = document.getElementById('new-task-week').value;
+      document.getElementById('list-' + week).appendChild(createTaskWrapper(name, status));
+      input.value = '';
+      document.getElementById('modal-overlay').classList.remove('open');
+      applyAllFilters();
+    }
+
+    const tabBoard = document.getElementById('tab-board');
+    const boardView = document.getElementById('board-view');
+    let boardActive = false;
+    function buildBoard() {
+      ['stuck','progress','done'].forEach(status => {
+        const body = document.getElementById('col-body-' + status);
+        body.innerHTML = '';
+        document.querySelectorAll('.task-row').forEach(row => {
+          if (row.dataset.status !== status || row.classList.contains('hidden')) return;
+          const card = document.createElement('div');
+          card.className = 'board-card';
+          const priority = row.dataset.priority || 'p2';
+          card.innerHTML = `<span class="priority-dot dot-${priority}"></span><span class="board-card-name"></span><img class="board-card-avatar" alt="">`;
+          card.querySelector('.board-card-name').textContent = row.querySelector('.task-name').textContent;
+          card.querySelector('.board-card-avatar').src = row.querySelector('.avatar').src;
+          card.addEventListener('click', () => openDetail(row));
+          body.appendChild(card);
+        });
+      });
+    }
+    tabBoard.addEventListener('click', () => {
+      closeAllPanels();
+      boardActive = !boardActive;
+      tabBoard.classList.toggle('active', boardActive);
+      boardView.style.display = boardActive ? 'block' : 'none';
+      const focus = document.querySelector('.focus-banner');
+      if (focus) focus.style.display = boardActive ? 'none' : '';
+      document.getElementById('search-wrap').style.display = boardActive ? 'none' : '';
+      ['section-41','section-42','section-group'].forEach(id => {
+        document.getElementById(id).style.visibility = boardActive ? 'hidden' : '';
+      });
+      if (boardActive) buildBoard();
+    });
+
+    document.querySelectorAll('.task-row').forEach(enhanceRow);
     applyAllFilters();
   </script>
 </body>
