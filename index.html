@@ -52,16 +52,18 @@
       font-weight: 700;
       cursor: pointer;
       user-select: none;
-      background: #1e2035;
-      color: #888;
+      color: #fff;
       white-space: nowrap;
       flex-shrink: 0;
       transition: all 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
-    .filter-chip.chip-stuck.active    { background: rgba(239,68,68,0.22);  color: #ef4444; }
-    .filter-chip.chip-progress.active { background: rgba(245,158,11,0.22); color: #f59e0b; }
-    .filter-chip.chip-done.active     { background: rgba(34,197,94,0.22);  color: #22c55e; }
+    .filter-chip.chip-stuck    { background: #b91c1c; }
+    .filter-chip.chip-progress { background: #b45309; }
+    .filter-chip.chip-done     { background: #15803d; }
+    .filter-chip.chip-stuck.active    { background: #ef4444; outline: 2px solid #fff; outline-offset: 2px; }
+    .filter-chip.chip-progress.active { background: #f59e0b; outline: 2px solid #fff; outline-offset: 2px; }
+    .filter-chip.chip-done.active     { background: #22c55e; outline: 2px solid #fff; outline-offset: 2px; }
 
     .week-section { margin-bottom: 20px; }
     .week-section.week-hidden { display: none; }
@@ -200,9 +202,9 @@
   </div>
 
   <div class="filter-bar">
-    <div class="filter-chip chip-stuck"    data-status="stuck">🔴 Stuck</div>
-    <div class="filter-chip chip-progress" data-status="progress">🟡 In Progress</div>
-    <div class="filter-chip chip-done"     data-status="done">🟢 Done</div>
+    <div class="filter-chip chip-stuck"    data-status="stuck">Stuck</div>
+    <div class="filter-chip chip-progress" data-status="progress">In Progress</div>
+    <div class="filter-chip chip-done"     data-status="done">Done</div>
   </div>
 
   <!-- Week 41 -->
