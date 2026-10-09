@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -14,7 +14,8 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: #0d0d1a; color: #fff;
-      min-height: 100vh; padding: 12px 12px 70px;
+      min-height: 100vh;
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px calc(env(safe-area-inset-bottom, 0px) + 70px);
       transition: background 0.2s, color 0.2s;
     }
 
@@ -117,7 +118,8 @@
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #111220; border-top: 1px solid rgba(255,255,255,0.07);
       display: flex; flex-direction: row; align-items: stretch;
-      height: 54px; z-index: 100;
+      height: calc(54px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 100;
       overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
     .bottom-nav::-webkit-scrollbar { display: none; }
@@ -140,7 +142,7 @@
 
     /* ── Expand panel (floats above nav) ── */
     .expand-panel {
-      display: none; position: fixed; bottom: 54px; left: 0; right: 0;
+      display: none; position: fixed; bottom: calc(54px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0;
       background: #1a1c2e; border-top: 1px solid rgba(255,255,255,0.08);
       padding: 12px 14px; z-index: 99;
       flex-direction: row; gap: 8px; flex-wrap: wrap;
