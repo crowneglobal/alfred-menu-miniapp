@@ -130,14 +130,27 @@
     }
     .avatar.active-filter { outline: 2.5px solid #fff; outline-offset: 1px; }
 
-    .task-name {
+    .task-info {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 10px;
+      overflow: hidden;
+    }
+    .task-name {
       font-size: 15px;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      padding: 0 10px;
+    }
+    .task-assignee {
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .badge {
@@ -201,19 +214,19 @@
       <div class="task-row" data-status="done" data-person="12">
         <div class="accent accent-done"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPerson(event,'12')">
-        <span class="task-name">Finca security</span>
+        <div class="task-info"><span class="task-name">Finca security</span><span class="task-assignee">Darren</span></div>
         <span class="badge badge-done">Done</span>
       </div>
       <div class="task-row" data-status="progress" data-person="5">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=5" alt="" onclick="filterPerson(event,'5')">
-        <span class="task-name">COB review</span>
+        <div class="task-info"><span class="task-name">COB review</span><span class="task-assignee">Fiorella</span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
       <div class="task-row" data-status="stuck" data-person="33">
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=33" alt="" onclick="filterPerson(event,'33')">
-        <span class="task-name">Legal Arata</span>
+        <div class="task-info"><span class="task-name">Legal Arata</span><span class="task-assignee">Darren</span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
     </div>
@@ -228,25 +241,25 @@
       <div class="task-row" data-status="progress" data-person="47">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=47" alt="" onclick="filterPerson(event,'47')">
-        <span class="task-name">LHE HR screening</span>
+        <div class="task-info"><span class="task-name">LHE HR screening</span><span class="task-assignee">Fiorella</span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
       <div class="task-row" data-status="progress" data-person="22">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=22" alt="" onclick="filterPerson(event,'22')">
-        <span class="task-name">Casa remodelacion</span>
+        <div class="task-info"><span class="task-name">Casa remodelacion</span><span class="task-assignee">Fiorella</span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
       <div class="task-row" data-status="stuck" data-person="18">
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=18" alt="" onclick="filterPerson(event,'18')">
-        <span class="task-name">Gate camera install</span>
+        <div class="task-info"><span class="task-name">Gate camera install</span><span class="task-assignee">Darren</span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
       <div class="task-row" data-status="progress" data-person="9">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=9" alt="" onclick="filterPerson(event,'9')">
-        <span class="task-name">Maids recruitment</span>
+        <div class="task-info"><span class="task-name">Maids recruitment</span><span class="task-assignee">Fiorella</span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
     </div>
@@ -261,13 +274,13 @@
       <div class="task-row" data-status="stuck" data-person="4">
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPerson(event,'4')">
-        <span class="task-name">Fix Baileys sync bug</span>
+        <div class="task-info"><span class="task-name">Fix Baileys sync bug</span><span class="task-assignee">Alfred</span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
       <div class="task-row" data-status="progress" data-person="7">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=7" alt="" onclick="filterPerson(event,'7')">
-        <span class="task-name">Java UI deployment</span>
+        <div class="task-info"><span class="task-name">Java UI deployment</span><span class="task-assignee">Alfred</span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
     </div>
