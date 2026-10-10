@@ -575,7 +575,7 @@
     }
     if (tg) {
       tg.expand();
-      if (tg.requestFullscreen) tg.requestFullscreen();
+      if (tg.requestFullscreen && (!tg.isVersionAtLeast || tg.isVersionAtLeast('8.0'))) tg.requestFullscreen();
       tg.onEvent('themeChanged', applyTheme);
     }
     applyTheme();
