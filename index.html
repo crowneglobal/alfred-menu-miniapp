@@ -93,6 +93,24 @@
     .swipe-wrapper.sortable-ghost { opacity: 0.35; }
     .swipe-wrapper.sortable-drag { opacity: 0.95; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
     .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; flex-direction: row; align-items: stretch; }
+    .swipe-actions-left {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 232px;
+      display: flex; flex-direction: row; align-items: stretch;
+    }
+    .sa-date {
+      width: 58px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #6366f1; color: #fff; font-size: 10px; font-weight: 700;
+      cursor: pointer; border: none; gap: 2px;
+    }
+    .swipe-actions-left .sa-date { flex: 1 1 0; width: auto; min-width: 0; padding: 0; }
+    .sa-date .date-day { font-size: 12px; font-weight: 800; }
+    .sa-date .date-num { font-size: 10px; opacity: 0.8; }
+    .sa-date.sa-today { background: #3b82f6; }
+    .sa-date.sa-clock { background: #8b5cf6; font-size: 18px; }
+    .quick-due-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .swipe-btn { width: 70px; border: 0; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; }
     .sa-done { background: #22c55e; }
     .sa-status { background: #f59e0b; }
@@ -731,7 +749,7 @@
         event.preventDefault();
         moved = true; deltaX = dx;
         row.style.touchAction = 'pan-y';
-        row.style.transform = `translateX(${dx < 0 ? Math.max(dx, -210) : Math.min(dx, 60)}px)`;
+        row.style.transform = `translateX(${dx < 0 ? Math.max(dx, -210) : Math.min(dx, 232)}px)`;
       }, { passive: false });
 
       row.addEventListener('touchend', () => {
@@ -741,9 +759,9 @@
         if (deltaX < -100) {
           row.style.transform = 'translateX(-210px)';
           row.classList.add('swiped-open');
-        } else if (deltaX > 120) {
-          updateRowStatus(row, 'done', true);
-          snapClosed(row);
+        } else if (deltaX > 60) {
+          row.style.transform = 'translateX(232px)';
+          row.classList.add('swiped-open');
         } else {
           snapClosed(row);
         }
@@ -763,6 +781,27 @@
       });
       wrapper.querySelector('.sa-delete').addEventListener('click', event => {
         event.stopPropagation(); deleteRow(row);
+      });
+      wrapper.querySelectorAll('.sa-date[data-due]').forEach(button => {
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          row.dataset.due = button.dataset.due;
+          refreshDueChip(row);
+          snapClosed(row);
+        });
+      });
+      const quickDueInput = wrapper.querySelector('.quick-due-input');
+      wrapper.querySelector('.sa-clock').addEventListener('click', event => {
+        event.stopPropagation();
+        quickDueInput.value = row.dataset.due || '';
+        quickDueInput.click();
+      });
+      quickDueInput.addEventListener('change', event => {
+        event.stopPropagation();
+        if (!quickDueInput.value) return;
+        row.dataset.due = quickDueInput.value;
+        refreshDueChip(row);
+        snapClosed(row);
       });
       row.addEventListener('click', event => {
         if (row.dataset.suppressClick || event.target.closest('.avatar')) return;
@@ -885,11 +924,38 @@
     function makeSwipeWrapper(row) {
       const wrapper = document.createElement('div');
       wrapper.className = 'swipe-wrapper';
+      const leftActions = document.createElement('div');
+      leftActions.className = 'swipe-actions-left';
+      const quickDates = Array.from({ length: 4 }, (_, offset) => {
+        const date = new Date(TODAY);
+        date.setDate(date.getDate() + offset);
+        return {
+          iso: date.toISOString().slice(0, 10),
+          day: offset === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }),
+          number: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        };
+      });
+      quickDates.forEach((date, index) => {
+        const button = document.createElement('button');
+        button.className = 'sa-date' + (index === 0 ? ' sa-today' : '');
+        button.dataset.due = date.iso;
+        button.innerHTML = `<span class="date-day">${date.day}</span><span class="date-num">${date.number}</span>`;
+        leftActions.appendChild(button);
+      });
+      const clockButton = document.createElement('button');
+      clockButton.className = 'sa-date sa-clock';
+      clockButton.type = 'button';
+      clockButton.setAttribute('aria-label', 'Choose due date');
+      clockButton.textContent = '🕔';
+      const quickDueInput = document.createElement('input');
+      quickDueInput.className = 'quick-due-input';
+      quickDueInput.type = 'date';
+      leftActions.append(clockButton, quickDueInput);
       const actions = document.createElement('div');
       actions.className = 'swipe-actions';
       actions.innerHTML = '<button class="swipe-btn sa-done">✓ Done</button><button class="swipe-btn sa-status">⟳ Status</button><button class="swipe-btn sa-delete">✕ Delete</button>';
       row.parentNode.insertBefore(wrapper, row);
-      wrapper.append(actions, row);
+      wrapper.append(leftActions, actions, row);
       return wrapper;
     }
 
