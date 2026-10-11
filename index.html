@@ -428,9 +428,16 @@
     .detail-comment-input { flex: 1; padding: 9px 12px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 13px; outline: none; }
     .detail-comment-send { width: 36px; height: 36px; border-radius: 50%; background: #C5D4A8; color: #2A2400; border: none; font-size: 16px; cursor: pointer; flex-shrink: 0; }
 
-    #board-view { position: fixed; inset: calc(env(safe-area-inset-top,0px) + 0px) 0 calc(54px + env(safe-area-inset-bottom,0px)) 0; overflow: hidden; background: inherit; z-index: 90; }
-    .board-columns { display: flex; height: 100%; overflow-x: auto; gap: 10px; padding: 12px; scroll-snap-type: x mandatory; }
-    .board-col { min-width: calc(80vw); max-width: calc(80vw); flex-shrink: 0; display: flex; flex-direction: column; scroll-snap-align: start; }
+    #board-view {
+      position: relative; width: 100%;
+      height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0px));
+      min-height: 360px; overflow: hidden; background: inherit; z-index: 1;
+    }
+    .board-columns {
+      display: flex; height: 100%; overflow-x: auto; gap: 10px; padding: 8px 0 12px;
+      scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+    }
+    .board-col { min-width: 100%; max-width: 100%; flex-shrink: 0; display: flex; flex-direction: column; scroll-snap-align: start; }
     .board-col-header { padding: 8px 12px; font-size: 12px; font-weight: 700; border-radius: 8px 8px 0 0; margin-bottom: 6px; }
     .col-header-stuck { background: rgba(239,68,68,0.2); color: #ef4444; }
     .col-header-progress { background: rgba(246,139,66,0.2); color: #F68B42; }
@@ -981,8 +988,6 @@
       tabGroup.classList.toggle('active', groupVisible);
       updateSectionVisibility();
     });
-    tabGroup.classList.add('active');
-
     function closeAllPanels() {
       panelWeek.classList.remove('open');
       panelPeople.classList.remove('open');
@@ -1440,15 +1445,28 @@
     tabBoard.addEventListener('click', () => {
       closeAllPanels();
       boardActive = !boardActive;
+      if (boardActive) {
+        activeStatus = null;
+        activePersonId = null;
+        weekFilter = 'all';
+        groupVisible = true;
+        document.querySelectorAll('.nav-tab[data-status], .sheet-extra-nav .nav-tab').forEach(tab => tab.classList.remove('active'));
+        tabWeek.textContent = 'Week';
+        panelWeek.querySelectorAll('.expand-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.week === 'all'));
+        panelPeople.querySelectorAll('.expand-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.person === 'all'));
+        document.querySelectorAll('.task-row .avatar').forEach(avatar => avatar.classList.remove('active-filter'));
+      }
       tabBoard.classList.toggle('active', boardActive);
       boardView.style.display = boardActive ? 'block' : 'none';
       const focus = document.querySelector('.focus-banner');
       if (focus) focus.style.display = boardActive ? 'none' : '';
-      document.getElementById('search-input').style.display = boardActive ? 'none' : '';
       ['section-41','section-42','section-group'].forEach(id => {
-        document.getElementById(id).style.visibility = boardActive ? 'hidden' : '';
+        document.getElementById(id).style.display = boardActive ? 'none' : '';
       });
-      if (boardActive) buildBoard();
+      if (boardActive) {
+        applyAllFilters();
+        boardView.querySelector('.board-columns').scrollLeft = 0;
+      }
     });
 
     document.querySelectorAll('.task-row').forEach(enhanceRow);
