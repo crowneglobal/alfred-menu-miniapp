@@ -470,6 +470,27 @@
     }
     .board-col-body::-webkit-scrollbar { display: none; }
     .board-col.expanded .board-col-body { max-height: none; overflow-y: visible; }
+
+    /* ── Asana-style inline add row ── */
+    .inline-add-row {
+      display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+      cursor: pointer; opacity: 0.45; font-size: 13px; border-radius: 8px;
+      transition: opacity 0.15s; user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .inline-add-row:hover, .inline-add-row:active { opacity: 0.9; }
+    .inline-add-row::before { content: '+'; font-size: 17px; font-weight: 700; line-height: 1; }
+    .inline-task-wrap {
+      display: none; align-items: center; gap: 9px; padding: 8px 12px;
+      background: rgba(255,255,255,0.12); border-radius: 10px; margin: 3px 8px 3px;
+      border: 1.5px solid rgba(197,212,168,0.35);
+    }
+    body.light .inline-task-wrap { background: rgba(0,0,0,0.04); border-color: rgba(197,212,168,0.5); }
+    .inline-task-wrap.active { display: flex; }
+    .inline-task-wrap input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-size: 14px; color: inherit; font-family: inherit; caret-color: #C5D4A8;
+    }
+    .inline-task-wrap input::placeholder { opacity: 0.45; }
     .board-card { background: #F5F2EA; color: #1A0E00; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
     .board-card-name { font-size: 13px; font-weight: 500; flex: 1; }
     .board-card-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
@@ -583,6 +604,8 @@
         <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Legal Arata</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">W41</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
+      <div class="inline-add-row" onclick="showInlineAdd(this,'list-41','Week 41')">Add task</div>
+      <div class="inline-task-wrap"><input type="text" placeholder="Task name, then Enter..."></div>
     </div>
   </div>
 
@@ -616,6 +639,8 @@
         <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Maids recruitment</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
+      <div class="inline-add-row" onclick="showInlineAdd(this,'list-42','Week 42')">Add task</div>
+      <div class="inline-task-wrap"><input type="text" placeholder="Task name, then Enter..."></div>
     </div>
   </div>
 
@@ -637,6 +662,8 @@
         <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Java UI deployment</span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag tag-grp">Group</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
+      <div class="inline-add-row" onclick="showInlineAdd(this,'list-group','This Group')">Add task</div>
+      <div class="inline-task-wrap"><input type="text" placeholder="Task name, then Enter..."></div>
     </div>
   </div>
 
@@ -1620,6 +1647,73 @@
       document.getElementById(id).addEventListener('click', () => {
         if (!bottomSheet.classList.contains('expanded')) expandSheet();
       }, true);
+    });
+
+    // ── Asana-style inline task creation ──
+    function showInlineAdd(btn, listId, group) {
+      const wrap = btn.nextElementSibling;
+      btn.style.display = 'none';
+      wrap.classList.add('active');
+      const inp = wrap.querySelector('input');
+      inp.value = '';
+      inp.focus();
+      inp.dataset.listId = listId;
+      inp.dataset.group = group;
+      inp.onkeydown = function(e) { handleInlineKey(e); };
+      inp.onblur = function() {
+        setTimeout(() => {
+          if (document.activeElement !== inp) cancelInlineAdd(wrap);
+        }, 150);
+      };
+    }
+
+    function handleInlineKey(e) {
+      if (e.key === 'Escape') {
+        cancelInlineAdd(e.target.closest('.inline-task-wrap'));
+        return;
+      }
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const name = e.target.value.trim();
+      const wrap = e.target.closest('.inline-task-wrap');
+      if (!name) { cancelInlineAdd(wrap); return; }
+      const listId = e.target.dataset.listId;
+      const group = e.target.dataset.group;
+      const list = document.getElementById(listId);
+      const tagClass = listId === 'list-42' ? 'tag-42' : listId === 'list-group' ? 'tag-grp' : '';
+      const tagLabel = listId === 'list-41' ? 'W41' : listId === 'list-42' ? 'W42' : 'Group';
+      const row = document.createElement('div');
+      row.className = 'task-row';
+      row.dataset.status = 'progress';
+      row.dataset.person = 'au';
+      row.dataset.priority = 'p2';
+      row.dataset.group = group;
+      row.dataset.assignee = 'Me';
+      row.dataset.created = new Date().toISOString().split('T')[0];
+      row.dataset.comments = '[]';
+      row.dataset.notes = '';
+      row.dataset.goal = '';
+      row.dataset.due = '';
+      const safeName = name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      row.innerHTML = `<div class="accent accent-progress"></div><img class="avatar current-user-photo" src="" alt="" style="display:none"><div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">${safeName}</span><div class="task-meta-row"><span class="task-assignee">Me</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div><span class="due-chip" style="display:none"></span></div><span class="badge badge-progress">In Progress</span>`;
+      const addBtn = wrap.previousElementSibling;
+      list.insertBefore(row, addBtn);
+      enhanceRow(row);
+      assignTaskNumbers();
+      applyAllFilters();
+      // Stay in input for next task
+      e.target.value = '';
+    }
+
+    function cancelInlineAdd(wrap) {
+      wrap.classList.remove('active');
+      const addBtn = wrap.previousElementSibling;
+      if (addBtn) addBtn.style.display = '';
+    }
+
+    // Ensure inline-add rows stay below task rows during Sortable drag
+    document.querySelectorAll('.inline-add-row, .inline-task-wrap').forEach(el => {
+      el.addEventListener('mousedown', e => e.stopPropagation());
     });
   </script>
 </body>
