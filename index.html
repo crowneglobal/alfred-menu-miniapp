@@ -182,6 +182,7 @@
     }
     .label-41    { background: #C5D4A8; color: #2A2400; }
     .label-42    { background: #C5D4A8; color: #2A2400; }
+    .label-grp   { background: rgba(110,158,94,0.25); color: #3A5A2A; }
     .week-chevron { font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
     .week-section.collapsed .week-chevron { transform: rotate(-90deg); }
     .task-list { overflow: hidden; max-height: 2000px; transition: max-height 0.25s ease; }
@@ -650,9 +651,9 @@
     </div>
   </div>
 
-  <!-- This group — clean separator style -->
+  <!-- This group -->
   <div class="week-section" id="section-group">
-    <div class="section-sep" onclick="toggleCollapse('section-group')">
+    <div class="week-label label-grp" onclick="toggleCollapse('section-group')">
       This Group <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-group">
