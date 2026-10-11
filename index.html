@@ -62,6 +62,7 @@
       -webkit-tap-highlight-color: transparent;
     }
     .section-tab.active { background: #2A2A25; color: #C5D4A8; }
+    #nav-planning .section-tab, #nav-banking .section-tab { min-width: 0; padding-left: 8px; padding-right: 8px; }
     body.light .section-tabs { background: rgba(0,0,0,0.07); }
     body.light .section-tab.active { background: #2A2A25; color: #C5D4A8; }
 
@@ -241,6 +242,13 @@
     .accent-done     { background: #6E9E5E; }
     .accent-progress { background: #C07840; }
     .accent-stuck    { background: #B85248; }
+
+    .task-number {
+      width: 24px; flex: 0 0 24px; text-align: center;
+      margin-left: 5px; color: rgba(26,14,0,0.46);
+      font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+    }
+    body.light .task-number { color: rgba(26,14,0,0.46); }
 
     .avatar {
       width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
@@ -453,16 +461,18 @@
 <body>
 
   <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:6px; min-height:unset;">
-    <nav class="section-tabs" id="section-switcher" aria-label="App sections" style="width:100%; margin-top:0;">
-      <button class="section-tab active" id="tab-planning" data-view="planning">Planning</button>
-      <button class="section-tab" id="tab-banking" data-view="banking">Banking</button>
-    </nav>
+    <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
         <button class="section-tab active" id="topnav-pending" data-qf="pending">Pending</button>
         <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
         <button class="section-tab" id="topnav-people" data-qf="people">People</button>
         <button class="section-tab" id="topnav-board" data-qf="board">Board</button>
+      </div>
+      <div id="nav-banking" style="display:none; gap:2px; width:100%;">
+        <button class="section-tab active">Accounts</button>
+        <button class="section-tab">Send</button>
+        <button class="section-tab">History</button>
       </div>
     </div>
   </header>
@@ -633,7 +643,7 @@
     <div class="sheet-expanded" id="sheet-expanded">
       <div class="sheet-expanded-inner">
         <!-- Search -->
-        <input class="search-input" id="search-input" type="search" placeholder="🔍 Search tasks...">
+        <input class="search-input" id="search-input" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autofocus placeholder="🔍 Search tasks...">
         <!-- More tabs -->
         <div class="sheet-extra-nav">
           <div class="nav-tab tab-pending" id="tab-pending">Pending</div>
@@ -813,6 +823,7 @@
         group: 'tasks', animation: 150,
         ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
         delay: 120, delayOnTouchOnly: true, forceFallback: true, fallbackTolerance: 3,
+        onEnd: assignTaskNumbers,
       });
     });
 
@@ -1054,7 +1065,7 @@
       void wrapper.offsetHeight;
       wrapper.style.height = '0';
       wrapper.style.marginBottom = '0';
-      setTimeout(() => { wrapper.remove(); applyAllFilters(); }, 260);
+      setTimeout(() => { wrapper.remove(); assignTaskNumbers(); applyAllFilters(); }, 260);
     }
 
     function bindTaskRow(row) {
@@ -1344,6 +1355,12 @@
         row.dataset.assignee = a ? a.textContent : '';
       }
       const info = row.querySelector('.task-info');
+      if (!row.querySelector('.task-number')) {
+        const number = document.createElement('span');
+        number.className = 'task-number';
+        number.setAttribute('aria-label', 'Task number');
+        row.insertBefore(number, row.querySelector('.avatar'));
+      }
       if (!info.querySelector('.priority-dot')) {
         const dot = document.createElement('span');
         dot.className = 'priority-dot dot-' + row.dataset.priority;
@@ -1358,6 +1375,13 @@
       if (!row.closest('.swipe-wrapper')) makeSwipeWrapper(row);
       bindTaskRow(row);
       refreshDueChip(row);
+    }
+
+    function assignTaskNumbers() {
+      document.querySelectorAll('.task-row').forEach((row, index) => {
+        const number = row.querySelector('.task-number');
+        if (number) number.textContent = String(index + 1);
+      });
     }
 
     function createTaskWrapper(name, status, listId) {
@@ -1383,6 +1407,7 @@
       const week = document.getElementById('new-task-week').value;
       const listId = 'list-' + week;
       document.getElementById(listId).appendChild(createTaskWrapper(name, status, listId));
+      assignTaskNumbers();
       input.value = '';
       document.getElementById('modal-overlay').classList.remove('open');
       applyAllFilters();
@@ -1423,34 +1448,40 @@
     });
 
     document.querySelectorAll('.task-row').forEach(enhanceRow);
+    assignTaskNumbers();
     applyAllFilters();
 
-    // ── Section switcher ──
+    // ── Section switcher: tap the Alfred title ──
     let activeSection = 'planning';
     function switchSection(section) {
       activeSection = section;
+      const titleToggle = document.getElementById('app-title-toggle');
       const navPlanning = document.getElementById('nav-planning');
-      const contextTabs = document.getElementById('context-tabs');
+      const navBanking = document.getElementById('nav-banking');
       const sheet = document.getElementById('bottom-sheet');
-      document.querySelectorAll('#section-switcher .section-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.view === section);
-      });
       if (section === 'banking') {
+        titleToggle.childNodes[0].textContent = 'Alfred Bank ';
         navPlanning.style.display = 'none';
-        contextTabs.style.display = 'none';
+        navBanking.style.display = 'flex';
         document.getElementById('view-planning').style.display = 'none';
         document.getElementById('view-banking').style.display = '';
         sheet.style.display = 'none';
       } else {
+        titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
         navPlanning.style.display = 'flex';
-        contextTabs.style.display = 'flex';
+        navBanking.style.display = 'none';
         document.getElementById('view-planning').style.display = '';
         document.getElementById('view-banking').style.display = 'none';
         sheet.style.display = '';
       }
     }
-    document.querySelectorAll('#section-switcher .section-tab').forEach(tab => {
-      tab.addEventListener('click', () => switchSection(tab.dataset.view));
+    const appTitleToggle = document.getElementById('app-title-toggle');
+    appTitleToggle.addEventListener('click', () => switchSection(activeSection === 'planning' ? 'banking' : 'planning'));
+    appTitleToggle.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        switchSection(activeSection === 'planning' ? 'banking' : 'planning');
+      }
     });
 
     // ── Top nav quick-filters (Planning nav) ──
