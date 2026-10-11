@@ -128,7 +128,7 @@
       margin-bottom: 8px; cursor: pointer; user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
-    .label-41    { background: #CEDD4A; color: #231708; }
+    .label-41    { background: #1A0E00; color: #CEDD4A; }
     .label-42    { background: #F68B42; color: #231708; }
     .week-chevron { font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
     .week-section.collapsed .week-chevron { transform: rotate(-90deg); }
@@ -571,7 +571,7 @@
     function applyTheme() {
       const isLight = !darkModeEnabled;
       document.body.classList.toggle('light', isLight);
-      const bg = isLight ? '#EFE4D2' : '#1A0E00';
+      const bg = isLight ? '#EFE4D2' : '#CEDD4A';
       if (tg) { tg.setBackgroundColor(bg); tg.setHeaderColor(bg); }
     }
     if (tg) {
