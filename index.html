@@ -232,6 +232,13 @@
     .due-chip.overdue { color: #B85248; }
     .due-chip.due-today { color: #C07840; }
     .due-chip.due-soon { color: #94a3b8; }
+    .task-meta-row { display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+    .task-group-tag {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      background: rgba(197,212,168,0.22); color: #7AAB6A; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .task-group-tag.tag-42 { background: rgba(192,120,64,0.15); color: #C07840; }
+    .task-group-tag.tag-grp { background: rgba(110,158,94,0.15); color: #6E9E5E; }
 
     .badge { padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; margin-right: 9px; flex-shrink: 0; white-space: nowrap; }
     .badge-done     { background: #6E9E5E; color: #fff; }
@@ -350,6 +357,9 @@
     .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .detail-title-text { font-size: 16px; font-weight: 700; }
     .detail-close { background: none; border: none; color: #888; font-size: 18px; cursor: pointer; }
+    .detail-meta-row { display: flex; gap: 7px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+    .detail-meta-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.07); color: #bbb; }
+    body.light .detail-meta-chip { background: rgba(0,0,0,0.06); color: #555; }
     .detail-section-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 5px; margin-top: 12px; }
     .detail-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; margin-top: 4px; }
     .detail-pill { padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.07); color: #bbb; cursor: pointer; border: none; }
@@ -436,22 +446,22 @@
       Week 41 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-41">
-      <div class="task-row" data-status="done" data-person="12" data-priority="p2" data-due="" data-notes="" data-comments='[{"text":"Camera placement confirmed with security team","author":"Darren","time":"2026-10-07T14:30:00"},{"text":"Done — all 4 cameras installed and tested","author":"Darren","time":"2026-10-08T09:15:00"}]'>
+      <div class="task-row" data-status="done" data-person="12" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 41" data-assignee="Darren" data-comments='[{"text":"Camera placement confirmed with security team","author":"Darren","time":"2026-10-07T14:30:00"},{"text":"Done — all 4 cameras installed and tested","author":"Darren","time":"2026-10-08T09:15:00"}]'>
         <div class="accent accent-done"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Finca security</span><span class="task-assignee">Darren</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Finca security</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">W41</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-done">Done</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="5" data-priority="p2" data-due="" data-notes="" data-comments='[{"text":"First draft sent to Fiorella for review","author":"Alfred","time":"2026-10-07T11:00:00"}]'>
+      <div class="task-row" data-status="progress" data-person="5" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 41" data-assignee="Fiorella" data-comments='[{"text":"First draft sent to Fiorella for review","author":"Alfred","time":"2026-10-07T11:00:00"}]'>
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=5" alt="" onclick="filterPersonAvatar(event,'5')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">COB review</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">COB review</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag">W41</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="stuck" data-person="33" data-priority="p2" data-due="" data-notes="" data-comments='[{"text":"Waiting on attorney response re: court date","author":"Darren","time":"2026-10-06T16:45:00"},{"text":"Called Crowne Law — no update yet","author":"Alfred","time":"2026-10-08T10:00:00"}]'>
+      <div class="task-row" data-status="stuck" data-person="33" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 41" data-assignee="Darren" data-comments='[{"text":"Waiting on attorney response re: court date","author":"Darren","time":"2026-10-06T16:45:00"},{"text":"Called Crowne Law — no update yet","author":"Alfred","time":"2026-10-08T10:00:00"}]'>
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=33" alt="" onclick="filterPersonAvatar(event,'33')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Legal Arata</span><span class="task-assignee">Darren</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Legal Arata</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">W41</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
     </div>
@@ -463,28 +473,28 @@
       Week 42 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-42">
-      <div class="task-row" data-status="progress" data-person="47" data-priority="p2" data-due="" data-notes="" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="47" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Fiorella" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=47" alt="" onclick="filterPersonAvatar(event,'47')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">LHE HR screening</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">LHE HR screening</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="22" data-priority="p2" data-due="" data-notes="" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="22" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Fiorella" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=22" alt="" onclick="filterPersonAvatar(event,'22')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Casa remodelacion</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Casa remodelacion</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="stuck" data-person="18" data-priority="p2" data-due="" data-notes="" data-comments='[{"text":"Parts ordered, ETA 3 days","author":"Darren","time":"2026-10-07T08:00:00"}]'>
+      <div class="task-row" data-status="stuck" data-person="18" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Darren" data-comments='[{"text":"Parts ordered, ETA 3 days","author":"Darren","time":"2026-10-07T08:00:00"}]'>
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=18" alt="" onclick="filterPersonAvatar(event,'18')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Gate camera install</span><span class="task-assignee">Darren</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Gate camera install</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="9" data-priority="p2" data-due="" data-notes="" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="9" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Fiorella" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=9" alt="" onclick="filterPersonAvatar(event,'9')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Maids recruitment</span><span class="task-assignee">Fiorella</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Maids recruitment</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
     </div>
@@ -496,16 +506,16 @@
       This Group <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-group">
-      <div class="task-row" data-status="stuck" data-person="4" data-priority="p2" data-due="" data-notes="" data-comments='[{"text":"Root cause: JID mismatch on group messages","author":"Alfred","time":"2026-10-08T20:00:00"},{"text":"Sami reviewing the fix PR","author":"Alfred","time":"2026-10-09T09:00:00"}]'>
+      <div class="task-row" data-status="stuck" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="This Group" data-assignee="Alfred" data-comments='[{"text":"Root cause: JID mismatch on group messages","author":"Alfred","time":"2026-10-08T20:00:00"},{"text":"Sami reviewing the fix PR","author":"Alfred","time":"2026-10-09T09:00:00"}]'>
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Fix Baileys sync bug</span><span class="task-assignee">Alfred</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Fix Baileys sync bug</span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag tag-grp">Group</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="7" data-priority="p2" data-due="" data-notes="" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="7" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="This Group" data-assignee="Alfred" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=7" alt="" onclick="filterPersonAvatar(event,'7')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Java UI deployment</span><span class="task-assignee">Alfred</span><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Java UI deployment</span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag tag-grp">Group</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
     </div>
@@ -598,6 +608,12 @@
     <div class="detail-sheet" id="detail-sheet">
       <div class="detail-handle"></div>
       <div class="detail-header"><span class="detail-title-text" id="detail-title">Task name</span><button class="detail-close" id="detail-close">✕</button></div>
+      <div class="detail-meta-row">
+        <span class="detail-meta-chip" id="detail-group-chip">—</span>
+        <span class="detail-meta-chip" id="detail-assignee-chip">—</span>
+      </div>
+      <div class="detail-section-label">Goal</div>
+      <input class="modal-input" type="text" id="detail-goal" placeholder="Link to a goal...">
       <div class="detail-section-label">Status</div>
       <div class="detail-pills" id="detail-status-pills"><div class="detail-pill pill-stuck" data-s="stuck">Stuck</div><div class="detail-pill pill-progress" data-s="progress">In Progress</div><div class="detail-pill pill-done" data-s="done">Done</div></div>
       <div class="detail-section-label">Priority</div>
@@ -1091,6 +1107,9 @@
       document.getElementById('detail-title').textContent = row.querySelector('.task-name').textContent;
       document.getElementById('detail-due').value = row.dataset.due || '';
       document.getElementById('detail-notes').value = row.dataset.notes || '';
+      document.getElementById('detail-goal').value = row.dataset.goal || '';
+      document.getElementById('detail-group-chip').textContent = row.dataset.group || '—';
+      document.getElementById('detail-assignee-chip').textContent = row.dataset.assignee || row.querySelector('.task-assignee').textContent || '—';
       document.getElementById('detail-comment-input').value = '';
       renderComments(row);
       setActivePill('detail-status-pills', 's', selectedDetailStatus);
@@ -1121,6 +1140,7 @@
       currentDetailRow.dataset.priority = selectedDetailPriority;
       currentDetailRow.dataset.due = document.getElementById('detail-due').value;
       currentDetailRow.dataset.notes = document.getElementById('detail-notes').value;
+      currentDetailRow.dataset.goal = document.getElementById('detail-goal').value;
       currentDetailRow.querySelector('.priority-dot').className = 'priority-dot dot-' + selectedDetailPriority;
       updateRowStatus(currentDetailRow, selectedDetailStatus, selectedDetailStatus === 'done');
       refreshDueChip(currentDetailRow);
@@ -1165,11 +1185,21 @@
       return wrapper;
     }
 
+    const GROUP_LABELS = { 'list-41': 'Week 41', 'list-42': 'Week 42', 'list-group': 'This Group' };
     function enhanceRow(row) {
       row.dataset.priority = row.dataset.priority || 'p2';
       row.dataset.due = row.dataset.due || '';
       row.dataset.notes = row.dataset.notes || '';
+      row.dataset.goal = row.dataset.goal || '';
       row.dataset.comments = row.dataset.comments || '[]';
+      if (!row.dataset.group) {
+        const list = row.closest('.task-list');
+        row.dataset.group = list ? (GROUP_LABELS[list.id] || '') : '';
+      }
+      if (!row.dataset.assignee) {
+        const a = row.querySelector('.task-assignee');
+        row.dataset.assignee = a ? a.textContent : '';
+      }
       const info = row.querySelector('.task-info');
       if (!info.querySelector('.priority-dot')) {
         const dot = document.createElement('span');
@@ -1187,10 +1217,13 @@
       refreshDueChip(row);
     }
 
-    function createTaskWrapper(name, status) {
+    function createTaskWrapper(name, status, listId) {
       const list = document.createElement('div');
       const meta = statusMeta[status];
-      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-comments="[]"><div class="accent ${meta[0]}"></div><img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')"><div class="task-info"><span class="task-name"></span><span class="task-assignee">Alfred</span></div><span class="badge ${meta[1]}">${meta[2]}</span></div>`;
+      const group = GROUP_LABELS[listId] || '';
+      const tagClass = listId === 'list-42' ? 'tag-42' : listId === 'list-group' ? 'tag-grp' : '';
+      const tagLabel = listId === 'list-41' ? 'W41' : listId === 'list-42' ? 'W42' : 'Group';
+      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><div class="accent ${meta[0]}"></div><img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')"><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span></div>`;
       const row = list.firstElementChild;
       row.querySelector('.task-name').textContent = name;
       const holder = document.createElement('div');
@@ -1205,7 +1238,8 @@
       if (!name) return;
       const status = document.getElementById('new-task-status').value;
       const week = document.getElementById('new-task-week').value;
-      document.getElementById('list-' + week).appendChild(createTaskWrapper(name, status));
+      const listId = 'list-' + week;
+      document.getElementById(listId).appendChild(createTaskWrapper(name, status, listId));
       input.value = '';
       document.getElementById('modal-overlay').classList.remove('open');
       applyAllFilters();
