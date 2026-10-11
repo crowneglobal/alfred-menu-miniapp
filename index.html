@@ -341,10 +341,12 @@
     .due-chip.overdue { color: #B85248; }
     .due-chip.due-today { color: #C07840; }
     .due-chip.due-soon { color: #94a3b8; }
-    .task-meta-row { display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+    .task-meta-row { display: flex; align-items: center; gap: 5px; min-width: 0; margin-top: 1px; }
     .task-group-tag {
+      display: inline-block; min-width: 0; max-width: 96px;
       font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
       background: rgba(197,212,168,0.22); color: #7AAB6A; text-transform: uppercase; letter-spacing: 0.4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .task-group-tag.tag-42 { background: rgba(192,120,64,0.15); color: #C07840; }
     .task-group-tag.tag-grp { background: rgba(110,158,94,0.15); color: #6E9E5E; }
