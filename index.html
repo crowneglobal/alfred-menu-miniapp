@@ -1235,6 +1235,10 @@
     document.querySelectorAll('.task-row').forEach(enhanceRow);
     applyAllFilters();
 
+    // Auto-open search on load
+    document.getElementById('bottom-sheet').classList.add('expanded');
+    setTimeout(() => { const s = document.getElementById('search-input'); if (s) s.focus(); }, 500);
+
     // ── Bottom sheet swipe ──
     const bottomSheet = document.getElementById('bottom-sheet');
     const sheetHandle = document.getElementById('sheet-handle');
