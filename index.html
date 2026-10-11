@@ -442,6 +442,8 @@
       width: 100%; display: flex; flex-direction: column; border-radius: 14px;
       background: rgba(255,255,255,0.22); border: 1px solid rgba(42,42,37,0.07);
       overflow: hidden; box-shadow: 0 2px 10px rgba(42,42,37,0.04);
+      /* each lane is independently scrollable */
+      flex-shrink: 0;
     }
     .board-col-header {
       min-height: 42px; padding: 0 12px; font-size: 12px; font-weight: 800;
@@ -461,7 +463,13 @@
     .col-header-stuck { background: rgba(239,68,68,0.2); color: #ef4444; }
     .col-header-progress { background: rgba(246,139,66,0.2); color: #F68B42; }
     .col-header-done { background: rgba(110,158,94,0.2); color: #6E9E5E; }
-    .board-col-body { display: flex; flex-direction: column; gap: 6px; padding: 7px; }
+    .board-col-body {
+      display: flex; flex-direction: column; gap: 6px; padding: 7px;
+      max-height: 28vh; overflow-y: auto; overscroll-behavior: contain;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .board-col-body::-webkit-scrollbar { display: none; }
+    .board-col.expanded .board-col-body { max-height: none; overflow-y: visible; }
     .board-card { background: #F5F2EA; color: #1A0E00; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
     .board-card-name { font-size: 13px; font-weight: 500; flex: 1; }
     .board-card-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
@@ -1486,6 +1494,8 @@
         weekFilter = 'all';
         groupVisible = true;
         document.querySelectorAll('.nav-tab[data-status], .sheet-extra-nav .nav-tab').forEach(tab => tab.classList.remove('active'));
+        document.getElementById('tab-people').classList.remove('active');
+        document.getElementById('tab-group').classList.remove('active');
         tabWeek.textContent = 'Week';
         panelWeek.querySelectorAll('.expand-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.week === 'all'));
         panelPeople.querySelectorAll('.expand-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.person === 'all'));
