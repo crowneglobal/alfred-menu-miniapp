@@ -15,7 +15,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: #EEF4E8; color: #1A0E00;
       min-height: 100vh;
-      padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px calc(env(safe-area-inset-bottom, 0px) + 72px);
+      padding: calc(env(safe-area-inset-top, 0px) + 4px) 12px calc(env(safe-area-inset-bottom, 0px) + 72px);
       transition: background 0.2s, color 0.2s;
     }
 
@@ -518,9 +518,9 @@
 </head>
 <body>
 
-  <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:6px; min-height:unset;">
-    <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.55; text-align:center; width:100%; margin-bottom:2px;"></div>
+  <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:4px; min-height:unset;">
     <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+    <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
         <button class="section-tab active" id="topnav-board" data-qf="board">Rocstars®</button>
