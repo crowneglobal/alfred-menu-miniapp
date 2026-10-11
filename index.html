@@ -51,7 +51,10 @@
     .section-tabs {
       display: flex; gap: 2px; border-radius: 20px;
       background: rgba(0,0,0,0.08); padding: 3px; margin-top: 6px;
+      max-width: 100%; overflow-x: auto; scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
     }
+    .section-tabs::-webkit-scrollbar { display: none; }
     .section-tab {
       flex: 1; border: 0; border-radius: 16px; padding: 5px 18px;
       font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
@@ -450,18 +453,16 @@
 <body>
 
   <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:6px; min-height:unset;">
-    <div class="app-title" id="app-title-toggle" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
-    <div class="section-tabs" id="section-tabs" style="padding:0; background:none; margin-top:4px;">
+    <nav class="section-tabs" id="section-switcher" aria-label="App sections" style="width:100%; margin-top:0;">
+      <button class="section-tab active" id="tab-planning" data-view="planning">Planning</button>
+      <button class="section-tab" id="tab-banking" data-view="banking">Banking</button>
+    </nav>
+    <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
         <button class="section-tab active" id="topnav-pending" data-qf="pending">Pending</button>
         <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
         <button class="section-tab" id="topnav-people" data-qf="people">People</button>
         <button class="section-tab" id="topnav-board" data-qf="board">Board</button>
-      </div>
-      <div id="nav-banking" style="display:none; gap:2px; width:100%;">
-        <button class="section-tab active">Accounts</button>
-        <button class="section-tab">Send</button>
-        <button class="section-tab">History</button>
       </div>
     </div>
   </header>
@@ -1143,7 +1144,8 @@
       });
     }
 
-    const TODAY = new Date('2026-10-09T00:00:00');
+    const TODAY = new Date();
+    TODAY.setHours(0, 0, 0, 0);
     function refreshDueChip(row) {
       const chip = row.querySelector('.due-chip');
       const due = row.dataset.due || '';
@@ -1231,7 +1233,7 @@
       const badgeEl = document.getElementById('days-old-badge');
       if (badgeEl) {
         const created = row.dataset.created;
-        badgeEl.textContent = created ? Math.round((TODAY - new Date(created + 'T00:00:00')) / 86400000) + 'd' : '?';
+        badgeEl.textContent = created ? Math.max(0, Math.floor((TODAY - new Date(created + 'T00:00:00')) / 86400000)) + 'd' : '?';
       }
       // Comments visibility — only if task has a topicId
       const commentsSection = document.getElementById('detail-comments-section');
@@ -1423,32 +1425,32 @@
     document.querySelectorAll('.task-row').forEach(enhanceRow);
     applyAllFilters();
 
-    // ── Section switcher: Alfred title tap-toggle ──
+    // ── Section switcher ──
     let activeSection = 'planning';
     function switchSection(section) {
       activeSection = section;
-      const titleToggle = document.getElementById('app-title-toggle');
       const navPlanning = document.getElementById('nav-planning');
-      const navBanking = document.getElementById('nav-banking');
+      const contextTabs = document.getElementById('context-tabs');
       const sheet = document.getElementById('bottom-sheet');
+      document.querySelectorAll('#section-switcher .section-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.view === section);
+      });
       if (section === 'banking') {
-        titleToggle.childNodes[0].textContent = 'Alfred Bank ';
         navPlanning.style.display = 'none';
-        navBanking.style.display = 'flex';
+        contextTabs.style.display = 'none';
         document.getElementById('view-planning').style.display = 'none';
         document.getElementById('view-banking').style.display = '';
         sheet.style.display = 'none';
       } else {
-        titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
         navPlanning.style.display = 'flex';
-        navBanking.style.display = 'none';
+        contextTabs.style.display = 'flex';
         document.getElementById('view-planning').style.display = '';
         document.getElementById('view-banking').style.display = 'none';
         sheet.style.display = '';
       }
     }
-    document.getElementById('app-title-toggle').addEventListener('click', () => {
-      switchSection(activeSection === 'planning' ? 'banking' : 'planning');
+    document.querySelectorAll('#section-switcher .section-tab').forEach(tab => {
+      tab.addEventListener('click', () => switchSection(tab.dataset.view));
     });
 
     // ── Top nav quick-filters (Planning nav) ──
