@@ -431,18 +431,37 @@
     #board-view {
       position: relative; width: 100%;
       height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0px));
-      min-height: 360px; overflow: hidden; background: inherit; z-index: 1;
+      min-height: 360px; overflow-y: auto; overflow-x: hidden; background: inherit; z-index: 1;
+      overscroll-behavior-y: contain; scrollbar-width: none;
     }
+    #board-view::-webkit-scrollbar { display: none; }
     .board-columns {
-      display: flex; height: 100%; overflow-x: auto; gap: 10px; padding: 8px 0 12px;
-      scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+      display: flex; flex-direction: column; width: 100%; gap: 10px; padding: 8px 0 96px;
     }
-    .board-col { min-width: 100%; max-width: 100%; flex-shrink: 0; display: flex; flex-direction: column; scroll-snap-align: start; }
-    .board-col-header { padding: 8px 12px; font-size: 12px; font-weight: 700; border-radius: 8px 8px 0 0; margin-bottom: 6px; }
+    .board-col {
+      width: 100%; display: flex; flex-direction: column; border-radius: 14px;
+      background: rgba(255,255,255,0.22); border: 1px solid rgba(42,42,37,0.07);
+      overflow: hidden; box-shadow: 0 2px 10px rgba(42,42,37,0.04);
+    }
+    .board-col-header {
+      min-height: 42px; padding: 0 12px; font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .board-col-title { flex: 1; letter-spacing: 0.15px; }
+    .board-count {
+      min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: currentColor; background: rgba(255,255,255,0.5); font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+    .board-chevron { font-size: 17px; line-height: 1; transition: transform 0.24s ease; }
+    .board-col.collapsed .board-chevron { transform: rotate(-90deg); }
+    .board-col.collapsed .board-col-body { display: none; }
     .col-header-stuck { background: rgba(239,68,68,0.2); color: #ef4444; }
     .col-header-progress { background: rgba(246,139,66,0.2); color: #F68B42; }
     .col-header-done { background: rgba(110,158,94,0.2); color: #6E9E5E; }
-    .board-col-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .board-col-body { display: flex; flex-direction: column; gap: 6px; padding: 7px; }
     .board-card { background: #F5F2EA; color: #1A0E00; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
     .board-card-name { font-size: 13px; font-weight: 500; flex: 1; }
     .board-card-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
@@ -615,9 +634,9 @@
 
   <div id="board-view" class="board-view" style="display:none">
     <div class="board-columns">
-      <div class="board-col" id="col-stuck"><div class="board-col-header col-header-stuck">🔴 Stuck</div><div class="board-col-body" id="col-body-stuck"></div></div>
-      <div class="board-col" id="col-progress"><div class="board-col-header col-header-progress">🟡 In Progress</div><div class="board-col-body" id="col-body-progress"></div></div>
-      <div class="board-col" id="col-done"><div class="board-col-header col-header-done">✅ Done</div><div class="board-col-body" id="col-body-done"></div></div>
+      <div class="board-col" id="col-stuck"><div class="board-col-header col-header-stuck" role="button" tabindex="0" aria-expanded="true"><span class="board-col-title">🔴 Stuck</span><span class="board-count" id="count-stuck">0</span><span class="board-chevron">⌄</span></div><div class="board-col-body" id="col-body-stuck"></div></div>
+      <div class="board-col" id="col-progress"><div class="board-col-header col-header-progress" role="button" tabindex="0" aria-expanded="true"><span class="board-col-title">🟡 In Progress</span><span class="board-count" id="count-progress">0</span><span class="board-chevron">⌄</span></div><div class="board-col-body" id="col-body-progress"></div></div>
+      <div class="board-col" id="col-done"><div class="board-col-header col-header-done" role="button" tabindex="0" aria-expanded="true"><span class="board-col-title">✅ Done</span><span class="board-count" id="count-done">0</span><span class="board-chevron">⌄</span></div><div class="board-col-body" id="col-body-done"></div></div>
     </div>
   </div>
 
@@ -1429,6 +1448,7 @@
       ['stuck','progress','done'].forEach(status => {
         const body = document.getElementById('col-body-' + status);
         body.innerHTML = '';
+        let count = 0;
         document.querySelectorAll('.task-row').forEach(row => {
           if (row.dataset.status !== status || row.classList.contains('hidden')) return;
           const card = document.createElement('div');
@@ -1439,9 +1459,24 @@
           card.querySelector('.board-card-avatar').src = row.querySelector('.avatar').src;
           card.addEventListener('click', () => openDetail(row));
           body.appendChild(card);
+          count += 1;
         });
+        document.getElementById('count-' + status).textContent = count;
       });
     }
+    document.querySelectorAll('.board-col-header').forEach(header => {
+      const toggleLane = () => {
+        const lane = header.closest('.board-col');
+        const collapsed = lane.classList.toggle('collapsed');
+        header.setAttribute('aria-expanded', String(!collapsed));
+      };
+      header.addEventListener('click', toggleLane);
+      header.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        toggleLane();
+      });
+    });
     tabBoard.addEventListener('click', () => {
       closeAllPanels();
       boardActive = !boardActive;
@@ -1465,7 +1500,7 @@
       });
       if (boardActive) {
         applyAllFilters();
-        boardView.querySelector('.board-columns').scrollLeft = 0;
+        boardView.scrollTop = 0;
       }
     });
 
