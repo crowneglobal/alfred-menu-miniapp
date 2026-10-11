@@ -81,6 +81,7 @@
       display: flex; align-items: center; justify-content: space-between;
       min-height: 42px; margin-bottom: 10px;
     }
+    #context-tabs { margin-top: 8vh !important; }
     .app-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
     .profile-trigger {
       width: 40px; height: 40px; border-radius: 50%; padding: 0; overflow: hidden;
@@ -286,8 +287,8 @@
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #2A2A25; border-radius: 14px 14px 0 0;
       border-top: 1px solid rgba(255,255,255,0.07);
-      z-index: 100; overflow: visible;
-      transform: translateY(var(--drawer-h, 180px));
+      z-index: 100; overflow: visible; max-height: 50dvh;
+      transform: translateY(calc(100% - 66px));
       transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
     }
     .bottom-sheet.expanded { transform: translateY(0); }
@@ -306,7 +307,11 @@
       display: flex; flex-direction: row; align-items: center;
       justify-content: space-around; height: 48px; overflow: visible;
     }
-    .sheet-expanded { /* slides as part of the whole sheet — no separate animation */ }
+    .sheet-expanded {
+      max-height: calc(50dvh - 66px - env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
     .sheet-expanded-inner {
       padding: 8px 12px 6px;
       display: flex; flex-direction: column; gap: 8px;
@@ -807,7 +812,6 @@
       profileView.setAttribute('aria-hidden', 'true');
       if (tg && tg.BackButton) tg.BackButton.hide();
     }
-    document.getElementById('profile-trigger').addEventListener('click', openProfile);
     document.getElementById('profile-back').addEventListener('click', closeProfile);
     darkModeToggle.addEventListener('change', () => {
       darkModeEnabled = darkModeToggle.checked;
@@ -1520,10 +1524,16 @@
     function expandSheet() { measureDrawerH(); bottomSheet.classList.add('expanded'); }
     function collapseSheet() { closeAllPanels(); measureDrawerH(); bottomSheet.classList.remove('expanded'); }
 
-    // Measure before first paint, then auto-open with keyboard
+    // Start collapsed. Tapping the avatar opens the half-screen search tray.
     measureDrawerH();
-    bottomSheet.classList.add('expanded');
-    setTimeout(() => { const s = document.getElementById('search-input'); if (s) s.focus(); }, 500);
+    document.getElementById('profile-trigger').addEventListener('click', () => {
+      if (bottomSheet.classList.contains('expanded')) {
+        collapseSheet();
+        return;
+      }
+      expandSheet();
+      setTimeout(() => document.getElementById('search-input')?.focus(), 420);
+    });
 
     sheetHandle.addEventListener('click', () => {
       if (bottomSheet.classList.contains('expanded')) collapseSheet(); else expandSheet();
