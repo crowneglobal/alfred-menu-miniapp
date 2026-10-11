@@ -638,7 +638,7 @@
       <div class="nav-tab chip-stuck"    data-status="stuck">Stuck</div>
       <div class="nav-tab chip-progress" data-status="progress">In Progress</div>
       <div class="nav-tab chip-done"     data-status="done">Done</div>
-      <div class="nav-center-avatar" id="profile-trigger" role="button" tabindex="0" aria-label="Open profile">
+      <div class="nav-center-avatar" id="profile-trigger" role="button" tabindex="0" aria-label="Open search tray">
         <img class="current-user-photo" alt="">
         <span class="current-user-initials">A</span>
       </div>
@@ -648,7 +648,7 @@
     <div class="sheet-expanded" id="sheet-expanded">
       <div class="sheet-expanded-inner">
         <!-- Search -->
-        <input class="search-input" id="search-input" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autofocus placeholder="🔍 Search tasks...">
+        <input class="search-input" id="search-input" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="🔍 Search tasks...">
         <!-- More tabs -->
         <div class="sheet-extra-nav">
           <div class="nav-tab tab-pending" id="tab-pending">Pending</div>
@@ -1522,7 +1522,12 @@
       bottomSheet.style.setProperty('--drawer-h', (drawer.offsetHeight + (safe ? safe.offsetHeight : 0)) + 'px');
     }
     function expandSheet() { measureDrawerH(); bottomSheet.classList.add('expanded'); }
-    function collapseSheet() { closeAllPanels(); measureDrawerH(); bottomSheet.classList.remove('expanded'); }
+    function collapseSheet() {
+      closeAllPanels();
+      document.getElementById('search-input')?.blur();
+      measureDrawerH();
+      bottomSheet.classList.remove('expanded');
+    }
 
     // Start collapsed. Tapping the avatar opens the half-screen search tray.
     measureDrawerH();
