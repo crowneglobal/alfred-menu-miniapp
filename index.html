@@ -81,10 +81,10 @@
       position: relative;
       display: flex; align-items: center; justify-content: space-between;
       min-height: 42px; margin-bottom: 10px;
-      padding-top: max(env(safe-area-inset-top, 0px), 44px) !important;
+      padding-top: max(env(safe-area-inset-top, 0px), 50px) !important;
     }
     .header-add-button, .header-search-button {
-      position: absolute; top: max(env(safe-area-inset-top, 0px), 44px);
+      position: absolute; top: max(env(safe-area-inset-top, 0px), 50px);
       width: 36px; height: 36px; border: 0; border-radius: 50%;
       background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 25px;
       font-weight: 400; line-height: 34px; cursor: pointer; z-index: 2;
@@ -673,23 +673,53 @@
       Week 41 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-41">
-      <div class="task-row" data-status="done" data-person="12" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 41" data-assignee="Darren" data-topic-id="101" data-created="2026-10-01" data-comments='[{"text":"Camera placement confirmed with security team","author":"Darren","time":"2026-10-07T14:30:00"},{"text":"Done — all 4 cameras installed and tested","author":"Darren","time":"2026-10-08T09:15:00"}]'>
+      <div class="task-row" data-status="done" data-person="12" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Farm" data-assignee="Darren" data-topic-id="101" data-created="2026-10-01" data-comments='[{"text":"Camera placement confirmed with security team","author":"Darren","time":"2026-10-07T14:30:00"},{"text":"Done — all 4 cameras installed and tested","author":"Darren","time":"2026-10-08T09:15:00"}]'>
         <div class="accent accent-done"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Finca security</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">W41</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Finca security</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">Farm</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-done">Done</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="5" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 41" data-assignee="Fiorella" data-topic-id="102" data-created="2026-10-06" data-comments='[{"text":"First draft sent to Fiorella for review","author":"Alfred","time":"2026-10-07T11:00:00"}]'>
+      <div class="task-row" data-status="progress" data-person="5" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="ALF AI" data-assignee="Fiorella" data-topic-id="102" data-created="2026-10-06" data-comments='[{"text":"First draft sent to Fiorella for review","author":"Alfred","time":"2026-10-07T11:00:00"}]'>
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=5" alt="" onclick="filterPersonAvatar(event,'5')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">COB review</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag">W41</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">COB review</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag">ALF AI</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="stuck" data-person="33" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 41" data-assignee="Darren" data-topic-id="103" data-created="2026-10-01" data-comments='[{"text":"Waiting on attorney response re: court date","author":"Darren","time":"2026-10-06T16:45:00"},{"text":"Called Crowne Law — no update yet","author":"Alfred","time":"2026-10-08T10:00:00"}]'>
+      <div class="task-row" data-status="stuck" data-person="33" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Crowne" data-assignee="Darren" data-topic-id="103" data-created="2026-10-01" data-comments='[{"text":"Waiting on attorney response re: court date","author":"Darren","time":"2026-10-06T16:45:00"},{"text":"Called Crowne Law — no update yet","author":"Alfred","time":"2026-10-08T10:00:00"}]'>
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=33" alt="" onclick="filterPersonAvatar(event,'33')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Legal Arata</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">W41</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Legal Arata</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">Crowne</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
+      </div>
+      <div class="task-row" data-status="stuck" data-person="12" data-priority="p1" data-due="" data-notes="" data-goal="" data-group="Farm" data-assignee="Darren" data-created="2026-10-09" data-comments="[]">
+        <div class="accent accent-stuck"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
+        <div class="task-info"><span class="priority-dot dot-p1"></span><span class="task-name">Install gate LPR camera</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">Farm</span></div><span class="due-chip" style="display:none"></span></div>
+        <span class="badge badge-stuck">Stuck</span>
+      </div>
+      <div class="task-row" data-status="progress" data-person="12" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Crowne" data-assignee="Darren" data-created="2026-10-08" data-comments="[]">
+        <div class="accent accent-progress"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Review Arata case docs</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">Crowne</span></div><span class="due-chip" style="display:none"></span></div>
+        <span class="badge badge-progress">In Progress</span>
+      </div>
+      <div class="task-row" data-status="progress" data-person="12" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Farm" data-assignee="Darren" data-created="2026-10-10" data-comments="[]">
+        <div class="accent accent-progress"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Call backhoe parts supplier</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">Farm</span></div><span class="due-chip" style="display:none"></span></div>
+        <span class="badge badge-progress">In Progress</span>
+      </div>
+      <div class="task-row" data-status="stuck" data-person="12" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="ALF AI" data-assignee="Darren" data-created="2026-10-07" data-comments="[]">
+        <div class="accent accent-stuck"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Deploy WALF Baileys fix</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">ALF AI</span></div><span class="due-chip" style="display:none"></span></div>
+        <span class="badge badge-stuck">Stuck</span>
+      </div>
+      <div class="task-row" data-status="done" data-person="12" data-priority="p3" data-due="" data-notes="" data-goal="" data-group="Farm" data-assignee="Darren" data-created="2026-10-06" data-comments="[]">
+        <div class="accent accent-done"></div>
+        <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="" onclick="filterPersonAvatar(event,'12')">
+        <div class="task-info"><span class="priority-dot dot-p3"></span><span class="task-name">Confirm Neil fruit delivery</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag">Farm</span></div><span class="due-chip" style="display:none"></span></div>
+        <span class="badge badge-done">Done</span>
       </div>
       <div class="inline-add-row" onclick="showInlineAdd(this,'list-41','Week 41')">Add task</div>
       <div class="inline-task-wrap"><input type="text" placeholder="Task name, then Enter..."></div>
@@ -702,28 +732,28 @@
       Week 42 <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-42">
-      <div class="task-row" data-status="progress" data-person="47" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Fiorella" data-created="2026-10-07" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="47" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="LHE Ops" data-assignee="Fiorella" data-created="2026-10-07" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=47" alt="" onclick="filterPersonAvatar(event,'47')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">LHE HR screening</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">LHE HR screening</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">LHE Ops</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="22" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Fiorella" data-created="2026-10-07" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="22" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="LHE Ops" data-assignee="Fiorella" data-created="2026-10-07" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=22" alt="" onclick="filterPersonAvatar(event,'22')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Casa remodelacion</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Casa remodelacion</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">LHE Ops</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
-      <div class="task-row" data-status="stuck" data-person="18" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Darren" data-topic-id="104" data-created="2026-10-04" data-comments='[{"text":"Parts ordered, ETA 3 days","author":"Darren","time":"2026-10-07T08:00:00"}]'>
+      <div class="task-row" data-status="stuck" data-person="18" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Farm" data-assignee="Darren" data-topic-id="104" data-created="2026-10-04" data-comments='[{"text":"Parts ordered, ETA 3 days","author":"Darren","time":"2026-10-07T08:00:00"}]'>
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=18" alt="" onclick="filterPersonAvatar(event,'18')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Gate camera install</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Gate camera install</span><div class="task-meta-row"><span class="task-assignee">Darren</span><span class="task-group-tag tag-42">Farm</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="9" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="Week 42" data-assignee="Fiorella" data-created="2026-10-07" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="9" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="LHE Ops" data-assignee="Fiorella" data-created="2026-10-07" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=9" alt="" onclick="filterPersonAvatar(event,'9')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Maids recruitment</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">W42</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Maids recruitment</span><div class="task-meta-row"><span class="task-assignee">Fiorella</span><span class="task-group-tag tag-42">LHE Ops</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
       <div class="inline-add-row" onclick="showInlineAdd(this,'list-42','Week 42')">Add task</div>
@@ -737,16 +767,16 @@
       This Group <span class="week-chevron">▼</span>
     </div>
     <div class="task-list" id="list-group">
-      <div class="task-row" data-status="stuck" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="This Group" data-assignee="Alfred" data-topic-id="105" data-created="2026-10-05" data-comments='[{"text":"Root cause: JID mismatch on group messages","author":"Alfred","time":"2026-10-08T20:00:00"},{"text":"Sami reviewing the fix PR","author":"Alfred","time":"2026-10-09T09:00:00"}]'>
+      <div class="task-row" data-status="stuck" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="ALF AI" data-assignee="Alfred" data-topic-id="105" data-created="2026-10-05" data-comments='[{"text":"Root cause: JID mismatch on group messages","author":"Alfred","time":"2026-10-08T20:00:00"},{"text":"Sami reviewing the fix PR","author":"Alfred","time":"2026-10-09T09:00:00"}]'>
         <div class="accent accent-stuck"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Fix Baileys sync bug</span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag tag-grp">Group</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Fix Baileys sync bug</span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag tag-grp">ALF AI</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-stuck">Stuck</span>
       </div>
-      <div class="task-row" data-status="progress" data-person="7" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="This Group" data-assignee="Alfred" data-created="2026-10-08" data-comments="[]">
+      <div class="task-row" data-status="progress" data-person="7" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="ALF AI" data-assignee="Alfred" data-created="2026-10-08" data-comments="[]">
         <div class="accent accent-progress"></div>
         <img class="avatar" src="https://i.pravatar.cc/72?img=7" alt="" onclick="filterPersonAvatar(event,'7')">
-        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Java UI deployment</span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag tag-grp">Group</span></div><span class="due-chip" style="display:none"></span></div>
+        <div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">Java UI deployment</span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag tag-grp">ALF AI</span></div><span class="due-chip" style="display:none"></span></div>
         <span class="badge badge-progress">In Progress</span>
       </div>
       <div class="inline-add-row" onclick="showInlineAdd(this,'list-group','This Group')">Add task</div>
