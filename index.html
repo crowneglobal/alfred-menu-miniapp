@@ -460,15 +460,15 @@
     .board-count {
       min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px;
       display: inline-flex; align-items: center; justify-content: center;
-      color: currentColor; background: rgba(255,255,255,0.5); font-size: 11px;
+      color: inherit; background: rgba(255,255,255,0.25); font-size: 11px;
       font-variant-numeric: tabular-nums;
     }
     .board-chevron { font-size: 17px; line-height: 1; transition: transform 0.24s ease; }
     .board-col.collapsed .board-chevron { transform: rotate(-90deg); }
     .board-col.collapsed .board-col-body { display: none; }
-    .col-header-stuck { background: rgba(239,68,68,0.2); color: #ef4444; }
-    .col-header-progress { background: rgba(246,139,66,0.2); color: #F68B42; }
-    .col-header-done { background: rgba(110,158,94,0.2); color: #6E9E5E; }
+    .col-header-stuck    { background: #7B2B27; color: #fff; }
+    .col-header-progress { background: #B87B30; color: #fff; }
+    .col-header-done     { background: #4A7A3A; color: #fff; }
     .board-col-body {
       display: flex; flex-direction: column; gap: 6px; padding: 7px;
       max-height: 28vh; overflow-y: auto; overscroll-behavior: contain;
@@ -530,10 +530,10 @@
     <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
-        <button class="section-tab active" id="topnav-pending" data-qf="pending">Pending</button>
+        <button class="section-tab active" id="topnav-board" data-qf="board">Rocstars®</button>
+        <button class="section-tab" id="topnav-people" data-qf="people">Roctavos</button>
         <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
-        <button class="section-tab" id="topnav-people" data-qf="people">People</button>
-        <button class="section-tab" id="topnav-board" data-qf="board">Board</button>
+        <button class="section-tab" id="topnav-pending" data-qf="pending">Today</button>
       </div>
       <div id="nav-banking" style="display:none; gap:2px; width:100%;">
         <button class="section-tab active">Accounts</button>
@@ -1552,6 +1552,8 @@
     document.querySelectorAll('.task-row').forEach(enhanceRow);
     assignTaskNumbers();
     applyAllFilters();
+    // Default to Rocstars® (board) view on load
+    setTimeout(() => { tabBoard.click(); }, 0);
 
     function openCOB() {
       const url = 'https://banking.crowne-cards.com';
