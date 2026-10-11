@@ -306,6 +306,15 @@
     .nav-tab.tab-group.active     { color: #7AAB6A; border-top-color: #7AAB6A; font-weight: 700; }
     .nav-tab.tab-board.active     { color: #7AAB6A; border-top-color: #7AAB6A; font-weight: 700; }
     .nav-tab.tab-new              { color: #ef4444; font-weight: 800; font-size: 13px; }
+    .nav-tab.tab-pending.active   { color: #C5D4A8; border-top-color: #C5D4A8; font-weight: 700; }
+    .task-topic-dot { width: 7px; height: 7px; border-radius: 50%; background: #7AAB6A; flex-shrink: 0; margin-left: 3px; display: none; vertical-align: middle; }
+    .task-row[data-topic="true"] .task-topic-dot { display: inline-block; }
+    .btn-topic {
+      flex: 1; padding: 12px; border-radius: 10px;
+      background: rgba(197,212,168,0.12); color: #C5D4A8;
+      font-size: 13px; font-weight: 700; border: 1px solid rgba(197,212,168,0.25); cursor: pointer;
+    }
+    .btn-topic.topic-done { background: rgba(110,158,94,0.2); color: #7AAB6A; border-color: rgba(110,158,94,0.4); }
     .nav-divider { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; margin: 10px 0; flex-shrink: 0; }
 
     /* ── Inline sub-pickers (inside bottom sheet) ── */
@@ -554,6 +563,7 @@
         <input class="search-input" id="search-input" type="search" placeholder="🔍 Search tasks...">
         <!-- More tabs -->
         <div class="sheet-extra-nav">
+          <div class="nav-tab tab-pending" id="tab-pending">Pending</div>
           <div class="nav-tab tab-week"   id="tab-week">Week</div>
           <div class="nav-tab tab-people" id="tab-people">People</div>
           <div class="nav-tab tab-group"  id="tab-group">Group</div>
@@ -628,6 +638,9 @@
       <div class="detail-comment-input-row">
         <input class="detail-comment-input" id="detail-comment-input" type="text" placeholder="Add a comment...">
         <button class="detail-comment-send" id="detail-comment-send">↑</button>
+      </div>
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="btn-topic" id="detail-topic-btn">🧵 Create Topic</button>
       </div>
       <div class="modal-actions"><button class="btn-cancel" id="detail-cancel">Cancel</button><button class="btn-add" id="detail-save">Save</button></div>
     </div>
@@ -747,7 +760,8 @@
 
     function applyAllFilters() {
       document.querySelectorAll('.task-row').forEach(row => {
-        const statusOk = !activeStatus || row.dataset.status === activeStatus;
+        const statusOk = !activeStatus
+          || (activeStatus === 'pending' ? row.dataset.status !== 'done' : row.dataset.status === activeStatus);
         const personOk = !activePersonId || row.dataset.person === activePersonId;
         const searchOk = !searchQuery || row.querySelector('.task-name').textContent.toLowerCase().includes(searchQuery.toLowerCase());
         const hidden = !(statusOk && personOk && searchOk);
@@ -769,6 +783,8 @@
       tab.addEventListener('click', () => {
         closeAllPanels();
         const s = tab.dataset.status;
+        const pendingTab = document.getElementById('tab-pending');
+        pendingTab.classList.remove('active');
         if (activeStatus === s) {
           activeStatus = null; tab.classList.remove('active');
         } else {
@@ -778,6 +794,20 @@
         }
         applyAllFilters();
       });
+    });
+
+    // Pending tab — shows Stuck + In Progress, hides Done
+    const tabPending = document.getElementById('tab-pending');
+    tabPending.addEventListener('click', () => {
+      closeAllPanels();
+      if (activeStatus === 'pending') {
+        activeStatus = null; tabPending.classList.remove('active');
+      } else {
+        activeStatus = 'pending';
+        document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+        tabPending.classList.add('active');
+      }
+      applyAllFilters();
     });
 
     // Week tab — toggle panel
@@ -1110,6 +1140,12 @@
       document.getElementById('detail-goal').value = row.dataset.goal || '';
       document.getElementById('detail-group-chip').textContent = row.dataset.group || '—';
       document.getElementById('detail-assignee-chip').textContent = row.dataset.assignee || row.querySelector('.task-assignee').textContent || '—';
+      const topicBtn = document.getElementById('detail-topic-btn');
+      if (row.dataset.topic === 'true') {
+        topicBtn.textContent = '✓ Topic Marked'; topicBtn.classList.add('topic-done');
+      } else {
+        topicBtn.textContent = '🧵 Create Topic'; topicBtn.classList.remove('topic-done');
+      }
       document.getElementById('detail-comment-input').value = '';
       renderComments(row);
       setActivePill('detail-status-pills', 's', selectedDetailStatus);
@@ -1135,6 +1171,16 @@
     document.getElementById('detail-close').addEventListener('click', closeDetail);
     document.getElementById('detail-cancel').addEventListener('click', closeDetail);
     detailOverlay.addEventListener('click', event => { if (event.target === detailOverlay) closeDetail(); });
+    document.getElementById('detail-topic-btn').addEventListener('click', () => {
+      if (!currentDetailRow) return;
+      const hasTopic = currentDetailRow.dataset.topic === 'true';
+      if (hasTopic) return;
+      currentDetailRow.dataset.topic = 'true';
+      const btn = document.getElementById('detail-topic-btn');
+      btn.textContent = '✓ Topic Marked';
+      btn.classList.add('topic-done');
+    });
+
     document.getElementById('detail-save').addEventListener('click', () => {
       if (!currentDetailRow) return;
       currentDetailRow.dataset.priority = selectedDetailPriority;
