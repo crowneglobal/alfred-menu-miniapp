@@ -450,10 +450,19 @@
 <body>
 
   <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:6px; min-height:unset;">
-    <div class="app-title" style="text-align:center; width:100%;">Alfred</div>
-    <div class="section-tabs" id="section-tabs">
-      <button class="section-tab active" id="tab-planning" data-view="planning">Planning</button>
-      <button class="section-tab" id="tab-banking" data-view="banking">Banking</button>
+    <div class="app-title" id="app-title-toggle" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+    <div class="section-tabs" id="section-tabs" style="padding:0; background:none; margin-top:4px;">
+      <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
+        <button class="section-tab active" id="topnav-pending" data-qf="pending">Pending</button>
+        <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
+        <button class="section-tab" id="topnav-people" data-qf="people">People</button>
+        <button class="section-tab" id="topnav-board" data-qf="board">Board</button>
+      </div>
+      <div id="nav-banking" style="display:none; gap:2px; width:100%;">
+        <button class="section-tab active">Accounts</button>
+        <button class="section-tab">Send</button>
+        <button class="section-tab">History</button>
+      </div>
     </div>
   </header>
 
@@ -1414,17 +1423,54 @@
     document.querySelectorAll('.task-row').forEach(enhanceRow);
     applyAllFilters();
 
-    // ── Section switcher (Planning / Banking) ──
-    document.querySelectorAll('.section-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const view = tab.dataset.view;
-        document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('view-planning').style.display = view === 'planning' ? '' : 'none';
-        document.getElementById('view-banking').style.display = view === 'banking' ? '' : 'none';
-        const sheet = document.getElementById('bottom-sheet');
-        if (view === 'banking') sheet.style.display = 'none';
-        else sheet.style.display = '';
+    // ── Section switcher: Alfred title tap-toggle ──
+    let activeSection = 'planning';
+    function switchSection(section) {
+      activeSection = section;
+      const titleToggle = document.getElementById('app-title-toggle');
+      const navPlanning = document.getElementById('nav-planning');
+      const navBanking = document.getElementById('nav-banking');
+      const sheet = document.getElementById('bottom-sheet');
+      if (section === 'banking') {
+        titleToggle.childNodes[0].textContent = 'Alfred Bank ';
+        navPlanning.style.display = 'none';
+        navBanking.style.display = 'flex';
+        document.getElementById('view-planning').style.display = 'none';
+        document.getElementById('view-banking').style.display = '';
+        sheet.style.display = 'none';
+      } else {
+        titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
+        navPlanning.style.display = 'flex';
+        navBanking.style.display = 'none';
+        document.getElementById('view-planning').style.display = '';
+        document.getElementById('view-banking').style.display = 'none';
+        sheet.style.display = '';
+      }
+    }
+    document.getElementById('app-title-toggle').addEventListener('click', () => {
+      switchSection(activeSection === 'planning' ? 'banking' : 'planning');
+    });
+
+    // ── Top nav quick-filters (Planning nav) ──
+    document.querySelectorAll('[data-qf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qf = btn.dataset.qf;
+        document.querySelectorAll('#nav-planning .section-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (qf === 'pending') {
+          activeStatus = 'pending';
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+          document.getElementById('tab-pending').classList.add('active');
+          applyAllFilters();
+        } else if (qf === 'week') {
+          if (!bottomSheet.classList.contains('expanded')) expandSheet();
+          tabWeek.click();
+        } else if (qf === 'people') {
+          if (!bottomSheet.classList.contains('expanded')) expandSheet();
+          tabPeople.click();
+        } else if (qf === 'board') {
+          tabBoard.click();
+        }
       });
     });
 
