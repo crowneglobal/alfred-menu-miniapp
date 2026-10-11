@@ -66,15 +66,27 @@
     body.light .section-tabs { background: rgba(0,0,0,0.07); }
     body.light .section-tab.active { background: #2A2A25; color: #C5D4A8; }
 
-    /* ── Banking placeholder ── */
-    .banking-header { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; text-align:center; margin: 8px 0 20px; }
-    .banking-placeholder {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 40vh; gap: 10px; opacity: 0.55;
+    /* ── Banking / COB ── */
+    .banking-header { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; text-align:center; margin: 8px 0 16px; }
+    .cob-frame {
+      width: 100%; border: none; border-radius: 14px; display: block;
+      height: calc(100dvh - 180px - env(safe-area-inset-bottom, 0px));
+      min-height: 420px; background: #1A0E00;
     }
-    .banking-icon { font-size: 52px; }
-    .banking-label { font-size: 17px; font-weight: 700; }
-    .banking-sub { font-size: 13px; text-align: center; max-width: 220px; line-height: 1.5; }
+    .cob-launch-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      padding: 32px 20px; text-align: center;
+    }
+    .cob-launch-icon { font-size: 56px; }
+    .cob-launch-title { font-size: 18px; font-weight: 800; }
+    .cob-launch-sub { font-size: 13px; opacity: 0.55; max-width: 220px; line-height: 1.5; }
+    .cob-launch-btn {
+      display: flex; align-items: center; gap: 8px; padding: 14px 28px;
+      background: #C5D4A8; color: #2A2A25; font-size: 15px; font-weight: 700;
+      border: none; border-radius: 24px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    }
+    body.light .cob-launch-btn { background: #2A2A25; color: #C5D4A8; }
 
     /* App header and profile */
     .app-header {
@@ -680,10 +692,17 @@
   <!-- Banking placeholder -->
   <div id="view-banking" style="display:none">
     <div class="banking-header">Banking</div>
-    <div class="banking-placeholder">
-      <div class="banking-icon">💳</div>
-      <div class="banking-label">Coming soon</div>
-      <div class="banking-sub">Your accounts and transactions will live here.</div>
+    <!-- Try iframe first; if blocked by X-Frame-Options, show launch button -->
+    <iframe id="cob-frame" class="cob-frame"
+      src="https://banking.crowne-cards.com"
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+      allow="payment"
+      title="Crowne Online Banking"></iframe>
+    <div class="cob-launch-wrap" id="cob-launch" style="display:none">
+      <div class="cob-launch-icon">💳</div>
+      <div class="cob-launch-title">Crowne Online Banking</div>
+      <div class="cob-launch-sub">Tap to open COB in your browser. Sign in with office@crowne-law.com.</div>
+      <button class="cob-launch-btn" onclick="openCOB()">⬆ Open COB</button>
     </div>
   </div>
 
@@ -1544,6 +1563,32 @@
     document.querySelectorAll('.task-row').forEach(enhanceRow);
     assignTaskNumbers();
     applyAllFilters();
+
+    // ── COB iframe: detect X-Frame-Options block, show launch button fallback ──
+    const cobFrame = document.getElementById('cob-frame');
+    const cobLaunch = document.getElementById('cob-launch');
+    function openCOB() {
+      const url = 'https://banking.crowne-cards.com';
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
+        Telegram.WebApp.openLink(url);
+      } else {
+        window.open(url, '_blank', 'noopener');
+      }
+    }
+    cobFrame.addEventListener('error', () => {
+      cobFrame.style.display = 'none';
+      cobLaunch.style.display = '';
+    });
+    // Detect X-Frame-Options block (iframe loads but stays blank cross-origin)
+    cobFrame.addEventListener('load', () => {
+      try {
+        // If same-origin, contentDocument works; cross-origin throws
+        void cobFrame.contentDocument;
+      } catch (e) {
+        cobFrame.style.display = 'none';
+        cobLaunch.style.display = '';
+      }
+    });
 
     // ── Section switcher: tap the Alfred title ──
     let activeSection = 'planning';
