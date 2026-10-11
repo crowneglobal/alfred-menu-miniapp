@@ -528,6 +528,7 @@
 <body>
 
   <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:6px; min-height:unset;">
+    <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.55; text-align:center; width:100%; margin-bottom:2px;"></div>
     <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
@@ -1556,6 +1557,17 @@
     document.querySelectorAll('.task-row').forEach(enhanceRow);
     assignTaskNumbers();
     applyAllFilters();
+
+    // Date + week bar
+    (function() {
+      const d = new Date();
+      const month = d.toLocaleDateString('en-US', { month: 'short' });
+      const day = d.getDate();
+      const jan4 = new Date(d.getFullYear(), 0, 4);
+      const w = Math.ceil(((d - new Date(jan4.getFullYear(), 0, 1)) / 86400000 + jan4.getDay() + 1) / 7);
+      document.getElementById('date-week-bar').textContent = month + ' ' + day + ' | W' + w;
+    })();
+
     // Default to Rocstars® (board) view on load
     setTimeout(() => { tabBoard.click(); }, 0);
 
