@@ -83,13 +83,15 @@
       min-height: 42px; margin-bottom: 10px;
       padding-top: max(env(safe-area-inset-top, 0px), 44px) !important;
     }
-    .header-add-button {
-      position: absolute; top: max(env(safe-area-inset-top, 0px), 44px); right: 0;
+    .header-add-button, .header-search-button {
+      position: absolute; top: max(env(safe-area-inset-top, 0px), 44px);
       width: 36px; height: 36px; border: 0; border-radius: 50%;
       background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 25px;
       font-weight: 400; line-height: 34px; cursor: pointer; z-index: 2;
       box-shadow: 0 2px 8px rgba(0,0,0,0.16); -webkit-tap-highlight-color: transparent;
     }
+    .header-add-button { right: 0; }
+    .header-search-button { left: 0; font-size: 19px; line-height: 36px; }
     #context-tabs { margin-top: 12px !important; }
     .app-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
     .profile-trigger {
@@ -172,18 +174,21 @@
     .search-input:focus { border-color: rgba(255,255,255,0.5); box-shadow: 0 2px 20px rgba(0,0,0,0.25), 0 0 0 2px rgba(197,212,168,0.3), inset 0 1px 0 rgba(255,255,255,0.15); }
     body.light .search-input:focus { border-color: rgba(197,212,168,0.8); box-shadow: 0 2px 20px rgba(0,0,0,0.1), 0 0 0 2px rgba(197,212,168,0.4); }
 
-    /* Full-screen Telegram-style search takeover */
+    /* Bottom search dock: the task list stays visible while the keyboard is open. */
     .search-overlay {
       display: none; position: fixed; inset: 0; z-index: 1000;
-      background: #EEF4E8; color: #1A0E00;
-      padding: max(env(safe-area-inset-top, 0px), 12px) 12px 0;
-      overflow: hidden;
+      pointer-events: none; color: #1A0E00;
     }
-    .search-overlay.open { display: flex; flex-direction: column; }
+    .search-overlay.open { display: block; }
     .search-overlay-header {
-      position: fixed; left: 12px; right: 12px;
+      position: fixed; left: 8px; right: 8px;
       bottom: calc(var(--keyboard-offset, 0px) + env(safe-area-inset-bottom, 0px) + 8px);
-      display: flex; align-items: center; gap: 9px; z-index: 1002;
+      display: flex; align-items: center; gap: 8px; z-index: 1002;
+      padding: 7px; border: 1px solid rgba(0,0,0,0.1); border-radius: 19px;
+      background: rgba(238,244,232,0.94); box-shadow: 0 5px 24px rgba(0,0,0,0.2);
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      backdrop-filter: blur(18px) saturate(180%);
+      pointer-events: auto;
       transition: bottom 0.12s ease;
     }
     .search-overlay-pill {
@@ -203,9 +208,7 @@
     .search-clear { width: 24px; height: 24px; border-radius: 50%; font-size: 18px; line-height: 22px; }
     .search-clear[hidden] { display: none; }
     .search-exit { flex: 0 0 auto; width: 34px; height: 34px; padding: 0; font-size: 20px; }
-    .search-results {
-      flex: 1; overflow-y: auto; padding: 12px 0 82px; overscroll-behavior: contain;
-    }
+    .search-results { display: none; }
     .search-result-row {
       height: 58px; display: flex; align-items: center; gap: 11px; padding: 0 10px;
       border-bottom: 1px solid rgba(0,0,0,0.07); cursor: pointer;
@@ -222,9 +225,7 @@
       white-space: nowrap; cursor: pointer;
     }
     .search-filter-chip.active { background: #2A2A25; color: #C5D4A8; border-color: #2A2A25; }
-    body.search-mode { overflow: hidden; }
-    body.search-mode > :not(#search-overlay):not(script) { visibility: hidden; }
-    body.search-mode > #search-overlay { visibility: visible; }
+    body.search-mode .bottom-sheet { transform: translateY(100%); pointer-events: none; }
 
     .today-view { display: none; }
     .today-view.open { display: block; }
@@ -326,6 +327,11 @@
 
     .task-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 0 10px; overflow: hidden; order: 2; }
     .task-name  { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-name-input {
+      width: 100%; min-width: 0; padding: 1px 3px; border: 0; border-radius: 4px;
+      outline: 2px solid rgba(122,171,106,0.45); background: rgba(255,255,255,0.72);
+      color: #1A0E00; font: inherit; font-size: 14px; font-weight: 500;
+    }
     .task-assignee { font-size: 11px; color: rgba(0,0,0,0.45); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .priority-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-right: 5px; display: inline-block; vertical-align: middle; }
     .dot-p1 { background: #ef4444; }
@@ -354,11 +360,10 @@
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #2A2A25; border-radius: 14px 14px 0 0;
       border-top: 1px solid rgba(255,255,255,0.07);
-      z-index: 100; overflow: visible; max-height: 50dvh;
-      transform: translateY(calc(100% - 118px));
-      transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+      z-index: 100; overflow: visible;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
-    .bottom-sheet.expanded { transform: translateY(0); }
+    .bottom-sheet.expanded { transform: none; }
     body.light .bottom-sheet { background: #EEF4E8; border-top-color: rgba(0,0,0,0.09); }
     .sheet-handle-bar {
       display: flex; justify-content: center; align-items: center;
@@ -380,7 +385,7 @@
     .bottom-sheet.expanded .tray-search-trigger { display: block; }
     .sheet-pinned {
       display: flex; flex-direction: row; align-items: center;
-      justify-content: space-around; height: 48px; overflow: visible;
+      justify-content: space-around; height: 64px; overflow: visible;
     }
     .sheet-expanded {
       max-height: calc(50dvh - 66px - env(safe-area-inset-bottom, 0px));
@@ -605,6 +610,7 @@
 <body>
 
   <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:4px; min-height:unset;">
+    <button class="header-search-button" id="header-search-button" type="button" aria-label="Search tasks">⌕</button>
     <button class="header-add-button" id="header-add-button" type="button" aria-label="Create new task">+</button>
     <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
@@ -767,26 +773,19 @@
 
   <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
   <div class="bottom-sheet" id="bottom-sheet">
-    <!-- Drag handle (tap or swipe up to expand) -->
-    <div class="sheet-handle-bar" id="sheet-handle">
-      <div class="sheet-handle-pill"></div>
-    </div>
-
-    <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks">⌕&nbsp;&nbsp;Search tasks...</button>
-
-    <!-- Pinned row: always visible status filters + avatar FAB -->
+    <!-- One purpose only: task status filters and profile. -->
     <div class="sheet-pinned">
       <div class="nav-tab chip-stuck"    data-status="stuck">Stuck</div>
       <div class="nav-tab chip-progress" data-status="progress">In Progress</div>
       <div class="nav-tab chip-done"     data-status="done">Done</div>
-      <div class="nav-center-avatar" id="profile-trigger" role="button" tabindex="0" aria-label="Open search tray">
+      <div class="nav-center-avatar" id="profile-trigger" role="button" tabindex="0" aria-label="Open profile">
         <img class="current-user-photo" alt="">
         <span class="current-user-initials">A</span>
       </div>
     </div>
 
-    <!-- Expanded drawer: revealed on swipe-up -->
-    <div class="sheet-expanded" id="sheet-expanded">
+    <!-- Legacy controls retained only as non-rendered hooks for existing state logic. -->
+    <div class="sheet-expanded" id="sheet-expanded" hidden aria-hidden="true">
       <div class="sheet-expanded-inner">
         <!-- More tabs -->
         <div class="sheet-extra-nav">
@@ -813,8 +812,6 @@
       </div>
     </div>
 
-    <!-- Safe area spacer -->
-    <div class="sheet-safe-area"></div>
   </div>
 
   <section class="search-overlay" id="search-overlay" aria-hidden="true">
@@ -1037,45 +1034,13 @@
     const searchOverlayInput = document.getElementById('search-overlay-input');
     const searchResults = document.getElementById('search-results');
     const searchClear = document.getElementById('search-clear');
+    let searchHistoryActive = false;
+    let searchBlurTimer = null;
 
     function renderSearchResults() {
-      const query = searchOverlayInput.value.trim().toLowerCase();
-      searchClear.hidden = !query;
-      searchResults.replaceChildren();
-      if (!query) return;
-
-      syncAllTasks().filter(row => {
-        const value = searchField === 'assignee'
-          ? (row.dataset.assignee || row.querySelector('.task-assignee')?.textContent || '')
-          : searchField === 'status'
-            ? (row.dataset.status === 'progress' ? 'in progress' : row.dataset.status || '')
-            : (row.querySelector('.task-name')?.textContent || '');
-        return value.toLowerCase().includes(query);
-      }).forEach(row => {
-        const result = document.createElement('div');
-        result.className = 'search-result-row';
-        result.setAttribute('role', 'button');
-        result.tabIndex = 0;
-        const avatar = document.createElement('img');
-        avatar.src = row.querySelector('.avatar')?.src || '';
-        avatar.alt = '';
-        const main = document.createElement('div');
-        main.className = 'search-result-main';
-        const name = document.createElement('div');
-        name.className = 'search-result-name';
-        name.textContent = row.querySelector('.task-name')?.textContent || '';
-        const assignee = document.createElement('div');
-        assignee.className = 'search-result-assignee';
-        assignee.textContent = row.dataset.assignee || row.querySelector('.task-assignee')?.textContent || '';
-        main.append(name, assignee);
-        result.append(avatar, main);
-        const openResult = () => { closeSearchMode(); openDetail(row); };
-        result.addEventListener('click', openResult);
-        result.addEventListener('keydown', event => {
-          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openResult(); }
-        });
-        searchResults.appendChild(result);
-      });
+      searchQuery = searchOverlayInput.value.trim();
+      searchClear.hidden = !searchQuery;
+      applyAllFilters();
     }
 
     function updateKeyboardGlue() {
@@ -1087,25 +1052,52 @@
     }
 
     function openSearchMode() {
-      collapseSheet();
+      exitBoardView();
+      setTodayMode(false);
+      activeStatus = null;
+      activePersonId = null;
+      weekFilter = 'all';
+      groupVisible = true;
+      document.querySelectorAll('.nav-tab[data-status]').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('#nav-planning .section-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.qf === 'week'));
       searchOverlay.classList.add('open');
       searchOverlay.setAttribute('aria-hidden', 'false');
       document.body.classList.add('search-mode');
       searchOverlayInput.value = '';
+      searchQuery = '';
       searchField = 'name';
       document.querySelectorAll('.search-filter-chip').forEach(chip => chip.classList.toggle('active', chip.dataset.searchField === 'name'));
       renderSearchResults();
       updateKeyboardGlue();
-      setTimeout(() => searchOverlayInput.focus(), 30);
+      if (!searchHistoryActive) {
+        history.pushState({ alfredSearch: true }, '');
+        searchHistoryActive = true;
+      }
+      if (tg && tg.BackButton) tg.BackButton.show();
+      searchOverlayInput.focus({ preventScroll: true });
+      requestAnimationFrame(() => searchOverlayInput.focus({ preventScroll: true }));
     }
 
-    function closeSearchMode() {
+    function closeSearchMode(fromHistory = false) {
+      if (!searchOverlay.classList.contains('open')) return;
+      clearTimeout(searchBlurTimer);
       searchOverlayInput.blur();
       searchOverlay.classList.remove('open');
       searchOverlay.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('search-mode');
+      searchOverlayInput.value = '';
+      searchQuery = '';
+      searchClear.hidden = true;
+      applyAllFilters();
       searchResults.replaceChildren();
       searchOverlay.style.setProperty('--keyboard-offset', '0px');
+      if (tg && tg.BackButton && !profileView.classList.contains('open')) tg.BackButton.hide();
+      if (searchHistoryActive && !fromHistory) {
+        searchHistoryActive = false;
+        history.back();
+      } else {
+        searchHistoryActive = false;
+      }
     }
 
     searchOverlayInput.addEventListener('input', renderSearchResults);
@@ -1113,17 +1105,31 @@
       event.preventDefault();
       searchOverlayInput.value = '';
       renderSearchResults();
-      searchOverlayInput.focus();
+      searchOverlayInput.focus({ preventScroll: true });
     });
-    document.getElementById('search-exit').addEventListener('click', closeSearchMode);
+    document.getElementById('search-exit').addEventListener('click', () => closeSearchMode());
     document.querySelectorAll('.search-filter-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         searchField = chip.dataset.searchField;
         document.querySelectorAll('.search-filter-chip').forEach(item => item.classList.toggle('active', item === chip));
         renderSearchResults();
-        searchOverlayInput.focus();
+        searchOverlayInput.focus({ preventScroll: true });
       });
     });
+    searchOverlayInput.addEventListener('blur', () => {
+      searchBlurTimer = setTimeout(() => {
+        if (searchOverlay.classList.contains('open') && document.activeElement !== searchOverlayInput) closeSearchMode();
+      }, 120);
+    });
+    searchOverlayInput.addEventListener('focus', () => clearTimeout(searchBlurTimer));
+    window.addEventListener('popstate', () => {
+      if (searchOverlay.classList.contains('open')) closeSearchMode(true);
+    });
+    if (tg && tg.BackButton) {
+      tg.BackButton.onClick(() => {
+        if (searchOverlay.classList.contains('open')) closeSearchMode();
+      });
+    }
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', updateKeyboardGlue);
       window.visualViewport.addEventListener('scroll', updateKeyboardGlue);
@@ -1136,6 +1142,9 @@
     document.querySelectorAll('.nav-tab[data-status]').forEach(tab => {
       tab.addEventListener('click', () => {
         closeAllPanels();
+        exitBoardView();
+        setTodayMode(false);
+        document.querySelectorAll('#nav-planning .section-tab').forEach(item => item.classList.toggle('active', item.dataset.qf === 'week'));
         const s = tab.dataset.status;
         const pendingTab = document.getElementById('tab-pending');
         pendingTab.classList.remove('active');
@@ -1337,6 +1346,90 @@
       setTimeout(() => { wrapper.remove(); assignTaskNumbers(); applyAllFilters(); }, 260);
     }
 
+    let activeTaskEditor = null;
+
+    function createInlineTaskBelow(row) {
+      const list = row.closest('.task-list');
+      const currentWrapper = row.closest('.swipe-wrapper');
+      const nextWrapper = createTaskWrapper('', row.dataset.status || 'progress', list.id);
+      const nextRow = nextWrapper.querySelector('.task-row');
+      nextRow.dataset.inlineNew = '1';
+      nextRow.dataset.person = row.dataset.person || '4';
+      nextRow.dataset.assignee = row.dataset.assignee || 'Alfred';
+      const assignee = nextRow.querySelector('.task-assignee');
+      if (assignee) assignee.textContent = nextRow.dataset.assignee;
+      const sourceAvatar = row.querySelector('.avatar');
+      const nextAvatar = nextRow.querySelector('.avatar');
+      if (sourceAvatar && nextAvatar) nextAvatar.src = sourceAvatar.src;
+      currentWrapper.parentNode.insertBefore(nextWrapper, currentWrapper.nextSibling);
+      assignTaskNumbers();
+      return nextRow;
+    }
+
+    function finishInlineTaskEdit(cancel = false, createNext = false) {
+      const editor = activeTaskEditor;
+      if (!editor) return;
+      activeTaskEditor = null;
+      const { input, row, original, displayNode, todayItem } = editor;
+      const value = input.value.trim();
+      const name = cancel ? original : (value || original);
+      const replacement = document.createElement('span');
+      replacement.className = 'task-name';
+      replacement.textContent = name;
+      if (input.isConnected) input.replaceWith(replacement);
+      if (displayNode !== row.querySelector('.task-name')) {
+        const sourceName = row.querySelector('.task-name');
+        if (sourceName) sourceName.textContent = name;
+      }
+
+      if (!cancel && row.dataset.inlineNew === '1' && !name && !createNext) {
+        row.closest('.swipe-wrapper').remove();
+      } else if (!cancel && name) {
+        delete row.dataset.inlineNew;
+      }
+      applyAllFilters();
+
+      if (!cancel && createNext && name) {
+        const nextRow = createInlineTaskBelow(row);
+        if (todayItem) {
+          buildTodayView();
+          const nextItem = Array.from(todayView.children).find(item => item._sourceRow === nextRow);
+          if (nextItem) startInlineTaskEdit(nextRow, nextItem.querySelector('.task-name'), nextItem);
+        } else {
+          startInlineTaskEdit(nextRow);
+        }
+      }
+    }
+
+    function startInlineTaskEdit(row, displayNode = row.querySelector('.task-name'), todayItem = null) {
+      if (!displayNode || displayNode.tagName === 'INPUT') return;
+      if (activeTaskEditor) finishInlineTaskEdit();
+      const original = row.querySelector('.task-name')?.textContent || displayNode.textContent || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'task-name-input';
+      input.value = original;
+      input.setAttribute('aria-label', 'Edit task name');
+      displayNode.replaceWith(input);
+      activeTaskEditor = { input, row, original, displayNode, todayItem };
+      input.addEventListener('click', event => event.stopPropagation());
+      input.addEventListener('touchstart', event => event.stopPropagation(), { passive: true });
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          finishInlineTaskEdit(false, true);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          finishInlineTaskEdit(true, false);
+        }
+      });
+      input.addEventListener('blur', () => {
+        if (activeTaskEditor && activeTaskEditor.input === input) finishInlineTaskEdit();
+      });
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+
     function bindTaskRow(row) {
       if (row.dataset.swipeBound === '1') return;
       row.dataset.swipeBound = '1';
@@ -1423,6 +1516,12 @@
       });
       row.addEventListener('click', event => {
         if (row.dataset.suppressClick || event.target.closest('.avatar')) return;
+        const name = event.target.closest('.task-name');
+        if (name) {
+          event.stopPropagation();
+          startInlineTaskEdit(row, name);
+          return;
+        }
         openDetail(row);
       });
     }
@@ -1659,8 +1758,7 @@
       list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><div class="accent ${meta[0]}"></div><img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')"><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span></div>`;
       const row = list.firstElementChild;
       row.querySelector('.task-name').textContent = name;
-      const holder = document.createElement('div');
-      holder.appendChild(row);
+      document.getElementById(listId).appendChild(row);
       enhanceRow(row);
       return row.closest('.swipe-wrapper');
     }
@@ -1720,7 +1818,16 @@
           [row.querySelector('.accent'), row.querySelector('.task-info'), row.querySelector('.badge'), row.querySelector('.avatar')]
             .filter(Boolean).forEach(part => item.appendChild(part.cloneNode(true)));
           item.querySelectorAll('[onclick]').forEach(node => node.removeAttribute('onclick'));
-          item.addEventListener('click', () => openDetail(row));
+          item._sourceRow = row;
+          item.addEventListener('click', event => {
+            const name = event.target.closest('.task-name');
+            if (name) {
+              event.stopPropagation();
+              startInlineTaskEdit(row, name, item);
+              return;
+            }
+            openDetail(row);
+          });
           todayView.appendChild(item);
         });
     }
@@ -1914,15 +2021,21 @@
           exitBoardView();
           setTodayMode(false);
           activeStatus = null;
+          activePersonId = null;
+          weekFilter = 'all';
+          groupVisible = true;
           document.getElementById('tab-pending').classList.remove('active');
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
           applyAllFilters();
-          if (!bottomSheet.classList.contains('expanded')) expandSheet();
-          tabWeek.click();
         } else if (qf === 'people') {
           exitBoardView();
           setTodayMode(false);
-          if (!bottomSheet.classList.contains('expanded')) expandSheet();
-          tabPeople.click();
+          activeStatus = null;
+          activePersonId = null;
+          weekFilter = 'all';
+          groupVisible = true;
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+          applyAllFilters();
         } else if (qf === 'board') {
           setTodayMode(false);
           if (boardActive) {
@@ -1934,51 +2047,16 @@
       });
     });
 
-    // ── Bottom sheet — iOS-keyboard-style slide ──
+    // ── Bottom status tray ──
     const bottomSheet = document.getElementById('bottom-sheet');
-    const sheetHandle = document.getElementById('sheet-handle');
-    let sheetTouchY = null;
 
-    function measureDrawerH() {
-      const drawer = document.getElementById('sheet-expanded');
-      const safe = document.querySelector('.sheet-safe-area');
-      bottomSheet.style.setProperty('--drawer-h', (drawer.offsetHeight + (safe ? safe.offsetHeight : 0)) + 'px');
-    }
-    function expandSheet() { measureDrawerH(); bottomSheet.classList.add('expanded'); }
-    function collapseSheet() {
-      closeAllPanels();
-      measureDrawerH();
-      bottomSheet.classList.remove('expanded');
-    }
-
-    // Start collapsed. Search remains visible at the top of the tray.
-    measureDrawerH();
-    document.getElementById('tray-search-trigger').addEventListener('click', openSearchMode);
-    document.getElementById('profile-trigger').addEventListener('click', () => {
-      if (bottomSheet.classList.contains('expanded')) {
-        collapseSheet();
-        return;
+    document.getElementById('header-search-button').addEventListener('click', openSearchMode);
+    document.getElementById('profile-trigger').addEventListener('click', openProfile);
+    document.getElementById('profile-trigger').addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openProfile();
       }
-      expandSheet();
-    });
-
-    sheetHandle.addEventListener('click', () => {
-      if (bottomSheet.classList.contains('expanded')) collapseSheet(); else expandSheet();
-    });
-    bottomSheet.addEventListener('touchstart', e => {
-      if (e.target.closest('.nav-center-avatar') || e.target.closest('.nav-tab') || e.target.closest('.sheet-expanded')) return;
-      sheetTouchY = e.touches[0].clientY;
-    }, { passive: true });
-    bottomSheet.addEventListener('touchend', e => {
-      if (sheetTouchY === null) return;
-      const delta = sheetTouchY - e.changedTouches[0].clientY;
-      if (delta > 30) expandSheet(); else if (delta < -20) collapseSheet();
-      sheetTouchY = null;
-    }, { passive: true });
-    ['tab-week','tab-people'].forEach(id => {
-      document.getElementById(id).addEventListener('click', () => {
-        if (!bottomSheet.classList.contains('expanded')) expandSheet();
-      }, true);
     });
 
     // ── Asana-style inline task creation ──
