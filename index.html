@@ -15,7 +15,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: #EEF4E8; color: #1A0E00;
       min-height: 100vh;
-      padding: calc(env(safe-area-inset-top, 0px) + 4px) 12px calc(env(safe-area-inset-bottom, 0px) + 72px);
+      padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 72px);
       transition: background 0.2s, color 0.2s;
     }
 
@@ -78,8 +78,17 @@
 
     /* App header and profile */
     .app-header {
+      position: relative;
       display: flex; align-items: center; justify-content: space-between;
       min-height: 42px; margin-bottom: 10px;
+      padding-top: max(env(safe-area-inset-top, 0px), 44px) !important;
+    }
+    .header-add-button {
+      position: absolute; top: max(env(safe-area-inset-top, 0px), 44px); right: 0;
+      width: 36px; height: 36px; border: 0; border-radius: 50%;
+      background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 25px;
+      font-weight: 400; line-height: 34px; cursor: pointer; z-index: 2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.16); -webkit-tap-highlight-color: transparent;
     }
     #context-tabs { margin-top: 12px !important; }
     .app-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
@@ -167,11 +176,16 @@
     .search-overlay {
       display: none; position: fixed; inset: 0; z-index: 1000;
       background: #EEF4E8; color: #1A0E00;
-      padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 0;
+      padding: max(env(safe-area-inset-top, 0px), 12px) 12px 0;
       overflow: hidden;
     }
     .search-overlay.open { display: flex; flex-direction: column; }
-    .search-overlay-header { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
+    .search-overlay-header {
+      position: fixed; left: 12px; right: 12px;
+      bottom: calc(var(--keyboard-offset, 0px) + env(safe-area-inset-bottom, 0px) + 8px);
+      display: flex; align-items: center; gap: 9px; z-index: 1002;
+      transition: bottom 0.12s ease;
+    }
     .search-overlay-pill {
       height: 42px; flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
       padding: 0 12px; border-radius: 13px; background: rgba(0,0,0,0.07);
@@ -201,12 +215,7 @@
     .search-result-main { min-width: 0; flex: 1; }
     .search-result-name { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .search-result-assignee { margin-top: 2px; color: #777; font-size: 12px; }
-    .search-filter-chips {
-      position: fixed; left: 12px; right: 12px;
-      bottom: calc(var(--keyboard-offset, 0px) + env(safe-area-inset-bottom, 0px) + 10px);
-      display: flex; justify-content: flex-start; gap: 7px; z-index: 1001;
-      transition: bottom 0.12s ease;
-    }
+    .search-filter-chips { display: none; }
     .search-filter-chip {
       border: 1px solid rgba(0,0,0,0.1); border-radius: 999px; padding: 7px 11px;
       background: #F5F2EA; color: #6b6259; font: inherit; font-size: 12px; font-weight: 700;
@@ -307,21 +316,15 @@
     .accent-progress { background: #C07840; }
     .accent-stuck    { background: #B85248; }
 
-    .task-number {
-      width: 24px; flex: 0 0 24px; text-align: center;
-      margin-left: 5px; color: rgba(26,14,0,0.46);
-      font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
-    }
-    body.light .task-number { color: rgba(26,14,0,0.46); }
-
     .avatar {
       width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-      object-fit: cover; margin-left: 9px; cursor: pointer; transition: outline 0.1s;
+      object-fit: cover; margin: 0 9px 0 2px; cursor: pointer; transition: outline 0.1s;
+      order: 4;
     }
     .avatar.active-filter { outline: 2.5px solid #fff; outline-offset: 1px; }
     body.light .avatar.active-filter { outline-color: #333; }
 
-    .task-info { flex: 1; display: flex; flex-direction: column; padding: 0 10px; overflow: hidden; }
+    .task-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 0 10px; overflow: hidden; order: 2; }
     .task-name  { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .task-assignee { font-size: 11px; color: rgba(0,0,0,0.45); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .priority-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-right: 5px; display: inline-block; vertical-align: middle; }
@@ -340,7 +343,8 @@
     .task-group-tag.tag-42 { background: rgba(192,120,64,0.15); color: #C07840; }
     .task-group-tag.tag-grp { background: rgba(110,158,94,0.15); color: #6E9E5E; }
 
-    .badge { padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; margin-right: 9px; flex-shrink: 0; white-space: nowrap; }
+    .badge { padding: 4px 8px; border-radius: 16px; font-size: 10px; font-weight: 700; margin-right: 4px; flex-shrink: 0; white-space: nowrap; order: 3; }
+    .accent { order: 1; }
     .badge-done     { background: #6E9E5E; color: #fff; }
     .badge-progress { background: #C07840; color: #fff; }
     .badge-stuck    { background: #B85248; color: #fff; }
@@ -367,11 +371,13 @@
     }
     body.light .sheet-handle-pill { background: rgba(0,0,0,0.15); }
     .tray-search-trigger {
+      display: none;
       height: 44px; margin: 4px 12px 0; width: calc(100% - 24px); padding: 0 15px;
       border: 1px solid rgba(0,0,0,0.1); border-radius: 22px; background: rgba(255,255,255,0.62);
       color: #777; font: inherit; font-size: 14px; text-align: left; cursor: text;
       -webkit-tap-highlight-color: transparent;
     }
+    .bottom-sheet.expanded .tray-search-trigger { display: block; }
     .sheet-pinned {
       display: flex; flex-direction: row; align-items: center;
       justify-content: space-around; height: 48px; overflow: visible;
@@ -508,14 +514,14 @@
       display: flex; flex-direction: column; width: 100%; gap: 10px; padding: 8px 0 96px;
     }
     .board-col {
-      width: 100%; display: flex; flex-direction: column; border-radius: 14px;
-      background: rgba(255,255,255,0.22); border: 1px solid rgba(42,42,37,0.07);
-      overflow: hidden; box-shadow: 0 2px 10px rgba(42,42,37,0.04);
+      width: 100%; display: flex; flex-direction: column;
+      background: transparent; border: 0;
+      overflow: hidden;
       /* each lane is independently scrollable */
       flex-shrink: 0;
     }
     .board-col-header {
-      min-height: 42px; padding: 0 12px; font-size: 12px; font-weight: 800;
+      min-height: 38px; padding: 0 4px; font-size: 13px; font-weight: 800;
       display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
@@ -523,15 +529,13 @@
     .board-count {
       min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px;
       display: inline-flex; align-items: center; justify-content: center;
-      color: inherit; background: rgba(255,255,255,0.25); font-size: 11px;
+      color: #777; background: transparent; font-size: 11px;
       font-variant-numeric: tabular-nums;
     }
     .board-chevron { font-size: 17px; line-height: 1; transition: transform 0.24s ease; }
     .board-col.collapsed .board-chevron { transform: rotate(-90deg); }
     .board-col.collapsed .board-col-body { display: none; }
-    .col-header-stuck    { background: #7B2B27; color: #fff; }
-    .col-header-progress { background: #B87B30; color: #fff; }
-    .col-header-done     { background: #4A7A3A; color: #fff; }
+    .col-header-stuck, .col-header-progress, .col-header-done { background: transparent; color: inherit; }
     .board-col-body {
       display: flex; flex-direction: column; gap: 6px; padding: 7px;
       max-height: 28vh; overflow-y: auto; overscroll-behavior: contain;
@@ -560,10 +564,21 @@
       font-size: 14px; color: inherit; font-family: inherit; caret-color: #C5D4A8;
     }
     .inline-task-wrap input::placeholder { opacity: 0.45; }
-    .board-card { background: #F5F2EA; color: #1A0E00; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
+    .board-card { background: #F5F2EA; color: #1A0E00; border-radius: 8px; border-left: 4px solid var(--lane-color, #C07840); padding: 10px 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .board-card-name { font-size: 13px; font-weight: 500; flex: 1; }
     .board-card-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
     .board-card .priority-dot { width: 7px; height: 7px; }
+    .board-empty {
+      min-height: 54vh; display: grid; place-content: center; justify-items: center;
+      gap: 10px; color: #777; text-align: center;
+    }
+    .board-empty-icon { font-size: 38px; opacity: 0.55; }
+    .board-empty-text { font-size: 14px; font-weight: 650; }
+    .board-empty-add {
+      width: 52px; height: 52px; border: 0; border-radius: 50%; margin-top: 4px;
+      background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 30px;
+      cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    }
 
     /* ── Detail header: assignee left + days badge right ── */
     .detail-header { align-items: center; gap: 8px; }
@@ -590,8 +605,8 @@
 <body>
 
   <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:4px; min-height:unset;">
+    <button class="header-add-button" id="header-add-button" type="button" aria-label="Create new task">+</button>
     <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
-    <div id="app-subtitle" style="font-size:11px; opacity:0.38; letter-spacing:0.2px; text-align:center; width:100%; margin-top:-1px; margin-bottom:1px;">Your team, in flow</div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
@@ -822,8 +837,8 @@
   <!-- +New modal -->
   <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div class="modal-title">New Task</div>
-      <div class="modal-label">Task name</div>
+      <div class="modal-title" id="create-modal-title">New Task</div>
+      <div class="modal-label" id="create-name-label">Task name</div>
       <input class="modal-input" id="new-task-name" type="text" placeholder="What needs to get done?">
       <div class="modal-label">Status</div>
       <select class="modal-select" id="new-task-status">
@@ -831,14 +846,14 @@
         <option value="stuck">Stuck</option>
         <option value="done">Done</option>
       </select>
-      <div class="modal-label">Week</div>
+      <div class="modal-label" id="create-week-label">Week</div>
       <select class="modal-select" id="new-task-week">
         <option value="41">Week 41</option>
         <option value="42">Week 42</option>
       </select>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="btn-add" onclick="addTask()">Add Task</button>
+        <button class="btn-add" id="create-submit" onclick="addTask()">Add Task</button>
       </div>
     </div>
   </div>
@@ -1234,12 +1249,23 @@
       }
     });
 
-    // +New
-    document.getElementById('tab-new').addEventListener('click', () => {
+    // Contextual create flow shared by the tray and the always-visible header button.
+    let createMode = 'task';
+    function openCreateFlow() {
       closeAllPanels();
+      createMode = (typeof boardActive !== 'undefined' && boardActive) ? 'goal' : 'task';
+      const isGoal = createMode === 'goal';
+      document.getElementById('create-modal-title').textContent = isGoal ? 'New Goal' : 'New Task';
+      document.getElementById('create-name-label').textContent = isGoal ? 'Goal name' : 'Task name';
+      document.getElementById('new-task-name').placeholder = isGoal ? 'What do you want to achieve?' : 'What needs to get done?';
+      document.getElementById('create-week-label').style.display = isGoal ? 'none' : '';
+      document.getElementById('new-task-week').style.display = isGoal ? 'none' : '';
+      document.getElementById('create-submit').textContent = isGoal ? 'Add Goal' : 'Add Task';
       document.getElementById('modal-overlay').classList.add('open');
       setTimeout(() => document.getElementById('new-task-name').focus(), 100);
-    });
+    }
+    document.getElementById('tab-new').addEventListener('click', openCreateFlow);
+    document.getElementById('header-add-button').addEventListener('click', openCreateFlow);
     function closeModal(e) {
       if (!e || e.target === document.getElementById('modal-overlay')) {
         document.getElementById('modal-overlay').classList.remove('open');
@@ -1604,12 +1630,6 @@
         row.dataset.assignee = a ? a.textContent : '';
       }
       const info = row.querySelector('.task-info');
-      if (!row.querySelector('.task-number')) {
-        const number = document.createElement('span');
-        number.className = 'task-number';
-        number.setAttribute('aria-label', 'Task number');
-        row.insertBefore(number, row.querySelector('.avatar'));
-      }
       if (!info.querySelector('.priority-dot')) {
         const dot = document.createElement('span');
         dot.className = 'priority-dot dot-' + row.dataset.priority;
@@ -1627,10 +1647,7 @@
     }
 
     function assignTaskNumbers() {
-      document.querySelectorAll('.task-row').forEach((row, index) => {
-        const number = row.querySelector('.task-number');
-        if (number) number.textContent = String(index + 1);
-      });
+      document.querySelectorAll('.task-number').forEach(number => number.remove());
     }
 
     function createTaskWrapper(name, status, listId) {
@@ -1653,6 +1670,14 @@
       const name = input.value.trim();
       if (!name) return;
       const status = document.getElementById('new-task-status').value;
+      if (createMode === 'goal') {
+        rocstarGoals.push({ id: String(Date.now()), name, status });
+        localStorage.setItem(ROCSTAR_GOALS_KEY, JSON.stringify(rocstarGoals));
+        input.value = '';
+        document.getElementById('modal-overlay').classList.remove('open');
+        buildBoard();
+        return;
+      }
       const week = document.getElementById('new-task-week').value;
       const listId = 'list-' + week;
       document.getElementById(listId).appendChild(createTaskWrapper(name, status, listId));
@@ -1667,6 +1692,14 @@
     const todayView = document.getElementById('today-view');
     let boardActive = false;
     let todayActive = false;
+    const ROCSTAR_GOALS_KEY = 'alfred-rocstar-goals';
+    let rocstarGoals = [];
+    try {
+      const storedGoals = JSON.parse(localStorage.getItem(ROCSTAR_GOALS_KEY) || '[]');
+      rocstarGoals = Array.isArray(storedGoals) ? storedGoals : [];
+    } catch (_) {
+      rocstarGoals = [];
+    }
 
     function isAssignedToCurrentUser(row) {
       const assignee = (row.dataset.assignee || row.querySelector('.task-assignee')?.textContent || '').trim().toLowerCase();
@@ -1680,15 +1713,11 @@
       const statusOrder = { stuck: 0, progress: 1 };
       syncAllTasks()
         .filter(row => Object.hasOwn(statusOrder, row.dataset.status) && isAssignedToCurrentUser(row))
-        .sort((a, b) => {
-          const byStatus = statusOrder[a.dataset.status] - statusOrder[b.dataset.status];
-          if (byStatus) return byStatus;
-          return Number(a.querySelector('.task-number')?.textContent || 0) - Number(b.querySelector('.task-number')?.textContent || 0);
-        })
+        .sort((a, b) => statusOrder[a.dataset.status] - statusOrder[b.dataset.status])
         .forEach(row => {
           const item = document.createElement('div');
           item.className = 'today-task-row';
-          [row.querySelector('.accent'), row.querySelector('.task-number'), row.querySelector('.avatar'), row.querySelector('.task-info'), row.querySelector('.badge')]
+          [row.querySelector('.accent'), row.querySelector('.task-info'), row.querySelector('.badge'), row.querySelector('.avatar')]
             .filter(Boolean).forEach(part => item.appendChild(part.cloneNode(true)));
           item.querySelectorAll('[onclick]').forEach(node => node.removeAttribute('onclick'));
           item.addEventListener('click', () => openDetail(row));
@@ -1711,19 +1740,34 @@
     }
 
     function buildBoard() {
+      const columns = boardView.querySelector('.board-columns');
+      let empty = boardView.querySelector('.board-empty');
+      if (!rocstarGoals.length) {
+        columns.style.display = 'none';
+        if (!empty) {
+          empty = document.createElement('div');
+          empty.className = 'board-empty';
+          empty.innerHTML = '<div class="board-empty-icon" aria-hidden="true">◎</div><div class="board-empty-text">No goals yet</div><button class="board-empty-add" type="button" aria-label="Create first goal">+</button>';
+          empty.querySelector('button').addEventListener('click', openCreateFlow);
+          boardView.appendChild(empty);
+        }
+        empty.style.display = 'grid';
+        return;
+      }
+      columns.style.display = 'flex';
+      if (empty) empty.style.display = 'none';
+      const laneColors = { stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
       ['stuck','progress','done'].forEach(status => {
         const body = document.getElementById('col-body-' + status);
         body.innerHTML = '';
         let count = 0;
-        document.querySelectorAll('.task-row').forEach(row => {
-          if (row.dataset.status !== status || row.classList.contains('hidden')) return;
+        rocstarGoals.forEach(goal => {
+          if (goal.status !== status) return;
           const card = document.createElement('div');
           card.className = 'board-card';
-          const priority = row.dataset.priority || 'p2';
-          card.innerHTML = `<span class="priority-dot dot-${priority}"></span><span class="board-card-name"></span><img class="board-card-avatar" alt="">`;
-          card.querySelector('.board-card-name').textContent = row.querySelector('.task-name').textContent;
-          card.querySelector('.board-card-avatar').src = row.querySelector('.avatar').src;
-          card.addEventListener('click', () => openDetail(row));
+          card.style.setProperty('--lane-color', laneColors[status]);
+          card.innerHTML = '<span class="board-card-name"></span>';
+          card.querySelector('.board-card-name').textContent = goal.name;
           body.appendChild(card);
           count += 1;
         });
@@ -1810,14 +1854,12 @@
       const navPlanning = document.getElementById('nav-planning');
       const contextTabs = document.getElementById('context-tabs');
       const dateWeekBar = document.getElementById('date-week-bar');
-      const appSubtitle = document.getElementById('app-subtitle');
       const sheet = document.getElementById('bottom-sheet');
       if (section === 'banking') {
         titleToggle.childNodes[0].textContent = 'Alfred Bank ';
         navPlanning.style.display = 'none';
         contextTabs.style.display = 'none';
         dateWeekBar.style.display = 'none';
-        appSubtitle.style.display = 'none';
         document.getElementById('view-planning').style.display = 'none';
         document.getElementById('view-banking').style.display = '';
         sheet.style.display = 'none';
@@ -1827,7 +1869,6 @@
         });
       } else {
         titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
-        appSubtitle.style.display = '';
         dateWeekBar.style.display = '';
         contextTabs.style.display = '';
         navPlanning.style.display = 'flex';
