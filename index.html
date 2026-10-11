@@ -520,13 +520,14 @@
 
   <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:4px; min-height:unset;">
     <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+    <div style="font-size:11px; opacity:0.38; letter-spacing:0.2px; text-align:center; width:100%; margin-top:-1px; margin-bottom:1px;">Your team, in flow</div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
-        <button class="section-tab active" id="topnav-board" data-qf="board">Rocstars®</button>
+        <button class="section-tab" id="topnav-board" data-qf="board">Rocstars®</button>
         <button class="section-tab" id="topnav-people" data-qf="people">Roctavos</button>
         <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
-        <button class="section-tab" id="topnav-pending" data-qf="pending">Today</button>
+        <button class="section-tab active" id="topnav-pending" data-qf="pending">Today</button>
       </div>
       <div id="nav-banking" style="display:none; gap:2px; width:100%;">
         <button class="section-tab active">Accounts</button>
@@ -1554,8 +1555,10 @@
       document.getElementById('date-week-bar').textContent = month + ' ' + day + ' | W' + w;
     })();
 
-    // Default to Rocstars® (board) view on load
-    setTimeout(() => { tabBoard.click(); }, 0);
+    // Default to Today view on load
+    activeStatus = 'pending';
+    document.getElementById('tab-pending').classList.add('active');
+    applyAllFilters();
 
     function openCOB() {
       const url = 'https://banking.crowne-cards.com';
@@ -1600,24 +1603,38 @@
     });
 
     // ── Top nav quick-filters (Planning nav) ──
+    function exitBoardView() {
+      if (!boardActive) return;
+      boardActive = false;
+      tabBoard.classList.remove('active');
+      boardView.style.display = 'none';
+      const focus = document.querySelector('.focus-banner');
+      if (focus) focus.style.display = '';
+      ['section-41','section-42','section-group'].forEach(id => {
+        document.getElementById(id).style.display = '';
+      });
+    }
     document.querySelectorAll('[data-qf]').forEach(btn => {
       btn.addEventListener('click', () => {
         const qf = btn.dataset.qf;
         document.querySelectorAll('#nav-planning .section-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         if (qf === 'pending') {
+          exitBoardView();
           activeStatus = 'pending';
           document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
           document.getElementById('tab-pending').classList.add('active');
           applyAllFilters();
         } else if (qf === 'week') {
+          exitBoardView();
           if (!bottomSheet.classList.contains('expanded')) expandSheet();
           tabWeek.click();
         } else if (qf === 'people') {
+          exitBoardView();
           if (!bottomSheet.classList.contains('expanded')) expandSheet();
           tabPeople.click();
         } else if (qf === 'board') {
-          tabBoard.click();
+          if (!boardActive) tabBoard.click();
         }
       });
     });
