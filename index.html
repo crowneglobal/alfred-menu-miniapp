@@ -67,12 +67,6 @@
     body.light .section-tab.active { background: #2A2A25; color: #C5D4A8; }
 
     /* ── Banking / COB ── */
-    .banking-header { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; text-align:center; margin: 8px 0 16px; }
-    .cob-frame {
-      width: 100%; border: none; border-radius: 14px; display: block;
-      height: calc(100dvh - 180px - env(safe-area-inset-bottom, 0px));
-      min-height: 420px; background: #1A0E00;
-    }
     .cob-launch-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 14px;
       padding: 32px 20px; text-align: center;
@@ -689,20 +683,13 @@
 
   </div><!-- /view-planning -->
 
-  <!-- Banking placeholder -->
+  <!-- Banking / COB -->
   <div id="view-banking" style="display:none">
-    <div class="banking-header">Banking</div>
-    <!-- Try iframe first; if blocked by X-Frame-Options, show launch button -->
-    <iframe id="cob-frame" class="cob-frame"
-      src="https://banking.crowne-cards.com"
-      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
-      allow="payment"
-      title="Crowne Online Banking"></iframe>
-    <div class="cob-launch-wrap" id="cob-launch" style="display:none">
+    <div class="cob-launch-wrap" id="cob-launch">
       <div class="cob-launch-icon">💳</div>
       <div class="cob-launch-title">Crowne Online Banking</div>
-      <div class="cob-launch-sub">Tap to open COB in your browser. Sign in with office@crowne-law.com.</div>
-      <button class="cob-launch-btn" onclick="openCOB()">⬆ Open COB</button>
+      <div class="cob-launch-sub">Opens COB in your browser. Sign in with office@crowne-law.com.</div>
+      <button class="cob-launch-btn" onclick="openCOB()">Open COB ↗</button>
     </div>
   </div>
 
@@ -1564,9 +1551,6 @@
     assignTaskNumbers();
     applyAllFilters();
 
-    // ── COB iframe: detect X-Frame-Options block, show launch button fallback ──
-    const cobFrame = document.getElementById('cob-frame');
-    const cobLaunch = document.getElementById('cob-launch');
     function openCOB() {
       const url = 'https://banking.crowne-cards.com';
       if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
@@ -1575,20 +1559,6 @@
         window.open(url, '_blank', 'noopener');
       }
     }
-    cobFrame.addEventListener('error', () => {
-      cobFrame.style.display = 'none';
-      cobLaunch.style.display = '';
-    });
-    // Detect X-Frame-Options block (iframe loads but stays blank cross-origin)
-    cobFrame.addEventListener('load', () => {
-      try {
-        // If same-origin, contentDocument works; cross-origin throws
-        void cobFrame.contentDocument;
-      } catch (e) {
-        cobFrame.style.display = 'none';
-        cobLaunch.style.display = '';
-      }
-    });
 
     // ── Section switcher: tap the Alfred title ──
     let activeSection = 'planning';
