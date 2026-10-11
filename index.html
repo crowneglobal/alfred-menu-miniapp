@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Alfred Tasks</title>
+  <title>Alfred</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -46,6 +46,31 @@
     body.light .profile-card, body.light .settings-card { background: #F5F2EA; border-color: rgba(0,0,0,0.08); }
     body.light .settings-row + .settings-row { border-top-color: rgba(0,0,0,0.08); }
     body.light .profile-subtitle, body.light .settings-row-note, body.light .profile-back { color: #6b6259; }
+
+    /* ── Section tabs (Planning / Banking) ── */
+    .section-tabs {
+      display: flex; gap: 2px; border-radius: 20px;
+      background: rgba(0,0,0,0.08); padding: 3px; margin-top: 6px;
+    }
+    .section-tab {
+      flex: 1; border: 0; border-radius: 16px; padding: 5px 18px;
+      font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+      color: #888; background: transparent; transition: background 0.18s, color 0.18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .section-tab.active { background: #2A2A25; color: #C5D4A8; }
+    body.light .section-tabs { background: rgba(0,0,0,0.07); }
+    body.light .section-tab.active { background: #2A2A25; color: #C5D4A8; }
+
+    /* ── Banking placeholder ── */
+    .banking-header { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; text-align:center; margin: 8px 0 20px; }
+    .banking-placeholder {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 40vh; gap: 10px; opacity: 0.55;
+    }
+    .banking-icon { font-size: 52px; }
+    .banking-label { font-size: 17px; font-weight: 700; }
+    .banking-sub { font-size: 13px; text-align: center; max-width: 220px; line-height: 1.5; }
 
     /* App header and profile */
     .app-header {
@@ -403,8 +428,12 @@
 </head>
 <body>
 
-  <header class="app-header" style="justify-content:flex-start;">
-    <div class="app-title">Alfred Tasks</div>
+  <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:6px; min-height:unset;">
+    <div class="app-title" style="text-align:center; width:100%;">Alfred</div>
+    <div class="section-tabs" id="section-tabs">
+      <button class="section-tab active" id="tab-planning" data-view="planning">Planning</button>
+      <button class="section-tab" id="tab-banking" data-view="banking">Banking</button>
+    </div>
   </header>
 
   <section class="profile-view" id="profile-view" aria-hidden="true">
@@ -440,6 +469,7 @@
     </div>
   </section>
 
+  <div id="view-planning">
   <!-- Per-user focus task -->
   <div class="focus-banner focus-hidden" id="focus-banner">
     <span class="focus-icon">🎯</span>
@@ -535,6 +565,18 @@
       <div class="board-col" id="col-stuck"><div class="board-col-header col-header-stuck">🔴 Stuck</div><div class="board-col-body" id="col-body-stuck"></div></div>
       <div class="board-col" id="col-progress"><div class="board-col-header col-header-progress">🟡 In Progress</div><div class="board-col-body" id="col-body-progress"></div></div>
       <div class="board-col" id="col-done"><div class="board-col-header col-header-done">✅ Done</div><div class="board-col-body" id="col-body-done"></div></div>
+    </div>
+  </div>
+
+  </div><!-- /view-planning -->
+
+  <!-- Banking placeholder -->
+  <div id="view-banking" style="display:none">
+    <div class="banking-header">Banking</div>
+    <div class="banking-placeholder">
+      <div class="banking-icon">💳</div>
+      <div class="banking-label">Coming soon</div>
+      <div class="banking-sub">Your accounts and transactions will live here.</div>
     </div>
   </div>
 
@@ -1327,6 +1369,20 @@
 
     document.querySelectorAll('.task-row').forEach(enhanceRow);
     applyAllFilters();
+
+    // ── Section switcher (Planning / Banking) ──
+    document.querySelectorAll('.section-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const view = tab.dataset.view;
+        document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('view-planning').style.display = view === 'planning' ? '' : 'none';
+        document.getElementById('view-banking').style.display = view === 'banking' ? '' : 'none';
+        const sheet = document.getElementById('bottom-sheet');
+        if (view === 'banking') sheet.style.display = 'none';
+        else sheet.style.display = '';
+      });
+    });
 
     // ── Bottom sheet — iOS-keyboard-style slide ──
     const bottomSheet = document.getElementById('bottom-sheet');
