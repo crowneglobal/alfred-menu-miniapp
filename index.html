@@ -423,8 +423,10 @@
       background: rgba(255,255,255,0.2);
     }
     body.light .sheet-handle-pill { background: rgba(0,0,0,0.15); }
-    .tray-actions { display: flex; align-items: center; gap: 8px; padding: 4px 12px 12px; }
+    .tray-actions { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; }
     .tray-actions[hidden] { display: none; }
+    .tray-actions .assignee-tabs { padding: 0; }
+    .tray-tools { display: flex; align-items: center; gap: 8px; }
     .tray-search-trigger {
       flex: 1; min-width: 0; height: 44px; padding: 0 15px;
       border: 1px solid rgba(0,0,0,0.1); border-radius: 22px; background: rgba(255,255,255,0.62);
@@ -771,10 +773,6 @@
   </section>
 
   <div id="view-planning">
-  <div class="assignee-tabs" id="assignee-tabs">
-    <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
-    <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
-  </div>
   <!-- Per-user focus task -->
   <div class="focus-banner focus-hidden" id="focus-banner">
     <span class="focus-icon">🎯</span>
@@ -850,8 +848,14 @@
     </div>
 
     <div class="tray-actions" id="tray-actions" hidden>
-      <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks">⌕&nbsp; Search tasks...</button>
-      <button class="tray-new-task" id="tray-new-task" type="button" aria-label="Create new task">+ New task</button>
+      <div class="assignee-tabs" id="assignee-tabs">
+        <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
+        <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
+      </div>
+      <div class="tray-tools">
+        <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks">⌕&nbsp; Search tasks...</button>
+        <button class="tray-new-task" id="tray-new-task" type="button" aria-label="Create new task">+ New task</button>
+      </div>
     </div>
 
     <!-- Legacy controls retained only as non-rendered hooks for existing state logic. -->
