@@ -12,7 +12,7 @@ The frontend task fix depends on the authenticated task API and nginx route in t
 ## Release verification
 
 1. Follow the server repository review and deployment rule, including Fio merge. Validate nginx configuration and the signed API contract after deployment. Unauthenticated requests must fail; the exact GitHub Pages origin must pass CORS preflight.
-2. Run `tests/task-feed.cjs`, `tests/telegram-safe-area.cjs`, and `tests/search-layout.cjs` with Playwright and the official Telegram SDK snapshot supplied through `TG_SDK_PATH`. These are fixtures, not a phone or live API verification.
+2. Run `tests/task-feed.cjs`, `tests/telegram-safe-area.cjs`, `tests/search-layout.cjs`, and `tests/bottom-tray.cjs` with Playwright and the official Telegram SDK snapshot supplied through `TG_SDK_PATH`. These are fixtures, not a phone or live API verification. Preserve the collapsed tray with Search and New Task revealed only when expanded.
 3. Publish the frontend only after the authenticated HTTPS API works. Confirm the served HTML matches the tested commit.
 4. Open the named Telegram app and check personal tasks, All, groups, Today and Week. Record actual phone confirmation separately from automated tests.
 
