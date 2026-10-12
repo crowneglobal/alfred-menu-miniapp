@@ -1445,6 +1445,7 @@
         let cursor = null;
         do {
           const params = new URLSearchParams({ scope, limit: '200' });
+          if (scope === 'me' && userId) params.set('user_id', userId);
           if (cursor !== null) params.set('before_id', cursor);
           const response = await taskApiFetch('/api/tasks?' + params, { signal: controller.signal });
           if (!response.ok) throw new Error('Task feed HTTP ' + response.status);
