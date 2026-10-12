@@ -104,10 +104,11 @@
 
     /* App header and profile */
     .app-header {
-      position: relative;
+      position: sticky; top: 0; z-index: 50;
       display: flex; align-items: center; justify-content: space-between;
       min-height: 42px; margin-bottom: 10px;
       padding-top: calc(var(--app-safe-top) + 8px);
+      background: #EEF4E8;
     }
     .header-sidebar-button {
       width: 36px; height: 36px; border: 0; border-radius: 50%;
