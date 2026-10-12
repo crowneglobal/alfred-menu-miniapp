@@ -939,8 +939,16 @@
       if (tg) { tg.setBackgroundColor(bg); tg.setHeaderColor(bg); }
     }
     if (tg) {
-      tg.expand();
-      if (tg.requestFullscreen && (!tg.isVersionAtLeast || tg.isVersionAtLeast('8.0'))) tg.requestFullscreen();
+      // Keep Telegram's Close/menu controls in its native header above the app.
+      // Fullscreen overlays those controls; insets may not be available at startup.
+      function keepNativeHeader() {
+        if (tg.isFullscreen && tg.exitFullscreen && tg.isVersionAtLeast('8.0')) {
+          tg.exitFullscreen();
+        }
+        tg.expand();
+      }
+      tg.onEvent('fullscreenChanged', keepNativeHeader);
+      keepNativeHeader();
       tg.onEvent('themeChanged', applyTheme);
     }
     applyTheme();
