@@ -1379,7 +1379,8 @@
       const priorityClass = t.is_priority ? 'dot-p1' : 'dot-p2';
       const avatarSeed = (hashStr(t.assignee || '') % 70) + 1;
       const assigneeLabel = t.assignee_name || t.assignee || (t.assignee_id ? String(t.assignee_id) : 'Unassigned');
-      const groupLabel = t.group_name || 'Ungrouped';
+      const rawGroupLabel = t.group_name || 'Ungrouped';
+      const groupLabel = /^-\d{7,}$/.test(rawGroupLabel) ? '\u2026' + rawGroupLabel.slice(-4) : rawGroupLabel;
       const tagClass = statusKey === 'done' ? 'tag-42' : '';
       const escapeText = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const row = document.createElement('div');
@@ -1396,6 +1397,7 @@
       row.dataset.comments = '[]';
       row.dataset.taskId = String(t.id);
       row.innerHTML = [
+        `<span class="drag-handle" aria-hidden="true" style="color:#999;font-size:14px;padding:0 2px 0 10px;cursor:grab;order:0;flex-shrink:0;touch-action:auto;user-select:none;">⠣</span>`,
         `<div class="accent ${meta[0]}"></div>`,
         `<span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden" onclick="filterPersonAvatar(event,'${avatarSeed}')">${getInitialsAvatar(t.assignee, 36)}</span>`,
         `<div class="task-info">`,
@@ -1407,6 +1409,7 @@
         `  </div>`,
         `</div>`,
         `<span class="badge ${meta[1]}">${meta[2]}</span>`,
+        `<button class="task-delete-btn" type="button" aria-label="Delete task" style="border:none;background:transparent;color:#999;font-size:16px;padding:0 8px 0 4px;cursor:pointer;flex-shrink:0;order:5;-webkit-tap-highlight-color:transparent;">🗑</button>`,
       ].join('');
       return row;
     }
@@ -1890,6 +1893,46 @@
       setTimeout(() => { wrapper.remove(); assignTaskNumbers(); applyAllFilters(); }, 260);
     }
 
+    function deleteRowWithUndo(row) {
+      const wrapper = row.closest('.swipe-wrapper') || row.parentNode;
+      if (!wrapper) return;
+      const list = wrapper.parentNode;
+      if (!list) return;
+      const origIdx = Array.from(list.children).indexOf(wrapper);
+      snapClosed(row);
+      wrapper.style.opacity = '0.4';
+      row.style.color = '#aaa';
+      const addRow = list.querySelector('.inline-add-row');
+      if (addRow) list.insertBefore(wrapper, addRow); else list.appendChild(wrapper);
+      const existing = wrapper.querySelector('.task-undo-btn');
+      if (existing) existing.remove();
+      const undoBtn = document.createElement('button');
+      undoBtn.className = 'task-undo-btn';
+      undoBtn.textContent = 'Undo';
+      undoBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 10px;border-radius:6px;background:#2A2A25;color:#C5D4A8;border:none;font-size:12px;font-weight:700;z-index:10;cursor:pointer;pointer-events:auto;';
+      wrapper.style.position = 'relative';
+      wrapper.appendChild(undoBtn);
+      let undone = false;
+      const timer = setTimeout(function() {
+        if (!undone) {
+          const taskId = row.dataset.taskId;
+          if (taskId) { taskApiFetch('/api/tasks/' + taskId, { method: 'DELETE' }).catch(function(e) { console.warn('Delete failed:', e); }); }
+          wrapper.style.position = '';
+          deleteRow(row);
+        }
+      }, 5000);
+      undoBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        undone = true; clearTimeout(timer);
+        undoBtn.remove();
+        wrapper.style.opacity = ''; wrapper.style.position = ''; row.style.color = '';
+        const kids = Array.from(list.children);
+        const target = kids[Math.min(origIdx, kids.length - 1)];
+        if (target && target !== wrapper) list.insertBefore(wrapper, target); else list.appendChild(wrapper);
+        applyAllFilters();
+      });
+    }
+
     let activeTaskEditor = null;
 
     function createInlineTaskBelow(row) {
@@ -1936,7 +1979,7 @@
           taskApiFetch('/api/tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task: name, status: _smap2[row.dataset.status] || 'In Progress', assignee_username: 'dro238' })
+            body: JSON.stringify({ task: name, status: _smap2[row.dataset.status] || 'In Progress', assignee_username: (telegramUser && telegramUser.username) || 'dro238', user_id: userId ? parseInt(userId) : undefined })
           }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.id) row.dataset.taskId = String(data.id);
           }).catch(function(err) { console.warn('Task create failed:', err); });
@@ -2025,11 +2068,17 @@
         if (horizontal) sortables[listId].option('disabled', false);
         row.style.touchAction = 'none';
         row.style.transition = 'transform 0.22s ease';
-        if (deltaX < -100) {
-          row.style.transform = 'translateX(-210px)';
+        if (deltaX < -120) {
+          deleteRowWithUndo(row);
+        } else if (deltaX < -60) {
+          row.style.transform = 'translateX(-80px)';
           row.classList.add('swiped-open');
+        } else if (deltaX > 120) {
+          updateRowStatus(row, 'done', true);
+          if (row.dataset.taskId) { taskApiFetch('/api/tasks/' + row.dataset.taskId + '/state', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'Done'})}).catch(()=>{}); }
+          snapClosed(row);
         } else if (deltaX > 60) {
-          row.style.transform = 'translateX(232px)';
+          row.style.transform = 'translateX(80px)';
           row.classList.add('swiped-open');
         } else {
           snapClosed(row);
@@ -2040,41 +2089,20 @@
         }
       });
 
-      wrapper.querySelector('.sa-done').addEventListener('click', event => {
+      wrapper.querySelector('.sa-swipe-done').addEventListener('click', event => {
         event.stopPropagation();
-        const tomorrow = new Date(TODAY); tomorrow.setDate(tomorrow.getDate() + 1);
-        row.dataset.due = tomorrow.toISOString().slice(0, 10);
-        refreshDueChip(row); snapClosed(row);
-      });
-      wrapper.querySelector('.sa-status').addEventListener('click', event => {
-        event.stopPropagation();
-        updateRowStatus(row, { stuck: 'progress', progress: 'done', done: 'stuck' }[row.dataset.status], false);
+        updateRowStatus(row, 'done', true);
+        if (row.dataset.taskId) { taskApiFetch('/api/tasks/' + row.dataset.taskId + '/state', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'Done'})}).catch(()=>{}); }
         snapClosed(row);
       });
       wrapper.querySelector('.sa-delete').addEventListener('click', event => {
-        event.stopPropagation(); deleteRow(row);
+        event.stopPropagation(); deleteRowWithUndo(row);
       });
-      wrapper.querySelectorAll('.sa-date[data-due]').forEach(button => {
-        button.addEventListener('click', event => {
-          event.stopPropagation();
-          row.dataset.due = button.dataset.due;
-          refreshDueChip(row);
-          snapClosed(row);
-        });
-      });
-      const quickDueInput = wrapper.querySelector('.quick-due-input');
-      wrapper.querySelector('.sa-clock').addEventListener('click', event => {
-        event.stopPropagation();
-        quickDueInput.value = row.dataset.due || '';
-        quickDueInput.click();
-      });
-      quickDueInput.addEventListener('change', event => {
-        event.stopPropagation();
-        if (!quickDueInput.value) return;
-        row.dataset.due = quickDueInput.value;
-        refreshDueChip(row);
-        snapClosed(row);
-      });
+      const deleteBtnEl = row.querySelector('.task-delete-btn');
+      if (deleteBtnEl && !deleteBtnEl.dataset.bound) {
+        deleteBtnEl.dataset.bound = '1';
+        deleteBtnEl.addEventListener('click', function(event) { event.stopPropagation(); deleteRowWithUndo(row); });
+      }
       row.addEventListener('click', event => {
         if (row.dataset.suppressClick || event.target.closest('.avatar')) return;
         const name = event.target.closest('.task-name');
@@ -2252,34 +2280,18 @@
       if (wrapper.dataset.actionsReady === '1') return wrapper;
       const leftActions = document.createElement('div');
       leftActions.className = 'swipe-actions-left';
-      const quickDates = Array.from({ length: 4 }, (_, offset) => {
-        const date = new Date(TODAY);
-        date.setDate(date.getDate() + offset);
-        return {
-          iso: date.toISOString().slice(0, 10),
-          day: offset === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }),
-          number: date.getDate().toString()
-        };
-      });
-      quickDates.forEach((date, index) => {
-        const button = document.createElement('button');
-        button.className = 'sa-date' + (index === 0 ? ' sa-today' : '');
-        button.dataset.due = date.iso;
-        button.innerHTML = `<span class="date-day">${date.day}</span><span class="date-num">${date.number}</span>`;
-        leftActions.appendChild(button);
-      });
-      const clockButton = document.createElement('button');
-      clockButton.className = 'sa-date sa-clock';
-      clockButton.type = 'button';
-      clockButton.setAttribute('aria-label', 'Choose due date');
-      clockButton.textContent = '🕔';
-      const quickDueInput = document.createElement('input');
-      quickDueInput.className = 'quick-due-input';
-      quickDueInput.type = 'date';
-      leftActions.append(clockButton, quickDueInput);
+      const swipeDoneBtn = document.createElement('button');
+      swipeDoneBtn.className = 'swipe-btn sa-swipe-done';
+      swipeDoneBtn.style.cssText = 'flex:1;background:#6E9E5E;color:#fff;font-weight:700;font-size:13px;';
+      swipeDoneBtn.textContent = '\u2713 Done';
+      leftActions.appendChild(swipeDoneBtn);
       const actions = document.createElement('div');
       actions.className = 'swipe-actions';
-      actions.innerHTML = '<button class="swipe-btn sa-done">💤</button><button class="swipe-btn sa-status">⟳</button><button class="swipe-btn sa-delete">✕</button>';
+      const swipeDeleteBtn = document.createElement('button');
+      swipeDeleteBtn.className = 'swipe-btn sa-delete';
+      swipeDeleteBtn.style.cssText = 'width:80px;background:#ef4444;color:#fff;font-weight:700;font-size:13px;';
+      swipeDeleteBtn.textContent = '\u2715 Delete';
+      actions.appendChild(swipeDeleteBtn);
       wrapper.prepend(leftActions, actions);
       wrapper.dataset.actionsReady = '1';
       return wrapper;
@@ -2364,7 +2376,7 @@
       const group = GROUP_LABELS[listId] || '';
       const tagClass = listId === 'list-42' ? 'tag-42' : listId === 'list-group' ? 'tag-grp' : '';
       const tagLabel = listId === 'list-41' ? 'W41' : listId === 'list-42' ? 'W42' : 'Group';
-      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><div class="accent ${meta[0]}"></div><span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><svg width="36" height="36" viewBox="0 0 36 36" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui,sans-serif" font-weight="600">A</text></svg></span><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span></div>`;
+      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><span class="drag-handle" aria-hidden="true" style="color:#999;font-size:14px;padding:0 2px 0 10px;cursor:grab;order:0;flex-shrink:0;touch-action:auto;user-select:none;">⠣</span><div class="accent ${meta[0]}"></div><span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><svg width="36" height="36" viewBox="0 0 36 36" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui,sans-serif" font-weight="600">A</text></svg></span><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span><button class="task-delete-btn" type="button" aria-label="Delete task" style="border:none;background:transparent;color:#999;font-size:16px;padding:0 8px 0 4px;cursor:pointer;flex-shrink:0;order:5;-webkit-tap-highlight-color:transparent;">🗑</button></div>`;
       const row = list.firstElementChild;
       row.querySelector('.task-name').textContent = name;
       document.getElementById(listId).appendChild(row);
@@ -2387,11 +2399,19 @@
       }
       const week = document.getElementById('new-task-week').value;
       const listId = 'list-' + week;
-      document.getElementById(listId).appendChild(createTaskWrapper(name, status, listId));
+      const _newWrapper = createTaskWrapper(name, status, listId);
+      const _newRow = _newWrapper ? (_newWrapper.querySelector ? _newWrapper.querySelector('.task-row') : null) : null;
       assignTaskNumbers();
       input.value = '';
       document.getElementById('modal-overlay').classList.remove('open');
       applyAllFilters();
+      const _smap3 = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+      const _postBody = { task: name, status: _smap3[status] || 'In Progress', assignee_username: (telegramUser && telegramUser.username) || 'dro238' };
+      if (userId) _postBody.user_id = parseInt(userId);
+      taskApiFetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(_postBody) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { if (data.id && _newRow) _newRow.dataset.taskId = String(data.id); })
+        .catch(function(err) { console.warn('Task create failed:', err); });
     }
 
     const tabBoard = document.getElementById('tab-board');
@@ -2648,6 +2668,7 @@
           document.getElementById('tab-pending').classList.remove('active');
           document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
           applyAllFilters();
+          if (taskFeedState === 'error') loadTasks();
         } else if (qf === 'people') {
           exitBoardView();
           setTodayMode(false);
@@ -2657,6 +2678,7 @@
           groupVisible = true;
           document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
           applyAllFilters();
+          if (taskFeedState === 'error') loadTasks();
         } else if (qf === 'board') {
           setTodayMode(false);
           if (boardActive) {
