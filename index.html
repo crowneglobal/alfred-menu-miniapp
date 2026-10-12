@@ -21,7 +21,7 @@
     html.telegram-fullscreen {
       /* Missing native events need a startup fallback; reported insets replace it. */
       --app-fallback-device-top: 59px;
-      --app-fallback-content-top: 46px;
+      --app-fallback-content-top: 56px;
       --app-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), var(--app-fallback-device-top)) + var(--app-fallback-content-top));
     }
     html.telegram-fullscreen[data-telegram-platform="ios"] { --app-fallback-content-top: 46px; }
@@ -85,12 +85,12 @@
     #nav-planning .section-tab, #nav-banking .section-tab { min-width: 0; padding-left: 8px; padding-right: 8px; }
     body.light .section-tabs { background: rgba(0,0,0,0.07); }
     body.light .section-tab.active { background: #2A2A25; color: #C5D4A8; }
-    /* ── Assignee toggle pill ── */
-    .assignee-toggle { display:flex; background:rgba(255,255,255,0.1); border-radius:50px; padding:3px; margin-top:8px; }
-    .toggle-opt { flex:1; text-align:center; padding:8px; border-radius:46px; font-size:14px; font-weight:600; color:#888; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background 0.15s,color 0.15s; }
-    .toggle-opt.active { background:#fff; color:#1a1a1a; }
-    body.light .assignee-toggle { background:rgba(0,0,0,0.08); }
-    body.light .toggle-opt.active { background:#2A2A25; color:#C5D4A8; }
+    /* ── Assignee filter tabs ── */
+    .assignee-tabs { display: flex; gap: 4px; padding: 4px 8px 2px; }
+    .assignee-tab { flex: 1; padding: 6px 0; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.2px; cursor: pointer; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.55); transition: background 0.15s, color 0.15s; }
+    .assignee-tab.active { background: #2A2A25; color: #C5D4A8; }
+    body.light .assignee-tab { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.45); }
+    body.light .assignee-tab.active { background: #2A2A25; color: #C5D4A8; }
 
     /* ── COB banking test ── */
     #view-banking {
@@ -252,7 +252,7 @@
     .search-filter-chip.active { background: #2A2A25; color: #C5D4A8; border-color: #2A2A25; }
     body.search-mode { overflow: hidden; }
     body.search-mode .app-header,
-    body.search-mode .assignee-toggle,
+    body.search-mode .assignee-tabs,
     body.search-mode .focus-banner,
     body.search-mode .bottom-sheet,
     body.search-mode .sidebar-trigger,
@@ -424,7 +424,7 @@
     body.light .sheet-handle-pill { background: rgba(0,0,0,0.15); }
     .tray-actions { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; }
     .tray-actions[hidden] { display: none; }
-    .tray-actions .assignee-toggle { padding: 0; }
+    .tray-actions .assignee-tabs { padding: 0; }
     .tray-tools { display: flex; align-items: center; gap: 8px; }
     .tray-search-trigger {
       flex: 1; min-width: 0; height: 44px; padding: 0 15px;
@@ -807,9 +807,9 @@
     .tray-search-bubble { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin-left: 5px; padding: 0; border: 0; border-radius: 50%; background: var(--ui-accent); color: var(--ui-accent-ink); cursor: pointer; }
     .tray-actions { padding: 6px 16px 16px; gap: 12px; }
     .tray-scope-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .tray-actions .assignee-toggle { flex: 1; min-width: 0; margin-top: 0; padding: 3px; border: 1px solid var(--ui-line); background: var(--ui-soft); }
-    :is(body, body.light) .toggle-opt { min-height: 30px; padding: 5px 8px; font-size: 12px; font-weight: 650; }
-    :is(body, body.light) .toggle-opt.active { background: var(--ui-surface); color: var(--ui-ink); box-shadow: 0 1px 4px rgba(20,40,24,.07); }
+    .tray-actions .assignee-tabs { flex: 1; min-width: 0; padding: 4px; gap: 4px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-soft); }
+    :is(body, body.light) .assignee-tab { min-height: 36px; border-radius: 9px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; }
+    :is(body, body.light) .assignee-tab.active { color: var(--ui-ink); background: var(--ui-surface); box-shadow: 0 1px 4px rgba(20,40,24,.07); }
     .tray-search-trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; border-radius: 14px; border: 1px solid var(--ui-line); background: var(--ui-surface); color: var(--ui-muted); font-size: 13px; padding: 0 12px; }
     .tray-search-trigger .ui-icon { width: 17px; height: 17px; }
     .tray-new-task { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 0 14px; border-radius: 14px; background: var(--ui-accent); color: var(--ui-accent-ink); font-size: 13px; font-weight: 650; }
@@ -900,7 +900,6 @@
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
     <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
       <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
-      <button class="header-add-button" id="header-add-button" type="button" aria-label="Create new task" style="width:32px;height:32px;font-size:22px;line-height:30px;border-radius:50%;border:0;background:var(--ui-accent,#2A2A25);color:var(--ui-accent-ink,#C5D4A8);cursor:pointer;flex-shrink:0;">+</button>
     </div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
@@ -1025,14 +1024,18 @@
 
     <div class="tray-actions" id="tray-actions" hidden>
       <div class="tray-scope-row">
-        <div class="assignee-toggle" id="assignee-tabs">
-          <div class="toggle-opt active" id="toggle-me" onclick="setAssigneeFilter('me')">Me</div>
-          <div class="toggle-opt" id="toggle-all" onclick="setAssigneeFilter('all')">All</div>
+        <div class="assignee-tabs" id="assignee-tabs">
+          <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
+          <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
         </div>
         <button class="nav-center-avatar" id="profile-trigger" type="button" aria-label="Open profile">
           <img class="current-user-photo" alt="">
           <span class="current-user-initials">A</span>
         </button>
+      </div>
+      <div class="tray-tools">
+        <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>Search tasks</button>
+        <button class="tray-new-task" id="tray-new-task" type="button" aria-label="Create new task"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New task</button>
       </div>
     </div>
 
@@ -1438,7 +1441,7 @@
     }
 
     function applyAllFilters() {
-      document.querySelectorAll('.sheet-pinned [data-status], .toggle-opt, #nav-planning .section-tab').forEach(control => {
+      document.querySelectorAll('.sheet-pinned [data-status], .assignee-tab, #nav-planning .section-tab').forEach(control => {
         control.setAttribute('aria-pressed', String(control.classList.contains('active')));
       });
       document.querySelectorAll('.task-row').forEach(row => {
@@ -1499,7 +1502,7 @@
       weekFilter = 'all';
       groupVisible = true;
       activeAssigneeFilter = 'all';
-      (function(){ var me=document.getElementById('toggle-me'),all=document.getElementById('toggle-all'); if(me)me.classList.remove('active'); if(all)all.classList.add('active'); })();
+      document.querySelectorAll('.assignee-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.assignee === 'all'));
       document.querySelectorAll('.nav-tab[data-status]').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('#nav-planning .section-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.qf === 'week'));
       searchOverlay.classList.add('open');
@@ -1720,7 +1723,7 @@
       setTimeout(() => document.getElementById('new-task-name').focus(), 100);
     }
     document.getElementById('tab-new').addEventListener('click', openCreateFlow);
-    document.getElementById('header-add-button').addEventListener('click', openCreateFlow);
+    document.getElementById('tray-new-task').addEventListener('click', openCreateFlow);
     function closeModal(e) {
       if (!e || e.target === document.getElementById('modal-overlay')) {
         document.getElementById('modal-overlay').classList.remove('open');
@@ -2575,7 +2578,7 @@
     new ResizeObserver(updateTraySpace).observe(bottomSheet);
     updateTraySpace();
 
-    (function(){ var el=document.getElementById('tray-search-trigger'); if(el) el.addEventListener('click', openSearchMode); })();
+    document.getElementById('tray-search-trigger').addEventListener('click', openSearchMode);
     document.getElementById('search-bubble').addEventListener('click', openSearchMode);
     document.getElementById('profile-trigger').addEventListener('click', openProfile);
 
@@ -2713,14 +2716,13 @@
       sidebarPanelEl.classList.remove('open');
       sidebarBackdropEl.classList.remove('open');
     }
-    function setAssigneeFilter(val) {
-      activeAssigneeFilter = val;
-      var me = document.getElementById('toggle-me');
-      var all = document.getElementById('toggle-all');
-      if (me) me.classList.toggle('active', val === 'me');
-      if (all) all.classList.toggle('active', val === 'all');
-      applyAllFilters();
-    }
+    document.querySelectorAll('.assignee-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        activeAssigneeFilter = tab.dataset.assignee;
+        document.querySelectorAll('.assignee-tab').forEach(function(t) { t.classList.toggle('active', t === tab); });
+        applyAllFilters();
+      });
+    });
     document.getElementById('sidebar-trigger').addEventListener('click', openSidebar);
     document.getElementById('sidebar-trigger').addEventListener('keydown', function(e){
       if (e.key==='Enter'||e.key===' '){ e.preventDefault(); openSidebar(); }
