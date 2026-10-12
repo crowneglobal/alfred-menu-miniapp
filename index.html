@@ -1188,6 +1188,8 @@
       activePersonId = null;
       weekFilter = 'all';
       groupVisible = true;
+      activeAssigneeFilter = 'all';
+      document.querySelectorAll('.assignee-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.assignee === 'all'));
       document.querySelectorAll('.nav-tab[data-status]').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('#nav-planning .section-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.qf === 'week'));
       searchOverlay.classList.add('open');
