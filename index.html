@@ -35,7 +35,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: #EEF4E8; color: #1A0E00;
       min-height: 100vh;
-      padding: 0 calc(var(--app-safe-right) + 12px) calc(var(--app-safe-bottom) + 72px) calc(var(--app-safe-left) + 12px);
+      padding: 0 calc(var(--app-safe-right) + 12px) calc(var(--task-tray-height, 92px) + 8px) calc(var(--app-safe-left) + 12px);
       transition: background 0.2s, color 0.2s;
     }
 
@@ -109,7 +109,7 @@
       min-height: 42px; margin-bottom: 10px;
       padding-top: calc(var(--app-safe-top) + 8px);
     }
-    .header-add-button, .header-search-button, .header-sidebar-button {
+    .header-sidebar-button {
       width: 36px; height: 36px; border: 0; border-radius: 50%;
       background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 25px;
       font-weight: 400; line-height: 34px; cursor: pointer; z-index: 2;
@@ -117,7 +117,7 @@
       flex-shrink: 0;
     }
     .header-sidebar-button { font-size: 16px; line-height: 36px; }
-    .header-search-button { font-size: 19px; line-height: 36px; }
+    .header-spacer { width: 36px; flex-shrink: 0; }
     #context-tabs { margin-top: 12px !important; }
     .app-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
     .profile-trigger {
@@ -408,13 +408,14 @@
       background: #2A2A25; border-radius: 14px 14px 0 0;
       border-top: 1px solid rgba(255,255,255,0.07);
       z-index: 100; overflow: visible;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding: 0 var(--app-safe-right) var(--app-safe-bottom) var(--app-safe-left);
     }
     .bottom-sheet.expanded { transform: none; }
     body.light .bottom-sheet { background: #EEF4E8; border-top-color: rgba(0,0,0,0.09); }
     .sheet-handle-bar {
       display: flex; justify-content: center; align-items: center;
-      padding: 8px 0 2px; cursor: pointer;
+      width: 100%; height: 24px; border: 0; background: transparent; cursor: pointer;
+      touch-action: none;
       -webkit-tap-highlight-color: transparent;
     }
     .sheet-handle-pill {
@@ -422,14 +423,19 @@
       background: rgba(255,255,255,0.2);
     }
     body.light .sheet-handle-pill { background: rgba(0,0,0,0.15); }
+    .tray-actions { display: flex; align-items: center; gap: 8px; padding: 4px 12px 12px; }
+    .tray-actions[hidden] { display: none; }
     .tray-search-trigger {
-      display: none;
-      height: 44px; margin: 4px 12px 0; width: calc(100% - 24px); padding: 0 15px;
+      flex: 1; min-width: 0; height: 44px; padding: 0 15px;
       border: 1px solid rgba(0,0,0,0.1); border-radius: 22px; background: rgba(255,255,255,0.62);
       color: #777; font: inherit; font-size: 14px; text-align: left; cursor: text;
       -webkit-tap-highlight-color: transparent;
     }
-    .bottom-sheet.expanded .tray-search-trigger { display: block; }
+    .tray-new-task {
+      flex-shrink: 0; height: 44px; padding: 0 12px; border: 0; border-radius: 22px;
+      background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
     .sheet-pinned {
       display: flex; flex-direction: row; align-items: center;
       justify-content: space-around; height: 64px; overflow: visible;
@@ -716,10 +722,9 @@
     <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
       <div style="display:flex; gap:0; align-items:center;">
         <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar">☰</button>
-        <button class="header-search-button" id="header-search-button" type="button" aria-label="Search tasks">⌕</button>
       </div>
       <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
-      <button class="header-add-button" id="header-add-button" type="button" aria-label="Create new task">+</button>
+      <span class="header-spacer" aria-hidden="true"></span>
     </div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
@@ -831,7 +836,9 @@
 
   <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
   <div class="bottom-sheet" id="bottom-sheet">
-    <!-- One purpose only: task status filters and profile. -->
+    <button class="sheet-handle-bar" id="sheet-handle" type="button" aria-label="Expand task tray" aria-expanded="false" aria-controls="tray-actions">
+      <span class="sheet-handle-pill" aria-hidden="true"></span>
+    </button>
     <div class="sheet-pinned">
       <div class="nav-tab chip-stuck"    data-status="stuck">Stuck</div>
       <div class="nav-tab chip-progress" data-status="progress">In Progress</div>
@@ -840,6 +847,11 @@
         <img class="current-user-photo" alt="">
         <span class="current-user-initials">A</span>
       </div>
+    </div>
+
+    <div class="tray-actions" id="tray-actions" hidden>
+      <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks">⌕&nbsp; Search tasks...</button>
+      <button class="tray-new-task" id="tray-new-task" type="button" aria-label="Create new task">+ New task</button>
     </div>
 
     <!-- Legacy controls retained only as non-rendered hooks for existing state logic. -->
@@ -1275,6 +1287,7 @@
     }
 
     function openSearchMode() {
+      setTrayExpanded(false);
       closeSidebar();
       closeAllPanels();
       exitBoardView();
@@ -1488,9 +1501,10 @@
       }
     });
 
-    // Contextual create flow shared by the tray and the always-visible header button.
+    // Contextual create flow shared by the tray and goal board.
     let createMode = 'task';
     function openCreateFlow() {
+      setTrayExpanded(false);
       closeAllPanels();
       createMode = (typeof boardActive !== 'undefined' && boardActive) ? 'goal' : 'task';
       const isGoal = createMode === 'goal';
@@ -1504,7 +1518,7 @@
       setTimeout(() => document.getElementById('new-task-name').focus(), 100);
     }
     document.getElementById('tab-new').addEventListener('click', openCreateFlow);
-    document.getElementById('header-add-button').addEventListener('click', openCreateFlow);
+    document.getElementById('tray-new-task').addEventListener('click', openCreateFlow);
     function closeModal(e) {
       if (!e || e.target === document.getElementById('modal-overlay')) {
         document.getElementById('modal-overlay').classList.remove('open');
@@ -2322,8 +2336,42 @@
 
     // ── Bottom status tray ──
     const bottomSheet = document.getElementById('bottom-sheet');
+    const sheetHandle = document.getElementById('sheet-handle');
+    const trayActions = document.getElementById('tray-actions');
+    let trayTouchStart = null;
 
-    document.getElementById('header-search-button').addEventListener('click', openSearchMode);
+    function updateTraySpace() {
+      document.documentElement.style.setProperty('--task-tray-height', bottomSheet.getBoundingClientRect().height + 'px');
+    }
+    function setTrayExpanded(expanded) {
+      bottomSheet.classList.toggle('expanded', expanded);
+      trayActions.hidden = !expanded;
+      sheetHandle.setAttribute('aria-expanded', String(expanded));
+      sheetHandle.setAttribute('aria-label', expanded ? 'Collapse task tray' : 'Expand task tray');
+      updateTraySpace();
+    }
+    sheetHandle.addEventListener('click', () => setTrayExpanded(trayActions.hidden));
+    bottomSheet.addEventListener('touchstart', event => {
+      trayTouchStart = null;
+      if (event.touches.length !== 1) return;
+      const control = event.target.closest('button, input, .nav-tab, .nav-center-avatar');
+      if (control && control !== sheetHandle) return;
+      trayTouchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    }, { passive: true });
+    bottomSheet.addEventListener('touchend', event => {
+      if (!trayTouchStart || !event.changedTouches.length) return;
+      const dx = event.changedTouches[0].clientX - trayTouchStart.x;
+      const dy = event.changedTouches[0].clientY - trayTouchStart.y;
+      trayTouchStart = null;
+      if (Math.abs(dy) < 20 || Math.abs(dy) <= Math.abs(dx)) return;
+      event.preventDefault();
+      setTrayExpanded(dy < 0);
+    }, { passive: false });
+    bottomSheet.addEventListener('touchcancel', () => { trayTouchStart = null; });
+    new ResizeObserver(updateTraySpace).observe(bottomSheet);
+    updateTraySpace();
+
+    document.getElementById('tray-search-trigger').addEventListener('click', openSearchMode);
     document.getElementById('profile-trigger').addEventListener('click', openProfile);
     document.getElementById('profile-trigger').addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
