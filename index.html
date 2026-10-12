@@ -757,6 +757,7 @@
     <button id="task-feed-retry" type="button" hidden>Try again</button>
     <button id="task-feed-clear" type="button" hidden>Show all active tasks</button>
   </div>
+  <div id="task-save-error" class="task-feed-status" role="alert" hidden></div>
   <!-- Per-user focus task -->
   <div class="focus-banner focus-hidden" id="focus-banner">
     <span class="focus-icon">🎯</span>
@@ -2010,19 +2011,34 @@
       const _badge = row.querySelector('.badge');
       if (_badge && !_badge.dataset.cycleBound) {
         _badge.dataset.cycleBound = '1';
-        _badge.addEventListener('click', function(event) {
+        _badge.addEventListener('click', async function(event) {
           event.stopPropagation();
+          if (_badge.dataset.saving) return;
           const _cycle = { stuck: 'progress', progress: 'done', done: 'stuck' };
           const _next = _cycle[row.dataset.status] || 'progress';
-          updateRowStatus(row, _next, true);
           const _taskId = row.dataset.taskId;
-          if (_taskId) {
+          const errorMessage = document.getElementById('task-save-error');
+          errorMessage.hidden = true;
+          if (!_taskId) {
+            updateRowStatus(row, _next, true);
+            return;
+          }
+          _badge.dataset.saving = '1';
+          try {
             const _smap = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
-            taskApiFetch('/api/tasks/' + _taskId + '/state', {
+            const response = await taskApiFetch('/api/tasks/' + _taskId + '/state', {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: _smap[_next] })
-            }).catch(function(err) { console.warn('State update failed:', err); });
+            });
+            if (!response.ok) throw new Error('Task update HTTP ' + response.status);
+            updateRowStatus(row, _next, true);
+          } catch (error) {
+            errorMessage.textContent = 'Could not save the task status. Your previous status is unchanged.';
+            errorMessage.hidden = false;
+            console.warn('State update failed:', error);
+          } finally {
+            delete _badge.dataset.saving;
           }
         });
       }

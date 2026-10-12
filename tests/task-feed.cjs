@@ -2,7 +2,8 @@
 'use strict';
 
 // Local regression fixtures only. Uses the official Telegram SDK, intercepts
-// every request, and blocks all writes. This does not verify a physical client.
+// every request, and blocks writes except explicitly mocked status PATCH tests.
+// No request reaches a live service. This does not verify a physical client.
 // A separate URL assertion is essential: Playwright routing can otherwise mask
 // the mixed-content failure that an HTTPS mini app gets with an HTTP API.
 const assert = require('node:assert/strict');
@@ -53,6 +54,7 @@ async function createApp(browser, options = {}) {
   const mutations = [];
   const apiRequests = [];
   const apiHeaders = [];
+  const patchRequests = [];
   const heldRoutes = new Map();
   let callCount = 0;
   const responses = options.responses || [{ status: 200, body: envelope() }];
@@ -68,7 +70,7 @@ async function createApp(browser, options = {}) {
   const cors = {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'X-Telegram-Init-Data, Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': options.patchResponses ? 'GET, OPTIONS, PATCH' : 'GET, OPTIONS',
   };
   async function fulfill(route, response) {
     await route.fulfill({
@@ -81,8 +83,17 @@ async function createApp(browser, options = {}) {
   await context.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
-    if (request.method() === 'OPTIONS' && url.pathname.endsWith('/api/tasks')) {
+    if (request.method() === 'OPTIONS' && url.pathname.startsWith('/api/tasks')) {
       return route.fulfill({ status: 204, headers: cors });
+    }
+    if (request.method() === 'PATCH' && options.patchResponses && url.hostname === 'task-feed-fixture.test' && /^\/api\/tasks\/\d+\/state$/.test(url.pathname)) {
+      patchRequests.push({ url: request.url(), headers: await request.allHeaders(), body: request.postDataJSON() });
+      const response = options.patchResponses[Math.min(patchRequests.length - 1, options.patchResponses.length - 1)];
+      if (response.hold) {
+        heldRoutes.set(response.hold, { route, response });
+        return;
+      }
+      return fulfill(route, response);
     }
     if (!['GET', 'HEAD'].includes(request.method())) {
       mutations.push(`${request.method()} ${url.pathname}`);
@@ -122,7 +133,7 @@ async function createApp(browser, options = {}) {
   await settle(page);
   if (!options.holdFirst) await settledFeed(page);
   return {
-    context, page, errors, mutations, apiRequests, apiHeaders,
+    context, page, errors, mutations, apiRequests, apiHeaders, patchRequests,
     async release(key = 'first') {
       const held = heldRoutes.get(key);
       assert.ok(held, `API request ${key} is pending`);
@@ -417,6 +428,45 @@ async function main() {
     assert.equal(apiRequests.length, 1, 'Disabled All control cannot request unauthorized scope');
     assert.equal(new URL(apiRequests[0]).searchParams.get('scope'), 'me');
   }, { responses: [{ status: 200, body: envelope(fixtures, { can_view_all: false }) }] });
+
+  await test('rejected-status-save-keeps-previous-status', async ({ page, patchRequests }) => {
+    await page.locator('#topnav-week').click();
+    const row = page.locator('.week-section .task-row[data-task-id="1"]');
+    const badge = row.locator('.badge');
+    for (const status of [409, 401]) {
+      await badge.click();
+      await page.waitForFunction(() => !document.querySelector('[data-task-id="1"] .badge').dataset.saving);
+      assert.equal(await row.getAttribute('data-status'), 'progress', `HTTP ${status} keeps the previous status`);
+      assert.equal(await badge.innerText(), 'In Progress');
+      assert.equal(await page.locator('#task-save-error').isVisible(), true);
+      assert.match(await page.locator('#task-save-error').innerText(), /could not save.*previous status is unchanged/i);
+    }
+    assert.equal(patchRequests.length, 2);
+    assert.ok(patchRequests.every(request => request.headers['x-telegram-init-data']), 'Status saves carry launch data');
+    assert.ok(patchRequests.every(request => request.body.status === 'Done'), 'Retries still attempt the same transition');
+  }, { patchResponses: [
+    { status: 409, body: { error: 'workflow guard fixture' } },
+    { status: 401, body: { error: 'expired launch fixture' } },
+  ] });
+
+  await test('status-save-waits-for-success-and-blocks-repeat-clicks', async app => {
+    const { page, patchRequests } = app;
+    await page.locator('#topnav-week').click();
+    const row = page.locator('.week-section .task-row[data-task-id="1"]');
+    const badge = row.locator('.badge');
+    await badge.click();
+    await badge.click();
+    await settle(page);
+    assert.equal(patchRequests.length, 1, 'Repeated taps while pending send only one PATCH');
+    assert.equal(await row.getAttribute('data-status'), 'progress', 'Pending request does not claim a status change');
+    assert.equal(await badge.innerText(), 'In Progress');
+    await app.release('status-save');
+    await page.waitForFunction(() => document.querySelector('[data-task-id="1"]').dataset.status === 'done');
+    assert.equal(await badge.innerText(), 'Done');
+    assert.equal(await badge.getAttribute('data-saving'), null);
+    assert.equal(await page.locator('#task-save-error').isVisible(), false);
+    assert.deepEqual(patchRequests[0].body, { status: 'Done' });
+  }, { patchResponses: [{ status: 200, hold: 'status-save', body: { ok: true } }] });
 
   await browser.close();
   fs.writeFileSync(path.join(evidenceDir, 'results.json'), JSON.stringify({ htmlPath, fixtures: fixtures.length, results }, null, 2) + '\n');
