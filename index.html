@@ -801,9 +801,11 @@
     :is(body, body.light) .sheet-pinned .chip-stuck.active { background: var(--ui-stuck-bg); color: var(--ui-stuck); }
     :is(body, body.light) .sheet-pinned .chip-progress.active { background: var(--ui-progress-bg); color: var(--ui-progress); }
     :is(body, body.light) .sheet-pinned .chip-done.active { background: var(--ui-done-bg); color: var(--ui-done); }
-    .nav-center-avatar { width: 42px; height: 42px; min-width: 42px; min-height: 42px; margin-left: 5px; border: 3px solid var(--ui-surface); background: var(--ui-tint); color: var(--ui-ink); box-shadow: 0 0 0 1px var(--ui-line); font-size: 12px; }
+    .nav-center-avatar { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border: 3px solid var(--ui-surface); background: var(--ui-tint); color: var(--ui-ink); box-shadow: 0 0 0 1px var(--ui-line); font-size: 12px; }
+    .tray-search-bubble { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin-left: 5px; padding: 0; border: 0; border-radius: 50%; background: var(--ui-accent); color: var(--ui-accent-ink); cursor: pointer; }
     .tray-actions { padding: 6px 16px 16px; gap: 12px; }
-    .tray-actions .assignee-tabs { padding: 4px; gap: 4px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-soft); }
+    .tray-scope-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .tray-actions .assignee-tabs { flex: 1; min-width: 0; padding: 4px; gap: 4px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-soft); }
     :is(body, body.light) .assignee-tab { min-height: 36px; border-radius: 9px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; }
     :is(body, body.light) .assignee-tab.active { color: var(--ui-ink); background: var(--ui-surface); box-shadow: 0 1px 4px rgba(20,40,24,.07); }
     .tray-search-trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; border-radius: 14px; border: 1px solid var(--ui-line); background: var(--ui-surface); color: var(--ui-muted); font-size: 13px; padding: 0 12px; }
@@ -883,7 +885,7 @@
     }
     @media (orientation: landscape) and (min-width: 600px) {
       .tray-actions { flex-direction: row; align-items: center; }
-      .tray-actions .assignee-tabs { flex: 0 0 32%; }
+      .tray-scope-row { flex: 0 0 40%; }
       .tray-tools { flex: 1; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -1015,16 +1017,19 @@
       <button class="nav-tab chip-stuck" type="button" data-status="stuck" aria-pressed="false">Stuck</button>
       <button class="nav-tab chip-progress" type="button" data-status="progress" aria-pressed="false">In Progress</button>
       <button class="nav-tab chip-done" type="button" data-status="done" aria-pressed="false">Done</button>
-      <div class="nav-center-avatar" id="profile-trigger" role="button" tabindex="0" aria-label="Open profile">
-        <img class="current-user-photo" alt="">
-        <span class="current-user-initials">A</span>
-      </div>
+      <button class="tray-search-bubble" id="search-bubble" type="button" aria-label="Search tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg></button>
     </div>
 
     <div class="tray-actions" id="tray-actions" hidden>
-      <div class="assignee-tabs" id="assignee-tabs">
-        <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
-        <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
+      <div class="tray-scope-row">
+        <div class="assignee-tabs" id="assignee-tabs">
+          <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
+          <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
+        </div>
+        <button class="nav-center-avatar" id="profile-trigger" type="button" aria-label="Open profile">
+          <img class="current-user-photo" alt="">
+          <span class="current-user-initials">A</span>
+        </button>
       </div>
       <div class="tray-tools">
         <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>Search tasks</button>
@@ -2572,13 +2577,8 @@
     updateTraySpace();
 
     document.getElementById('tray-search-trigger').addEventListener('click', openSearchMode);
+    document.getElementById('search-bubble').addEventListener('click', openSearchMode);
     document.getElementById('profile-trigger').addEventListener('click', openProfile);
-    document.getElementById('profile-trigger').addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        openProfile();
-      }
-    });
 
     // ── Asana-style inline task creation ──
     function showInlineAdd(btn, listId, group) {

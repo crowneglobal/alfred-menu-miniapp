@@ -388,6 +388,7 @@ async function main() {
   }, { browser: true });
   await test('profile-and-sidebar', async page => {
     await insets(page, { top: 59, bottom: 34 }, { top: 46 });
+    await page.locator('#sheet-handle').click();
     await page.locator('#profile-trigger').click();
     await assertFullscreenControls(page, { top: 59 }, { top: 46 }, ['#profile-back']);
     await page.locator('#profile-back').click();

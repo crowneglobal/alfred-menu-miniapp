@@ -18,10 +18,10 @@ async function assertTray(page, expanded) {
   assert.equal(await page.locator('#tray-actions').isVisible(), expanded);
   assert.equal(await page.locator('#tray-search-trigger').isVisible(), expanded);
   assert.equal(await page.locator('#tray-new-task').isVisible(), expanded);
-  for (const selector of ['#assignee-tabs', '#assignee-tab-me', '#assignee-tab-all']) {
+  for (const selector of ['#assignee-tabs', '#assignee-tab-me', '#assignee-tab-all', '#profile-trigger']) {
     assert.equal(await page.locator(selector).isVisible(), expanded, `${selector} follows tray expansion`);
   }
-  for (const selector of ['#sheet-handle', '#profile-trigger', '.sheet-pinned [data-status="stuck"]', '.sheet-pinned [data-status="progress"]', '.sheet-pinned [data-status="done"]']) {
+  for (const selector of ['#sheet-handle', '#search-bubble', '.sheet-pinned [data-status="stuck"]', '.sheet-pinned [data-status="progress"]', '.sheet-pinned [data-status="done"]']) {
     assert.equal(await page.locator(selector).isVisible(), true, `${selector} stays available`);
   }
 }
@@ -62,15 +62,17 @@ async function main() {
     } finally { await app.context.close(); }
   }
 
-  await test('tray-default-hides-search-and-new-task', async page => {
+  await test('tray-default-keeps-search-bubble-and-hides-expanded-actions', async page => {
     await assertTray(page, false);
     assert.equal(await page.locator('#header-search-button, #header-add-button').count(), 0, 'No duplicated search or add actions remain in the header');
     assert.equal(await page.locator('#sheet-handle').evaluate(node => node.tagName), 'BUTTON', 'Handle has native keyboard behavior');
     assert.equal(await page.locator('#sheet-handle').getAttribute('aria-controls'), 'tray-actions', 'Handle identifies its drawer');
-    for (const selector of ['#tray-search-trigger', '#tray-new-task', '#assignee-tab-me', '#assignee-tab-all']) {
+    for (const selector of ['#tray-search-trigger', '#tray-new-task', '#assignee-tab-me', '#assignee-tab-all', '#profile-trigger']) {
       await page.locator(selector).evaluate(node => node.focus());
       assert.notEqual(await page.evaluate(() => document.activeElement.id), selector.slice(1), 'Collapsed actions cannot receive focus');
     }
+    assert.equal(await page.locator('#search-bubble').evaluate(node => node.tagName), 'BUTTON', 'Search bubble has native keyboard behavior');
+    assert.match(await page.locator('#search-bubble').getAttribute('aria-label'), /search/i);
     await screenshot(page, 'tray-collapsed');
   });
 
@@ -141,6 +143,11 @@ async function main() {
     assert.equal(swipeEvidence.filter(event => event.type === 'touchcancel').length, 0, 'Native scrolling did not cancel the handle gestures');
     assert.equal(swipeEvidence.filter(event => event.type === 'click').length, 0, 'Swipes produce no compatibility click that reverses expansion');
 
+    await touch('#search-bubble');
+    assert.equal(await page.locator('#search-overlay').isVisible(), true, 'Collapsed search bubble opens with a trusted tap');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'search-overlay-input');
+    await touch('#search-exit');
+    await assertTray(page, false);
     await touch('#sheet-handle');
     await assertTray(page, true);
     assert.equal(await page.evaluate(() => window.__trayTouchEvidence.filter(event => event.type === 'click' && event.trusted && event.target === 'sheet-handle').length), 1, 'Trusted handle tap produces exactly one click');
@@ -157,25 +164,34 @@ async function main() {
     assert.equal(await page.locator('#sheet-handle').getAttribute('aria-expanded'), 'false');
     await touch('#modal-overlay .btn-cancel');
     await assertTray(page, false);
+    await touch('#sheet-handle');
+    await touch('#profile-trigger');
+    assert.equal(await page.locator('#profile-view').isVisible(), true, 'Profile opens with a trusted tap from the expanded drawer');
+    await touch('#profile-back');
+    if (await page.locator('#sheet-handle').getAttribute('aria-expanded') === 'true') await touch('#sheet-handle');
+    await assertTray(page, false);
     const evidence = await page.evaluate(() => window.__trayTouchEvidence);
     assert.ok(evidence.every(event => event.trusted), 'Gesture evidence contains browser-generated events only');
     fs.writeFileSync(path.join(evidenceDir, 'trusted-touch-events.json'), JSON.stringify(evidence, null, 2) + '\n');
     await client.detach();
   }, { hasTouch: true });
 
-  await test('tray-search-keeps-keyboard-layout-and-restores-collapsed', async page => {
-    await page.locator('#sheet-handle').click();
-    await page.locator('#tray-search-trigger').click();
-    assert.equal(await page.locator('#sheet-handle').getAttribute('aria-expanded'), 'false');
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'search-overlay-input');
-    await page.locator('#search-overlay-input').fill('Alpha');
-    await viewport(page, { height: 544 });
-    await assertSearchGeometry(page);
-    await screenshot(page, 'tray-search-keyboard', 544);
-    await page.locator('#search-exit').click();
-    await viewport(page, { height: 844 });
-    await assertRestored(page);
-    await assertTray(page, false);
+  await test('search-bubble-click-and-keyboard-preserve-search-layout', async page => {
+    for (const method of ['click', 'Enter', 'Space']) {
+      const bubble = page.locator('#search-bubble');
+      if (method === 'click') await bubble.click();
+      else await bubble.press(method);
+      assert.equal(await page.locator('#sheet-handle').getAttribute('aria-expanded'), 'false');
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'search-overlay-input');
+      await page.locator('#search-overlay-input').fill('Alpha');
+      await viewport(page, { height: 544 });
+      await assertSearchGeometry(page);
+      if (method === 'click') await screenshot(page, 'tray-search-keyboard', 544);
+      await page.locator('#search-exit').click();
+      await viewport(page, { height: 844 });
+      await assertRestored(page);
+      await assertTray(page, false);
+    }
   });
 
   await test('tray-new-task-opens-existing-form-without-submit', async page => {
@@ -192,17 +208,33 @@ async function main() {
     await assertTray(page, false);
   });
 
-  await test('tray-profile-works-from-collapsed-and-expanded', async page => {
-    for (const expanded of [false, true]) {
-      if (expanded) await page.locator('#sheet-handle').click();
-      await page.locator('#profile-trigger').click();
+  await test('tray-profile-requires-expansion-and-supports-keyboard', async page => {
+    await assertTray(page, false);
+    assert.equal(await page.locator('#profile-trigger').evaluate(node => node.tagName), 'BUTTON', 'Profile uses a native button inside the drawer');
+    const photo = page.locator('#profile-trigger .current-user-photo');
+    await page.waitForFunction(() => { const image = document.querySelector('#profile-trigger .current-user-photo'); return image.complete && image.naturalWidth > 0; });
+    assert.equal(await photo.isVisible(), false, 'Loaded profile photo stays hidden inside collapsed drawer');
+    for (const method of ['click', 'Enter', 'Space']) {
+      await page.locator('#sheet-handle').click();
+      const profile = page.locator('#profile-trigger');
+      assert.equal(await photo.isVisible(), true, 'Expanded drawer shows the loaded profile photo');
+      const buttonBox = await profile.boundingBox(), photoBox = await photo.boundingBox();
+      assert.equal(buttonBox.width, 44, 'Profile remains a44px circle');
+      assert.equal(buttonBox.height, 44);
+      assert.ok(photoBox.x >= buttonBox.x && photoBox.y >= buttonBox.y && photoBox.x + photoBox.width <= buttonBox.x + buttonBox.width && photoBox.y + photoBox.height <= buttonBox.y + buttonBox.height, 'Photo fits within the profile circle');
+      assert.equal(await profile.evaluate(node => getComputedStyle(node).overflow), 'hidden', 'Circle clips the photo corners');
+      if (method === 'click') await screenshot(page, 'tray-profile-photo-expanded');
+      if (method === 'click') await profile.click();
+      else await profile.press(method);
       assert.equal(await page.locator('#profile-view').isVisible(), true);
       assert.equal(await page.locator('#profile-name').textContent(), 'Darren');
       await page.locator('#profile-back').click();
       assert.equal(await page.locator('#profile-view').isVisible(), false);
-      assert.equal(await page.locator('#sheet-handle').isVisible(), true);
+      if (await page.locator('#sheet-handle').getAttribute('aria-expanded') === 'true') await page.locator('#sheet-handle').click();
+      await assertTray(page, false);
+      assert.equal(await photo.isVisible(), false, 'Collapsing the drawer hides the photo again');
     }
-  });
+  }, { userPhoto: true });
 
   await test('last-task-can-scroll-above-collapsed-and-expanded-tray', async page => {
     for (const expanded of [false, true]) {
