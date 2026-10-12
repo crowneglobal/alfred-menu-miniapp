@@ -149,7 +149,7 @@ async function assertSearchGeometry(page) {
 async function assertRestored(page) {
   await page.waitForFunction(() => !document.body.classList.contains('search-mode'));
   for (const selector of chrome) assert.equal(await page.locator(selector).isVisible(), true, `${selector} returns after search`);
-  assert.equal(await page.locator('#sidebar-trigger').isVisible(), false, 'Redundant edge handle stays hidden; header groups button remains available');
+  assert.equal(await page.locator('#sidebar-trigger').isVisible(), false, 'Redundant edge handle stays hidden; planning groups button remains available');
   assert.equal(await page.locator('#search-overlay').isVisible(), false);
   assert.equal(await page.locator('#search-overlay-input').inputValue(), '');
   assert.equal(await page.locator('#sheet-handle').getAttribute('aria-expanded'), 'false', 'Tray returns collapsed after search');
