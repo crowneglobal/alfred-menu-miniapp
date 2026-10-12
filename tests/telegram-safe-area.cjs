@@ -67,6 +67,13 @@ async function createApp(browser, options = {}) {
     const request = route.request();
     const url = new URL(request.url());
     intercepted.push(request.url());
+    if (request.method() === 'OPTIONS' && url.pathname === '/api/tasks') {
+      return route.fulfill({ status: 204, headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Headers': 'X-Telegram-Init-Data, Content-Type',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      } });
+    }
     if (!['GET', 'HEAD'].includes(request.method())) {
       mutations.push(`${request.method()} ${url.pathname}`);
       return route.abort('blockedbyclient');
@@ -85,8 +92,13 @@ async function createApp(browser, options = {}) {
     }
     if (url.pathname === '/api/tasks') {
       return route.fulfill({
-        contentType: 'application/json', body: '[]',
-        headers: { 'Access-Control-Allow-Origin': '*' },
+        contentType: 'application/json',
+        body: JSON.stringify({ tasks: [], next_cursor: null, total: 0, can_view_all: true }),
+        headers: {
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Headers': 'X-Telegram-Init-Data, Content-Type',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        },
       });
     }
     if (url.hostname === 'banking.crowne-cards.com') {

@@ -271,6 +271,10 @@
     body.search-mode .week-section.collapsed .task-list { max-height: none; }
     body.search-mode .week-section { margin-bottom: 5px; }
 
+    .task-feed-status { padding: 24px 12px; text-align: center; color: #6b6259; font-size: 14px; }
+    .task-feed-status[hidden] { display: none; }
+    .task-feed-status button { display: block; margin: 12px auto 0; padding: 8px 16px; border: 0; border-radius: 8px; background: #2A2A25; color: #C5D4A8; font: inherit; cursor: pointer; }
+    .task-feed-status button[hidden] { display: none; }
     .today-view { display: none; }
     .today-view.open { display: block; }
     .today-task-row {
@@ -295,7 +299,7 @@
     .label-grp   { background: rgba(110,158,94,0.25); color: #3A5A2A; }
     .week-chevron { font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
     .week-section.collapsed .week-chevron { transform: rotate(-90deg); }
-    .task-list { overflow: hidden; max-height: 2000px; transition: max-height 0.25s ease; }
+    .task-list { overflow: hidden; }
     .week-section.collapsed .task-list { max-height: 0; }
 
     /* Group separator — clean text divider */
@@ -950,7 +954,9 @@
   <div id="task-feed-status" class="task-feed-status" role="status" aria-live="polite" hidden>
     <span id="task-feed-message"></span>
     <button id="task-feed-retry" type="button" hidden>Try again</button>
+    <button id="task-feed-clear" type="button" hidden>Show all active tasks</button>
   </div>
+  <div id="task-save-error" class="task-feed-status" role="alert" hidden></div>
   <!-- Per-user focus task -->
   <div class="focus-banner focus-hidden" id="focus-banner">
     <span class="focus-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></span>
@@ -1299,7 +1305,36 @@
     let activeGroupFilter = null;
     let activeAssigneeFilter = 'me';
 
-    const API_BASE = 'http://104.155.173.140:8086';
+    const API_BASE = 'https://evaluations-standings-helicopter-carries.trycloudflare.com';
+    let taskFeedState = 'loading';
+    let taskFeedRequest = null;
+    let taskFeedScope = null;
+    let taskFeedCanViewAll = true;
+    // Keep the full searchable list, but build swipe controls only near the viewport.
+    const taskRowObserver = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && entry.target.isConnected && !entry.target.classList.contains('hidden')) {
+              enhanceRow(entry.target);
+              taskRowObserver.unobserve(entry.target);
+            }
+          });
+        }, { rootMargin: '350px' })
+      : null;
+    const prepareTaskInteraction = event => {
+      const row = event.target.closest('.task-row');
+      if (row && row.closest('.week-section')) enhanceRow(row);
+    };
+    ['touchstart', 'mousedown', 'click'].forEach(type => {
+      document.getElementById('view-planning').addEventListener(type, prepareTaskInteraction, { capture: true, passive: true });
+    });
+
+    function taskApiFetch(path, options = {}) {
+      return fetch(API_BASE + path, {
+        ...options,
+        headers: { ...options.headers, 'X-Telegram-Init-Data': tg?.initData || '' },
+      });
+    }
 
     // Map API status text → internal status key
     function apiStatusToKey(s) {
@@ -1320,9 +1355,10 @@
       const meta = statusMeta[statusKey];
       const priorityClass = t.is_priority ? 'dot-p1' : 'dot-p2';
       const avatarSeed = (hashStr(t.assignee || '') % 70) + 1;
-      const assigneeLabel = t.assignee || 'Alfred';
-      const groupLabel = t.group_name || '';
+      const assigneeLabel = t.assignee_name || t.assignee || (t.assignee_id ? String(t.assignee_id) : 'Unassigned');
+      const groupLabel = t.group_name || 'Ungrouped';
       const tagClass = statusKey === 'done' ? 'tag-42' : '';
+      const escapeText = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const row = document.createElement('div');
       row.className = 'task-row';
       row.dataset.status = statusKey;
@@ -1332,7 +1368,8 @@
       row.dataset.notes = '';
       row.dataset.goal = '';
       row.dataset.group = groupLabel;
-      row.dataset.assignee = assigneeLabel;
+      row.dataset.assignee = t.assignee || assigneeLabel;
+      row.dataset.assigneeId = String(t.assignee_id || '');
       row.dataset.comments = '[]';
       row.dataset.taskId = String(t.id);
       row.innerHTML = [
@@ -1340,10 +1377,10 @@
         `<img class="avatar" src="https://i.pravatar.cc/72?img=${avatarSeed}" alt="" onclick="filterPersonAvatar(event,'${avatarSeed}')">`,
         `<div class="task-info">`,
         `  <span class="priority-dot ${priorityClass}"></span>`,
-        `  <span class="task-name">${t.task.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`,
+        `  <span class="task-name">${escapeText(t.task)}</span>`,
         `  <div class="task-meta-row">`,
-        `    <span class="task-assignee">${assigneeLabel}</span>`,
-        `    <span class="task-group-tag ${tagClass}">${groupLabel}</span>`,
+        `    <span class="task-assignee">${escapeText(assigneeLabel)}</span>`,
+        `    <span class="task-group-tag ${tagClass}">${escapeText(groupLabel)}</span>`,
         `  </div>`,
         `</div>`,
         `<span class="badge ${meta[1]}">${meta[2]}</span>`,
@@ -1353,71 +1390,103 @@
 
     function updateTaskFeedStatus() {
       const status = document.getElementById('task-feed-status');
-      if (status.dataset.state !== 'ready') return;
-      const rows = Array.from(document.querySelectorAll('.week-section .task-row'));
+      const message = document.getElementById('task-feed-message');
+      const retry = document.getElementById('task-feed-retry');
+      const clear = document.getElementById('task-feed-clear');
       const visible = todayActive
         ? todayView.children.length
-        : rows.filter(row => !row.classList.contains('hidden')
-          && !row.closest('.week-hidden, .section-empty')
-          && row.closest('.week-section').style.display !== 'none').length;
-      status.hidden = boardActive || visible > 0;
-      document.getElementById('task-feed-message').textContent = rows.length
+        : allTasks.filter(row => !row.classList.contains('hidden') && !row.closest('.week-hidden')).length;
+      status.hidden = boardActive || (taskFeedState === 'ready' && visible > 0);
+      retry.hidden = taskFeedState !== 'error';
+      clear.hidden = taskFeedState !== 'ready' || visible > 0 || allTasks.length === 0;
+      if (taskFeedState === 'loading') message.textContent = 'Loading tasks…';
+      else if (taskFeedState === 'error') message.textContent = 'Could not load tasks. Try again.';
+      else message.textContent = allTasks.length
         ? 'No tasks match these filters.'
-        : 'No tasks returned.';
+        : 'No tasks yet.';
     }
 
     async function loadTasks() {
-      if (loadTasks.pending) return;
-      loadTasks.pending = true;
-      const status = document.getElementById('task-feed-status');
-      const message = document.getElementById('task-feed-message');
-      const retry = document.getElementById('task-feed-retry');
-      status.hidden = false;
-      status.dataset.state = 'loading';
-      message.textContent = 'Loading tasks…';
-      retry.hidden = true;
+      const scope = activeAssigneeFilter === 'all' ? 'all' : 'me';
+      if (taskFeedRequest && taskFeedScope === scope) return;
+      if (taskFeedRequest) taskFeedRequest.abort();
       const controller = new AbortController();
+      taskFeedRequest = controller;
+      taskFeedScope = scope;
+      taskFeedState = 'loading';
+      updateTaskFeedStatus();
       const timeout = setTimeout(() => controller.abort(), 30000);
       try {
-        const response = await fetch(API_BASE + '/api/tasks', { signal: controller.signal });
-        if (!response.ok) throw new Error('Task feed HTTP ' + response.status);
-        const tasks = await response.json();
-        if (!Array.isArray(tasks) || tasks.some(task => !task || typeof task.task !== 'string' || task.id == null)) {
-          throw new Error('Invalid task feed');
-        }
+        const tasks = [];
+        const cursors = new Set();
+        let cursor = null;
+        do {
+          const params = new URLSearchParams({ scope, limit: '200' });
+          if (cursor !== null) params.set('before_id', cursor);
+          const response = await taskApiFetch('/api/tasks?' + params, { signal: controller.signal });
+          if (!response.ok) throw new Error('Task feed HTTP ' + response.status);
+          const page = await response.json();
+          if (!page || !Array.isArray(page.tasks) || page.tasks.some(task => !task || typeof task.task !== 'string' || task.id == null)) {
+            throw new Error('Invalid task feed');
+          }
+          if (taskFeedRequest !== controller) return;
+          tasks.push(...page.tasks);
+          taskFeedCanViewAll = page.can_view_all === true;
+          cursor = page.next_cursor ?? null;
+          if (cursor !== null) {
+            if (!page.tasks.length || cursors.has(String(cursor))) throw new Error('Invalid task cursor');
+            cursors.add(String(cursor));
+          }
+        } while (cursor !== null);
+        if (taskFeedRequest !== controller) return;
         const uniqueTasks = Array.from(new Map(tasks.map(task => [String(task.id), task])).values());
         const rows = uniqueTasks.map(renderApiTask);
-        // Keep the current list until a complete, valid replacement is available.
+        // Replace the previous feed only after all pages have loaded successfully.
+        if (taskRowObserver) taskRowObserver.disconnect();
         document.querySelectorAll('.week-section .task-row[data-task-id]').forEach(row => {
           (row.closest('.swipe-wrapper') || row).remove();
         });
         rows.forEach(row => {
           const list = document.getElementById(row.dataset.status === 'done' ? 'list-42' : 'list-41');
           list.insertBefore(row, list.querySelector('.inline-add-row'));
-          enhanceRow(row);
+          ensureSwipeWrapper(row);
+          if (taskRowObserver) taskRowObserver.observe(row);
+          else enhanceRow(row);
         });
-        syncAllTasks();
         assignTaskNumbers();
+        taskFeedState = 'ready';
+        document.getElementById('assignee-tab-all').disabled = !taskFeedCanViewAll;
         applyAllFilters();
-        if (typeof buildBoard !== 'undefined' && boardActive) buildBoard();
-        if (typeof buildTodayView !== 'undefined' && todayActive) buildTodayView();
-        if (typeof renderSidebarGroups === 'function') renderSidebarGroups();
-        status.dataset.state = 'ready';
-        updateTaskFeedStatus();
+        renderSidebarGroups();
       } catch (error) {
-        status.dataset.state = 'error';
-        message.textContent = document.querySelector('.week-section .task-row[data-task-id]')
-          ? 'Could not refresh tasks. Your previous list is still shown.'
-          : 'Could not load tasks. Try again.';
-        retry.hidden = false;
+        if (taskFeedRequest !== controller) return;
+        taskFeedState = 'error';
         console.error('loadTasks error:', error);
       } finally {
         clearTimeout(timeout);
-        loadTasks.pending = false;
+        if (taskFeedRequest === controller) {
+          taskFeedRequest = null;
+          updateTaskFeedStatus();
+        }
       }
     }
 
     document.getElementById('task-feed-retry').addEventListener('click', loadTasks);
+    document.getElementById('task-feed-clear').addEventListener('click', () => {
+      activeGroupFilter = null;
+      activeAssigneeFilter = taskFeedCanViewAll ? 'all' : 'me';
+      activeStatus = 'pending';
+      activePersonId = null;
+      weekFilter = 'all';
+      groupVisible = true;
+      searchQuery = '';
+      searchOverlayInput.value = '';
+      document.querySelectorAll('.assignee-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.assignee === activeAssigneeFilter));
+      document.querySelectorAll('.nav-tab[data-status]').forEach(tab => tab.classList.remove('active'));
+      document.getElementById('tab-pending').classList.add('active');
+      selectGroup(null);
+      loadTasks();
+    });
 
 
     let searchField = 'name';
@@ -1441,6 +1510,7 @@
     }
 
     function applyAllFilters() {
+      syncAllTasks();
       document.querySelectorAll('.sheet-pinned [data-status], .assignee-tab, #nav-planning .section-tab').forEach(control => {
         control.setAttribute('aria-pressed', String(control.classList.contains('active')));
       });
@@ -1450,15 +1520,15 @@
         const personOk = !activePersonId || row.dataset.person === activePersonId;
         const searchOk = !searchQuery || row.querySelector('.task-name').textContent.toLowerCase().includes(searchQuery.toLowerCase());
         const groupOk = !activeGroupFilter || (row.dataset.group || '') === activeGroupFilter;
-        const assigneeVal = (row.dataset.assignee || '').toLowerCase();
-        const assigneeOk = activeAssigneeFilter === 'all' || assigneeVal === 'dro238';
+        const assigneeOk = activeAssigneeFilter === 'all' || isAssignedToCurrentUser(row);
         const hidden = !(statusOk && personOk && searchOk && groupOk && assigneeOk);
         row.classList.toggle('hidden', hidden);
         const wrapper = row.closest('.swipe-wrapper');
         if (wrapper) wrapper.classList.toggle('hidden-wrapper', hidden);
       });
       updateSectionVisibility();
-      if (typeof boardActive !== 'undefined' && boardActive) buildBoard();
+      if (boardActive) buildBoard();
+      if (todayActive) buildTodayView();
       updateTaskFeedStatus();
     }
 
@@ -1501,8 +1571,9 @@
       activePersonId = null;
       weekFilter = 'all';
       groupVisible = true;
-      activeAssigneeFilter = 'all';
-      document.querySelectorAll('.assignee-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.assignee === 'all'));
+      activeAssigneeFilter = taskFeedCanViewAll ? 'all' : 'me';
+      if (taskFeedScope !== activeAssigneeFilter) loadTasks();
+      document.querySelectorAll('.assignee-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.assignee === activeAssigneeFilter));
       document.querySelectorAll('.nav-tab[data-status]').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('#nav-planning .section-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.qf === 'week'));
       searchOverlay.classList.add('open');
@@ -1838,7 +1909,7 @@
         delete row.dataset.inlineNew;
         if (_wasNew) {
           const _smap2 = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
-          fetch(API_BASE + '/api/tasks', {
+          taskApiFetch('/api/tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ task: name, status: _smap2[row.dataset.status] || 'In Progress' })
@@ -1846,7 +1917,7 @@
             if (data.id) row.dataset.taskId = String(data.id);
           }).catch(function(err) { console.warn('Task create failed:', err); });
         } else if (row.dataset.taskId) {
-          fetch(API_BASE + '/api/tasks/' + row.dataset.taskId, {
+          taskApiFetch('/api/tasks/' + row.dataset.taskId, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ task: name })
@@ -2141,9 +2212,20 @@
       if (commentsSection) commentsSection.style.display = '';
     });
 
-    function makeSwipeWrapper(row) {
+    function ensureSwipeWrapper(row) {
+      const existing = row.closest('.swipe-wrapper');
+      if (existing) return existing;
       const wrapper = document.createElement('div');
       wrapper.className = 'swipe-wrapper';
+      wrapper.classList.toggle('hidden-wrapper', row.classList.contains('hidden'));
+      row.parentNode.insertBefore(wrapper, row);
+      wrapper.appendChild(row);
+      return wrapper;
+    }
+
+    function makeSwipeWrapper(row) {
+      const wrapper = ensureSwipeWrapper(row);
+      if (wrapper.dataset.actionsReady === '1') return wrapper;
       const leftActions = document.createElement('div');
       leftActions.className = 'swipe-actions-left';
       const quickDates = Array.from({ length: 4 }, (_, offset) => {
@@ -2174,13 +2256,14 @@
       const actions = document.createElement('div');
       actions.className = 'swipe-actions';
       actions.innerHTML = '<button class="swipe-btn sa-done">💤</button><button class="swipe-btn sa-status">⟳</button><button class="swipe-btn sa-delete">✕</button>';
-      row.parentNode.insertBefore(wrapper, row);
-      wrapper.append(leftActions, actions, row);
+      wrapper.prepend(leftActions, actions);
+      wrapper.dataset.actionsReady = '1';
       return wrapper;
     }
 
     const GROUP_LABELS = { 'list-41': 'Active', 'list-42': 'Done', 'list-group': 'This Group' };
     function enhanceRow(row) {
+      if (row.dataset.enhanced === '1') return;
       row.dataset.priority = row.dataset.priority || 'p2';
       row.dataset.due = row.dataset.due || '';
       row.dataset.notes = row.dataset.notes || '';
@@ -2206,30 +2289,45 @@
         chip.style.display = 'none';
         info.appendChild(chip);
       }
-      if (!row.closest('.swipe-wrapper')) makeSwipeWrapper(row);
+      makeSwipeWrapper(row);
       bindTaskRow(row);
       refreshDueChip(row);
       // Cycle kanban state on badge tap
       const _badge = row.querySelector('.badge');
       if (_badge && !_badge.dataset.cycleBound) {
         _badge.dataset.cycleBound = '1';
-        _badge.addEventListener('click', function(event) {
+        _badge.addEventListener('click', async function(event) {
           event.stopPropagation();
+          if (_badge.dataset.saving) return;
           const _cycle = { stuck: 'progress', progress: 'done', done: 'stuck' };
           const _next = _cycle[row.dataset.status] || 'progress';
-          updateRowStatus(row, _next, true);
           const _taskId = row.dataset.taskId;
-          if (_taskId) {
+          const errorMessage = document.getElementById('task-save-error');
+          errorMessage.hidden = true;
+          if (!_taskId) {
+            updateRowStatus(row, _next, true);
+            return;
+          }
+          _badge.dataset.saving = '1';
+          try {
             const _smap = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
-            fetch(API_BASE + '/api/tasks/' + _taskId + '/state', {
+            const response = await taskApiFetch('/api/tasks/' + _taskId + '/state', {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: _smap[_next] })
-            }).catch(function(err) { console.warn('State update failed:', err); });
+            });
+            if (!response.ok) throw new Error('Task update HTTP ' + response.status);
+            updateRowStatus(row, _next, true);
+          } catch (error) {
+            errorMessage.textContent = 'Could not save the task status. Your previous status is unchanged.';
+            errorMessage.hidden = false;
+            console.warn('State update failed:', error);
+          } finally {
+            delete _badge.dataset.saving;
           }
         });
       }
-
+      row.dataset.enhanced = '1';
     }
 
     function assignTaskNumbers() {
@@ -2287,17 +2385,21 @@
     }
 
     function isAssignedToCurrentUser(row) {
-      const assignee = (row.dataset.assignee || row.querySelector('.task-assignee')?.textContent || '').trim().toLowerCase();
-      const firstName = (telegramUser?.first_name || displayName.split(/\s+/)[0] || 'Alfred').trim().toLowerCase();
-      const username = (telegramUser?.username || '').trim().toLowerCase();
-      return assignee === firstName || assignee === displayName.trim().toLowerCase() || (!!username && assignee === username);
+      const normalize = value => String(value || '').trim().replace(/^@/, '').toLowerCase();
+      const assignee = normalize(row.dataset.assignee);
+      const userId = String(telegramUser?.id || '');
+      if (userId && row.dataset.assigneeId) return row.dataset.assigneeId === userId;
+      if (assignee === 'me') return true;
+      if (!telegramUser) return false;
+      const aliases = [telegramUser.username, telegramUser.first_name, displayName, userId].map(normalize).filter(Boolean);
+      return aliases.includes(assignee);
     }
 
     function buildTodayView() {
       todayView.replaceChildren();
       const statusOrder = { stuck: 0, progress: 1 };
       syncAllTasks()
-        .filter(row => Object.hasOwn(statusOrder, row.dataset.status) && isAssignedToCurrentUser(row))
+        .filter(row => Object.hasOwn(statusOrder, row.dataset.status) && !row.classList.contains('hidden'))
         .sort((a, b) => statusOrder[a.dataset.status] - statusOrder[b.dataset.status])
         .forEach(row => {
           const item = document.createElement('div');
@@ -2307,6 +2409,7 @@
           item.querySelectorAll('[onclick]').forEach(node => node.removeAttribute('onclick'));
           item._sourceRow = row;
           item.addEventListener('click', event => {
+            enhanceRow(row);
             const name = event.target.closest('.task-name');
             if (name) {
               event.stopPropagation();
@@ -2676,9 +2779,12 @@
     }
     function renderSidebarGroups() {
       var counts = getGroupTaskCounts();
-      var totalCount = Object.values(counts).reduce(function(a,b){ return a+b; }, 0);
+      var totalCount = allTasks.length;
+      var groups = [{ name: 'All Groups', dot: '#7AAB6A' }].concat(Object.keys(counts).sort().map(function(name) {
+        return SIDEBAR_GROUPS.find(function(group) { return group.name === name; }) || { name: name, dot: '#7AAB6A' };
+      }));
       sidebarBodyEl.innerHTML = '';
-      SIDEBAR_GROUPS.forEach(function(group) {
+      groups.forEach(function(group) {
         var isAll = group.name === 'All Groups';
         var count = isAll ? totalCount : (counts[group.name] || 0);
         var isActive = isAll ? !activeGroupFilter : activeGroupFilter === group.name;
@@ -2686,8 +2792,9 @@
         row.className = 'sidebar-group-row' + (isActive ? ' active' : '');
         row.innerHTML =
           '<span class="sidebar-group-dot" style="background:' + group.dot + '"></span>' +
-          '<span class="sidebar-group-name">' + group.name + '</span>' +
+          '<span class="sidebar-group-name"></span>' +
           '<span class="sidebar-count-badge">' + count + '</span>';
+        row.querySelector('.sidebar-group-name').textContent = group.name;
         (function(gname, all){ row.addEventListener('click', function(){ selectGroup(all ? null : gname); }); })(group.name, isAll);
         sidebarBodyEl.appendChild(row);
       });
@@ -2721,6 +2828,7 @@
         activeAssigneeFilter = tab.dataset.assignee;
         document.querySelectorAll('.assignee-tab').forEach(function(t) { t.classList.toggle('active', t === tab); });
         applyAllFilters();
+        if (taskFeedScope !== activeAssigneeFilter) loadTasks();
       });
     });
     document.getElementById('sidebar-trigger').addEventListener('click', openSidebar);

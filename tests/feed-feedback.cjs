@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
-// Tests presentation of the existing legacy feed only. Every network resource
-// is local or blocked; no production task data is read or changed.
+// Feedback fixtures for the pending authenticated, paginated feed contract.
+// Every resource is local or blocked; no production task data is read or changed.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -27,6 +27,14 @@ async function createApp(browser, responses) {
   });
   await context.route('**/*', async route => {
     const request = route.request(), url = new URL(request.url());
+    const cors = {
+      'Access-Control-Allow-Origin': 'https://miniapp.test',
+      'Access-Control-Allow-Headers': 'X-Telegram-Init-Data, Content-Type',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    };
+    if (request.method() === 'OPTIONS' && url.hostname === 'task-feed-fixture.test') {
+      return route.fulfill({ status: 204, headers: cors });
+    }
     if (!['GET', 'HEAD'].includes(request.method())) {
       mutations.push(`${request.method()} ${url.pathname}`);
       return route.abort('blockedbyclient');
@@ -40,9 +48,12 @@ async function createApp(browser, responses) {
       const response = responses[Math.min(requests++, responses.length - 1)];
       if (response.wait) await response.wait;
       if (response.abort) return route.abort('failed');
+      const body = Array.isArray(response.body)
+        ? { tasks: response.body, next_cursor: null, total: response.body.length, can_view_all: true }
+        : response.body;
       return route.fulfill({
         status: response.status || 200, contentType: 'application/json',
-        body: JSON.stringify(response.body), headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify(body), headers: cors,
       });
     }
     if (url.hostname === 'banking.crowne-cards.com') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Local bank fixture</title>' });
@@ -64,7 +75,7 @@ async function createApp(browser, responses) {
 }
 
 async function waitState(page, state) {
-  await page.waitForFunction(state => document.getElementById('task-feed-status').dataset.state === state, state);
+  await page.waitForFunction(state => taskFeedState === state, state);
 }
 
 async function assertSharedStatus(page, expected) {
@@ -120,7 +131,7 @@ async function main() {
 
   await test('successful-empty-feed-is-explicit', [{ body: [] }], async ({ page }) => {
     await waitState(page, 'ready');
-    await assertSharedStatus(page, 'No tasks returned.');
+    await assertSharedStatus(page, 'No tasks yet.');
     assert.equal(await page.locator('#task-feed-retry').isVisible(), false);
   });
 
@@ -130,14 +141,24 @@ async function main() {
     assert.equal(await page.locator('.week-section .task-row').count(), 1, 'The task exists even though Me has no matches');
     await page.locator('#sheet-handle').click();
     await page.locator('#assignee-tab-all').click();
+    await waitState(page, 'ready');
     assert.equal(await page.locator('#task-feed-status').isVisible(), false, 'Week All displays a matching task');
     await page.locator('#assignee-tab-me').click();
+    await waitState(page, 'ready');
     assert.equal(await page.locator('#task-feed-status').isVisible(), true, 'Week Me explains its empty result');
     await page.locator('#assignee-tab-all').click();
+    await waitState(page, 'ready');
     await page.locator('#sheet-handle').click();
     await page.locator('#topnav-pending').click();
-    assert.equal(await page.locator('#task-feed-status').isVisible(), true, 'Today reports the actual legacy Today result');
+    assert.equal(await page.locator('#task-feed-status').isVisible(), false, 'Today All includes the matching task');
+    await page.locator('#sheet-handle').click();
+    await page.locator('#assignee-tab-me').click();
+    await waitState(page, 'ready');
+    assert.equal(await page.locator('#task-feed-status').isVisible(), true, 'Today Me explains its empty result');
     assert.equal(await page.locator('#task-feed-message').textContent(), 'No tasks match these filters.');
+    await page.locator('#assignee-tab-all').click();
+    await waitState(page, 'ready');
+    await page.locator('#sheet-handle').click();
     await page.locator('#topnav-week').click();
     assert.equal(await page.locator('#task-feed-status').isVisible(), false, 'Returning to Week All clears the message');
     await page.evaluate(() => selectGroup('Missing fixture group'));
@@ -163,7 +184,7 @@ async function main() {
     await waitState(page, 'ready');
     await page.evaluate(() => loadTasks());
     await waitState(page, 'error');
-    await assertSharedStatus(page, 'Could not refresh tasks. Your previous list is still shown.');
+    await assertSharedStatus(page, 'Could not load tasks. Try again.');
     assert.equal(await page.locator('.week-section .task-row').count(), 1);
     assert.equal(await page.locator('#today-view .today-task-row').count(), 1);
     await page.locator('#task-feed-retry').click();

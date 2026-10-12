@@ -2,9 +2,8 @@
 'use strict';
 
 // Search layout simulations using the official Telegram SDK. Every resource is
-// fulfilled locally or blocked. The published branch still has the legacy HTTP
-// task feed; only this test-served HTML changes its base to a secure fixture host.
-// This suite neither verifies nor imports the separate pending feed/API fix.
+// fulfilled locally or blocked. This pending feed branch uses signed paginated task responses.
+// The fixture host serves that contract without making any live API requests.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -60,7 +59,7 @@ async function createApp(browser, options = {}) {
       return route.fulfill({ contentType: 'application/javascript', body: 'window.Sortable = { create() { return { option() {}, destroy() {} }; } };' });
     }
     if (url.hostname === 'task-feed-fixture.test') {
-      return route.fulfill({ contentType: 'application/json', body: JSON.stringify(fixtures), headers: { 'Access-Control-Allow-Origin': '*' } });
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ tasks: fixtures, next_cursor: null, total: fixtures.length, can_view_all: true }), headers: { 'Access-Control-Allow-Origin': '*' } });
     }
     if (url.hostname === 'banking.crowne-cards.com') {
       return route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Bank fixture</title><p>Local banking fixture</p>' });
