@@ -20,7 +20,7 @@ const fixtures = Array.from({ length: 30 }, (_, index) => ({
 }));
 const chrome = [
   '.app-header', '#app-title-toggle', '#date-week-bar', '#context-tabs',
-  '#focus-banner', '#sidebar-trigger', '#bottom-sheet',
+  '#focus-banner', '#bottom-sheet',
 ];
 const controls = ['#header-sidebar-button', '#app-title-toggle', '#sheet-handle', '#tray-search-trigger', '#tray-new-task'];
 fs.mkdirSync(evidenceDir, { recursive: true });
@@ -110,7 +110,7 @@ async function openSearch(page) {
 }
 
 async function assertSearchGeometry(page) {
-  for (const selector of [...chrome, '#assignee-tabs']) assert.equal(await page.locator(selector).isVisible(), false, `${selector} is hidden during search`);
+  for (const selector of [...chrome, '#assignee-tabs', '#sidebar-trigger']) assert.equal(await page.locator(selector).isVisible(), false, `${selector} is hidden during search`);
   assert.equal(await page.locator('#search-overlay-input').isVisible(), true);
   const geometry = await page.evaluate(({ controls }) => {
     const planning = document.getElementById('view-planning');
@@ -148,6 +148,7 @@ async function assertSearchGeometry(page) {
 async function assertRestored(page) {
   await page.waitForFunction(() => !document.body.classList.contains('search-mode'));
   for (const selector of chrome) assert.equal(await page.locator(selector).isVisible(), true, `${selector} returns after search`);
+  assert.equal(await page.locator('#sidebar-trigger').isVisible(), false, 'Redundant edge handle stays hidden; header groups button remains available');
   assert.equal(await page.locator('#search-overlay').isVisible(), false);
   assert.equal(await page.locator('#search-overlay-input').inputValue(), '');
   assert.equal(await page.locator('#sheet-handle').getAttribute('aria-expanded'), 'false', 'Tray returns collapsed after search');
