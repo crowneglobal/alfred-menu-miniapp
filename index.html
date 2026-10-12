@@ -18,6 +18,16 @@
       --app-safe-left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + var(--tg-content-safe-area-inset-left, 0px));
       --app-safe-right: calc(max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px)) + var(--tg-content-safe-area-inset-right, 0px));
     }
+    html.telegram-fullscreen {
+      /* Reserve the native control band even before Telegram sends its insets.
+         Larger reported insets always take precedence over these minimums. */
+      --app-fullscreen-top-min: 128px;
+      --app-safe-top: max(calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + max(var(--tg-content-safe-area-inset-top, 0px), 56px)), var(--app-fullscreen-top-min));
+    }
+    /* A portrait phone's keyboard must not select the shorter landscape reserve. */
+    @media (orientation: landscape) and (min-width: 600px) {
+      html.telegram-fullscreen { --app-fullscreen-top-min: 96px; }
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: #EEF4E8; color: #1A0E00;
@@ -939,16 +949,28 @@
       if (tg) { tg.setBackgroundColor(bg); tg.setHeaderColor(bg); }
     }
     if (tg) {
-      // Keep Telegram's Close/menu controls in its native header above the app.
-      // Fullscreen overlays those controls; insets may not be available at startup.
-      function keepNativeHeader() {
-        if (tg.isFullscreen && tg.exitFullscreen && tg.isVersionAtLeast('8.0')) {
-          tg.exitFullscreen();
-        }
-        tg.expand();
+      let fullscreenPending = false;
+      function syncFullscreenClearance() {
+        document.documentElement.classList.toggle('telegram-fullscreen', fullscreenPending || tg.isFullscreen);
       }
-      tg.onEvent('fullscreenChanged', keepNativeHeader);
-      keepNativeHeader();
+      function finishFullscreenRequest() {
+        fullscreenPending = false;
+        syncFullscreenClearance();
+      }
+      tg.onEvent('fullscreenChanged', finishFullscreenRequest);
+      tg.onEvent('fullscreenFailed', finishFullscreenRequest);
+      syncFullscreenClearance();
+      tg.expand();
+      if (tg.requestFullscreen && tg.isVersionAtLeast('8.0') && !tg.isFullscreen) {
+        // Move controls down before the native fullscreen animation starts.
+        fullscreenPending = true;
+        syncFullscreenClearance();
+        try {
+          tg.requestFullscreen();
+        } catch (_) {
+          finishFullscreenRequest();
+        }
+      }
       tg.onEvent('themeChanged', applyTheme);
     }
     applyTheme();
