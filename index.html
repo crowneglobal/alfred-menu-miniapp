@@ -90,15 +90,14 @@
       padding-top: max(env(safe-area-inset-top, 0px), 50px) !important;
     }
     .header-add-button, .header-search-button, .header-sidebar-button {
-      position: absolute; top: max(env(safe-area-inset-top, 0px), 50px);
       width: 36px; height: 36px; border: 0; border-radius: 50%;
       background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 25px;
       font-weight: 400; line-height: 34px; cursor: pointer; z-index: 2;
       box-shadow: 0 2px 8px rgba(0,0,0,0.16); -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
     }
-    .header-add-button { right: 0; }
-    .header-sidebar-button { left: 0; font-size: 16px; line-height: 36px; }
-    .header-search-button { left: 44px; font-size: 19px; line-height: 36px; }
+    .header-sidebar-button { font-size: 16px; line-height: 36px; }
+    .header-search-button { font-size: 19px; line-height: 36px; }
     #context-tabs { margin-top: 12px !important; }
     .app-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
     .profile-trigger {
@@ -674,11 +673,15 @@
 </head>
 <body>
 
-  <header class="app-header" style="flex-direction:column; align-items:center; gap:0; padding-bottom:4px; min-height:unset;">
-    <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar">☰</button>
-    <button class="header-search-button" id="header-search-button" type="button" aria-label="Search tasks">⌕</button>
-    <button class="header-add-button" id="header-add-button" type="button" aria-label="Create new task">+</button>
-    <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; width:100%; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+  <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
+    <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
+      <div style="display:flex; gap:0; align-items:center;">
+        <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar">☰</button>
+        <button class="header-search-button" id="header-search-button" type="button" aria-label="Search tasks">⌕</button>
+      </div>
+      <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+      <button class="header-add-button" id="header-add-button" type="button" aria-label="Create new task">+</button>
+    </div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
