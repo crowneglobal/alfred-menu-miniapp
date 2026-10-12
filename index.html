@@ -19,14 +19,17 @@
       --app-safe-right: calc(max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px)) + var(--tg-content-safe-area-inset-right, 0px));
     }
     html.telegram-fullscreen {
-      /* Reserve the native control band even before Telegram sends its insets.
-         Larger reported insets always take precedence over these minimums. */
-      --app-fullscreen-top-min: 128px;
-      --app-safe-top: max(calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + max(var(--tg-content-safe-area-inset-top, 0px), 56px)), var(--app-fullscreen-top-min));
+      /* Missing native events need a startup fallback; reported insets replace it. */
+      --app-fallback-device-top: 59px;
+      --app-fallback-content-top: 56px;
+      --app-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), var(--app-fallback-device-top)) + var(--app-fallback-content-top));
     }
-    /* A portrait phone's keyboard must not select the shorter landscape reserve. */
+    html.telegram-fullscreen[data-telegram-platform="ios"] { --app-fallback-content-top: 46px; }
+    html.telegram-fullscreen.telegram-device-insets-known { --app-fallback-device-top: 0px; }
+    html.telegram-fullscreen.telegram-content-insets-known { --app-fallback-content-top: var(--tg-content-safe-area-inset-top); }
+    /* A portrait phone's keyboard must not select the landscape fallback. */
     @media (orientation: landscape) and (min-width: 600px) {
-      html.telegram-fullscreen { --app-fullscreen-top-min: 96px; }
+      html.telegram-fullscreen { --app-fallback-device-top: 0px; }
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
@@ -197,15 +200,15 @@
     .search-input:focus { border-color: rgba(255,255,255,0.5); box-shadow: 0 2px 20px rgba(0,0,0,0.25), 0 0 0 2px rgba(197,212,168,0.3), inset 0 1px 0 rgba(255,255,255,0.15); }
     body.light .search-input:focus { border-color: rgba(197,212,168,0.8); box-shadow: 0 2px 20px rgba(0,0,0,0.1), 0 0 0 2px rgba(197,212,168,0.4); }
 
-    /* Bottom search dock: the task list stays visible while the keyboard is open. */
+    /* Search uses the available screen for results above the keyboard dock. */
     .search-overlay {
       display: none; position: fixed; inset: 0; z-index: 1000;
       pointer-events: none; color: #1A0E00;
     }
     .search-overlay.open { display: block; }
     .search-overlay-header {
-      position: fixed; left: 8px; right: 8px;
-      bottom: calc(var(--keyboard-offset, 0px) + env(safe-area-inset-bottom, 0px) + 8px);
+      position: fixed; left: calc(var(--app-safe-left) + 8px); right: calc(var(--app-safe-right) + 8px);
+      bottom: calc(var(--search-bottom-inset, var(--app-safe-bottom)) + 8px);
       display: flex; align-items: center; gap: 8px; z-index: 1002;
       padding: 7px; border: 1px solid rgba(0,0,0,0.1); border-radius: 19px;
       background: rgba(238,244,232,0.94); box-shadow: 0 5px 24px rgba(0,0,0,0.2);
@@ -248,7 +251,26 @@
       white-space: nowrap; cursor: pointer;
     }
     .search-filter-chip.active { background: #2A2A25; color: #C5D4A8; border-color: #2A2A25; }
-    body.search-mode .bottom-sheet { transform: translateY(100%); pointer-events: none; }
+    body.search-mode { overflow: hidden; }
+    body.search-mode .app-header,
+    body.search-mode .assignee-tabs,
+    body.search-mode .focus-banner,
+    body.search-mode .bottom-sheet,
+    body.search-mode .sidebar-trigger,
+    body.search-mode .week-label,
+    body.search-mode .inline-add-row,
+    body.search-mode .inline-task-wrap { display: none !important; }
+    body.search-mode #view-planning {
+      position: fixed;
+      top: calc(var(--app-safe-top) + 8px);
+      right: calc(var(--app-safe-right) + 12px);
+      bottom: calc(var(--search-bottom-inset, var(--app-safe-bottom)) + var(--search-dock-height, 58px) + 16px);
+      left: calc(var(--app-safe-left) + 12px);
+      overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    }
+    body.search-mode .task-list,
+    body.search-mode .week-section.collapsed .task-list { max-height: none; }
+    body.search-mode .week-section { margin-bottom: 5px; }
 
     .task-feed-status { padding: 24px 12px; text-align: center; color: #6b6259; font-size: 14px; }
     .task-feed-status[hidden] { display: none; }
@@ -959,12 +981,31 @@
       if (tg) { tg.setBackgroundColor(bg); tg.setHeaderColor(bg); }
     }
     if (tg) {
+      const root = document.documentElement;
+      root.dataset.telegramPlatform = tg.platform || '';
+      let deviceInsetsKnown = tg.isFullscreen && Object.values(tg.safeAreaInset || {}).some(value => value > 0);
+      let contentInsetsKnown = tg.isFullscreen && (tg.contentSafeAreaInset?.top || 0) > 0;
+      function syncReportedInsets() {
+        root.classList.toggle('telegram-device-insets-known', deviceInsetsKnown);
+        root.classList.toggle('telegram-content-insets-known', contentInsetsKnown);
+      }
+      tg.onEvent('safeAreaChanged', () => { deviceInsetsKnown = !!tg.isFullscreen; syncReportedInsets(); });
+      tg.onEvent('contentSafeAreaChanged', () => {
+        contentInsetsKnown = tg.isFullscreen && (tg.contentSafeAreaInset?.top || 0) > 0;
+        syncReportedInsets();
+      });
+      syncReportedInsets();
       let fullscreenPending = false;
       function syncFullscreenClearance() {
         document.documentElement.classList.toggle('telegram-fullscreen', fullscreenPending || tg.isFullscreen);
       }
       function finishFullscreenRequest() {
         fullscreenPending = false;
+        if (!tg.isFullscreen) {
+          deviceInsetsKnown = false;
+          contentInsetsKnown = false;
+          syncReportedInsets();
+        }
         syncFullscreenClearance();
       }
       tg.onEvent('fullscreenChanged', finishFullscreenRequest);
@@ -1289,13 +1330,23 @@
 
     function updateKeyboardGlue() {
       const viewport = window.visualViewport;
-      const keyboardHeight = viewport
-        ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
-        : 0;
-      searchOverlay.style.setProperty('--keyboard-offset', keyboardHeight + 'px');
+      const visibleBottom = Math.min(
+        window.innerHeight,
+        viewport ? viewport.height + viewport.offsetTop : window.innerHeight,
+        tg?.viewportHeight > 0 ? tg.viewportHeight : window.innerHeight
+      );
+      const keyboardHeight = Math.max(0, window.innerHeight - visibleBottom);
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--search-bottom-inset', keyboardHeight > 80
+        ? keyboardHeight + 'px'
+        : 'calc(var(--app-safe-bottom) + ' + keyboardHeight + 'px)');
+      const dock = document.querySelector('.search-overlay-header');
+      rootStyle.setProperty('--search-dock-height', dock.getBoundingClientRect().height + 'px');
     }
 
     function openSearchMode() {
+      closeSidebar();
+      closeAllPanels();
       exitBoardView();
       setTodayMode(false);
       activeStatus = null;
@@ -1337,7 +1388,8 @@
       searchClear.hidden = true;
       applyAllFilters();
       searchResults.replaceChildren();
-      searchOverlay.style.setProperty('--keyboard-offset', '0px');
+      document.documentElement.style.removeProperty('--search-bottom-inset');
+      document.documentElement.style.removeProperty('--search-dock-height');
       if (tg && tg.BackButton && !profileView.classList.contains('open')) tg.BackButton.hide();
       if (searchHistoryActive && !fromHistory) {
         searchHistoryActive = false;
@@ -1377,6 +1429,8 @@
         if (searchOverlay.classList.contains('open')) closeSearchMode();
       });
     }
+    if (tg) tg.onEvent('viewportChanged', updateKeyboardGlue);
+    window.addEventListener('resize', updateKeyboardGlue);
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', updateKeyboardGlue);
       window.visualViewport.addEventListener('scroll', updateKeyboardGlue);

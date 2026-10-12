@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
 
 const htmlPath = process.env.MINIAPP_HTML || path.join(__dirname, '..', 'index.html');
 const sdkPath = process.env.TG_SDK_PATH || '/tmp/telegram-web-app-safe-area-20261011.js';
-const evidenceDir = process.env.EVIDENCE_DIR || '/tmp/miniapp-fullscreen-restored-evidence-20261011';
+const evidenceDir = process.env.EVIDENCE_DIR || '/tmp/miniapp-compact-insets-evidence-20261012';
 const html = fs.readFileSync(htmlPath, 'utf8');
 const sdk = fs.readFileSync(sdkPath, 'utf8');
 const origin = 'https://miniapp.test';
@@ -160,12 +160,20 @@ async function assertControls(page, system, content, selectors = headerControls)
 
 async function assertFullscreenControls(page, system = {}, content = {}, selectors = headerControls) {
   const viewport = page.viewportSize();
-  const floor = viewport.width >= 600 && viewport.width > viewport.height ? 96 : 128;
-  const minTop = Math.max((system.top || 0) + Math.max(content.top || 0, 56), floor) + 8;
+  // An omitted device top means no native event arrived. An explicit zero is
+  // valid reported geometry and must remove the startup device fallback.
+  const deviceTop = system.top ?? (viewport.width >= 600 && viewport.width > viewport.height ? 0 : 59);
+  const platform = await page.evaluate(() => Telegram.WebApp.platform);
+  const contentTop = content.top > 0 ? content.top : (platform === 'ios' ? 46 : 56);
+  const minTop = deviceTop + contentTop + 8;
   const positions = await assertControls(page, system, content, selectors);
   assert.ok(await page.locator('.telegram-fullscreen').count(), 'Fullscreen fallback class remains active');
   for (const [selector, box] of Object.entries(positions)) {
     assert.ok(box.y >= minTop - 0.5, `${selector}: top ${box.y}px overlaps fullscreen reservation ${minTop}px`);
+  }
+  if (selectors === headerControls) {
+    assert.ok(Math.abs(positions[headerControls[0]].y - minTop) <= 0.5,
+      `Header top ${positions[headerControls[0]].y}px must use ${minTop}px without an extra blanket floor`);
   }
   return positions;
 }
@@ -215,29 +223,34 @@ async function main() {
     assert.equal(requests[0].fullscreenClass, true, 'Fullscreen padding is enabled before the native request');
     for (const selector of headerControls) {
       const box = requests[0].positions[selector];
-      assert.ok(box && box.y >= 136 - 0.5, `${selector} is safe at the native bridge call, before acknowledgement`);
+      assert.ok(box && box.y >= 113 - 0.5, `${selector} is safe at the native bridge call, before acknowledgement`);
     }
+    assert.ok(Math.abs(requests[0].positions[headerControls[0]].y - 113) <= 0.5, 'iOS startup fallback is compact before the bridge call');
     assert.equal(await page.evaluate(() => Telegram.WebApp.isFullscreen), false, 'Client has not acknowledged fullscreen yet');
     await assertFullscreenControls(page);
-    await screenshot(page, 'fullscreen-pending-native-ack', { top: 59 }, { top: 56 });
+    await screenshot(page, 'fullscreen-pending-native-ack', { top: 59 }, { top: 46 });
   });
   await test('initial-fullscreen-does-not-request-again-or-exit', async page => {
     assert.equal(await page.evaluate(() => Telegram.WebApp.isFullscreen), true);
     assert.equal((await nativeRequests(page, 'web_app_request_fullscreen')).length, 0, 'Already-fullscreen launch needs no duplicate request');
     assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0);
     await assertFullscreenControls(page);
-    await insets(page, { top: 59, bottom: 34 }, { top: 56 });
+    await insets(page, { top: 59, bottom: 34 }, { top: 46 });
     assert.equal((await nativeRequests(page, 'web_app_request_fullscreen')).length, 0, 'Inset events must not request fullscreen again');
     assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0);
-    await assertFullscreenControls(page, { top: 59 }, { top: 56 });
+    await assertFullscreenControls(page, { top: 59 }, { top: 46 });
   }, { fullscreen: true });
-  await test('fullscreen-zero-insets-clear-native-controls', async page => {
-    await insets(page, zero, zero, true);
+  await test('reported-zero-device-inset-removes-only-device-fallback', async page => {
     await assertFullscreenControls(page);
-    // These native controls occupy their real fixture area even though the
-    // simulated client reports zero. Padding cannot depend on positive events.
-    await assertControls(page, { top: 59 }, { top: 56 });
-    await screenshot(page, 'fullscreen-zero-insets', { top: 59 }, { top: 56 });
+    // Zero content is treated as delayed information. It cannot remove the
+    // device fallback before a safe_area_changed event has actually arrived.
+    await page.evaluate(() => Telegram.WebView.receiveEvent('content_safe_area_changed', { top: 0, bottom: 0, left: 0, right: 0 }));
+    await settle(page);
+    await assertFullscreenControls(page);
+    await insets(page, zero, zero, true);
+    await assertFullscreenControls(page, { top: 0 });
+    await assertControls(page, { top: 0 }, { top: 46 });
+    await screenshot(page, 'fullscreen-reported-zero-device', { top: 0 }, { top: 46 });
     assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0);
     assert.equal((await nativeRequests(page, 'web_app_request_fullscreen')).length, 1);
   });
@@ -249,7 +262,7 @@ async function main() {
     await settle(page);
     assert.equal(await page.evaluate(() => Telegram.WebApp.contentSafeAreaInset.top), 0, 'Content inset event intentionally never arrives');
     await assertFullscreenControls(page, { top: 59 });
-    await assertControls(page, { top: 59 }, { top: 56 });
+    await assertControls(page, { top: 59 }, { top: 46 });
     assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0);
   });
   await test('legacy-client-stays-expanded-without-fullscreen-gap', async page => {
@@ -258,31 +271,79 @@ async function main() {
     assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0, 'Legacy clients must not receive unsupported fullscreen calls');
     await assertNoFullscreenGap(page);
   }, { version: '7.10' });
-  await test('iphone-portrait', async page => {
-    await insets(page, { top: 59, bottom: 34 }, { top: 56 });
-    await assertFullscreenControls(page, { top: 59 }, { top: 56 });
-    await screenshot(page, 'iphone-portrait', { top: 59 }, { top: 56 });
+  await test('iphone-portrait-reported-insets-stay-compact', async page => {
+    await insets(page, { top: 59, bottom: 34 }, { top: 46 });
+    await assertFullscreenControls(page, { top: 59 }, { top: 46 });
+    await screenshot(page, 'iphone-portrait', { top: 59 }, { top: 46 });
   });
-  await test('android-portrait', async page => {
+  await test('iphone-compact-status-bar-uses-reported-51px', async page => {
+    await insets(page, { top: 51, bottom: 34 }, { top: 46 });
+    const positions = await assertFullscreenControls(page, { top: 51 }, { top: 46 });
+    assert.equal(positions[headerControls[0]].y, 105, '51px device + 46px native controls + 8px gap');
+    await screenshot(page, 'iphone-status-bar-51', { top: 51 }, { top: 46 });
+  });
+  await test('reported-content-before-device-keeps-device-fallback', async page => {
+    await page.evaluate(() => Telegram.WebView.receiveEvent('fullscreen_changed', { is_fullscreen: true }));
+    await page.evaluate(() => Telegram.WebView.receiveEvent('content_safe_area_changed', { top: 46, bottom: 0, left: 0, right: 0 }));
+    await settle(page);
+    await assertFullscreenControls(page, {}, { top: 46 });
+    await page.evaluate(() => Telegram.WebView.receiveEvent('safe_area_changed', { top: 0, bottom: 0, left: 0, right: 0 }));
+    await settle(page);
+    await assertFullscreenControls(page, { top: 0 }, { top: 46 });
+  });
+  await test('standard-insets-before-fullscreen-ack-do-not-clear-fallback', async page => {
+    assert.equal(await page.evaluate(() => Telegram.WebApp.isFullscreen), false);
+    await page.evaluate(() => {
+      Telegram.WebView.receiveEvent('safe_area_changed', { top: 0, bottom: 34, left: 0, right: 0 });
+      Telegram.WebView.receiveEvent('content_safe_area_changed', { top: 0, bottom: 0, left: 0, right: 0 });
+    });
+    await settle(page);
+    await assertFullscreenControls(page);
+    await page.evaluate(() => Telegram.WebView.receiveEvent('fullscreen_changed', { is_fullscreen: true }));
+    await settle(page);
+    await assertFullscreenControls(page);
+    await screenshot(page, 'standard-insets-before-fullscreen-ack', { top: 59 }, { top: 46 });
+    await insets(page, { top: 51, bottom: 34 }, { top: 46 });
+    const positions = await assertFullscreenControls(page, { top: 51 }, { top: 46 });
+    assert.equal(positions[headerControls[0]].y, 105, 'Fresh fullscreen geometry replaces the fallback');
+  });
+  await test('fullscreen-reentry-discards-standard-mode-insets', async page => {
+    await insets(page, { top: 51, bottom: 34 }, { top: 46 });
+    await assertFullscreenControls(page, { top: 51 }, { top: 46 });
+    await insets(page, { top: 0, bottom: 34 }, zero, false);
+    await assertNoFullscreenGap(page);
+    await page.evaluate(() => Telegram.WebView.receiveEvent('fullscreen_changed', { is_fullscreen: true }));
+    await settle(page);
+    await assertFullscreenControls(page);
+    await screenshot(page, 'fullscreen-reentry-before-fresh-insets', { top: 59 }, { top: 46 });
+    await insets(page, { top: 51, bottom: 34 }, { top: 46 });
+    await assertFullscreenControls(page, { top: 51 }, { top: 46 });
+    assert.equal((await nativeRequests(page, 'web_app_request_fullscreen')).length, 1, 'Native reentry needs no duplicate request');
+    assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0);
+  });
+  await test('android-fallback-then-reported-insets', async page => {
+    const pending = await assertFullscreenControls(page);
+    assert.equal(pending[headerControls[0]].y, 123, 'Android startup fallback reserves 59px + 56px + 8px');
     await insets(page, { top: 24, bottom: 24 }, { top: 56 });
-    await assertFullscreenControls(page, { top: 24 }, { top: 56 });
+    const reported = await assertFullscreenControls(page, { top: 24 }, { top: 56 });
+    assert.equal(reported[headerControls[0]].y, 88, 'Android native values replace the startup fallback');
+    await screenshot(page, 'android-reported-insets', { top: 24 }, { top: 56 });
   }, { platform: 'android' });
-  await test('larger-native-insets-beat-minimum-reservation', async page => {
+  await test('larger-native-insets-replace-startup-fallback', async page => {
     await insets(page, { top: 90, bottom: 34 }, { top: 90 });
     await assertFullscreenControls(page, { top: 90 }, { top: 90 });
     await screenshot(page, 'larger-native-insets', { top: 90 }, { top: 90 });
-    // Device insets still combine with the native-controls fallback if only
-    // device geometry arrives and it is larger than the portrait floor.
+    // If content reverts to an unavailable zero, combine the reported device
+    // top with the iOS native-controls fallback, without a blanket floor.
     await insets(page, { top: 90, bottom: 34 }, zero);
     await assertFullscreenControls(page, { top: 90 });
   });
   await test('landscape-side-insets', async page => {
-    await insets(page, { left: 44, right: 44, bottom: 21 }, { top: 56 });
-    await assertFullscreenControls(page, { left: 44, right: 44 }, { top: 56 });
-    await screenshot(page, 'landscape-side-insets', { left: 44, right: 44 }, { top: 56 });
+    await insets(page, { top: 0, left: 44, right: 44, bottom: 21 }, { top: 46 });
+    await assertFullscreenControls(page, { top: 0, left: 44, right: 44 }, { top: 46 });
+    await screenshot(page, 'landscape-side-insets', { top: 0, left: 44, right: 44 }, { top: 46 });
   }, { viewport: { width: 844, height: 390 } });
-  await test('orientation-change-updates-zero-inset-fallback', async page => {
-    await insets(page, zero, zero, true);
+  await test('orientation-change-updates-missing-inset-fallback', async page => {
     const portrait = await assertFullscreenControls(page);
     await page.setViewportSize({ width: 844, height: 390 });
     await settle(page);
@@ -292,13 +353,12 @@ async function main() {
     await settle(page);
     await assertFullscreenControls(page);
   });
-  await test('portrait-keyboard-keeps-zero-inset-clearance', async page => {
-    await insets(page, zero, zero, true);
+  await test('portrait-keyboard-keeps-missing-inset-clearance', async page => {
     await page.setViewportSize({ width: 390, height: 300 });
     await settle(page);
     await assertFullscreenControls(page);
-    await assertControls(page, { top: 59 }, { top: 56 });
-    await screenshot(page, 'portrait-keyboard-zero-insets', { top: 59 }, { top: 56 });
+    await assertControls(page, { top: 59 }, { top: 46 });
+    await screenshot(page, 'portrait-keyboard-missing-insets', { top: 59 }, { top: 46 });
   });
   await test('asynchronous-insets-and-native-fullscreen-exit', async page => {
     // Safe-area events can arrive while the fullscreen request is pending.
@@ -308,15 +368,15 @@ async function main() {
     await page.evaluate(() => Telegram.WebView.receiveEvent('fullscreen_changed', { is_fullscreen: true }));
     await settle(page);
     await assertFullscreenControls(page, { top: 59 });
-    await page.evaluate(() => Telegram.WebView.receiveEvent('content_safe_area_changed', { top: 56, bottom: 0, left: 0, right: 0 }));
+    await page.evaluate(() => Telegram.WebView.receiveEvent('content_safe_area_changed', { top: 46, bottom: 0, left: 0, right: 0 }));
     await settle(page);
-    await assertFullscreenControls(page, { top: 59 }, { top: 56 });
+    await assertFullscreenControls(page, { top: 59 }, { top: 46 });
     await insets(page, zero, zero, false);
     await assertNoFullscreenGap(page);
     assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0, 'Only the simulated native client exited fullscreen');
     assert.equal((await nativeRequests(page, 'web_app_request_fullscreen')).length, 1, 'Native exit must not trigger an automatic fullscreen loop');
     await insets(page, zero, zero, true);
-    await assertFullscreenControls(page);
+    await assertFullscreenControls(page, { top: 0 });
     assert.equal((await nativeRequests(page, 'web_app_request_fullscreen')).length, 1, 'Native reentry must not trigger another request');
   });
   await test('fullscreen-rejected-clears-fallback-without-another-event', async page => {
@@ -342,14 +402,14 @@ async function main() {
     assert.equal((await nativeRequests(page, 'web_app_exit_fullscreen')).length, 0);
   }, { browser: true });
   await test('profile-and-sidebar', async page => {
-    await insets(page, { top: 59, bottom: 34 }, { top: 56 });
+    await insets(page, { top: 59, bottom: 34 }, { top: 46 });
     await page.locator('#profile-trigger').click();
-    await assertFullscreenControls(page, { top: 59 }, { top: 56 }, ['#profile-back']);
+    await assertFullscreenControls(page, { top: 59 }, { top: 46 }, ['#profile-back']);
     await page.locator('#profile-back').click();
     await page.locator('#header-sidebar-button').click();
     await page.locator('.sidebar-panel').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished)));
-    await assertFullscreenControls(page, { top: 59 }, { top: 56 }, ['.sidebar-group-row:first-child .sidebar-group-name']);
-    await screenshot(page, 'sidebar', { top: 59 }, { top: 56 });
+    await assertFullscreenControls(page, { top: 59 }, { top: 46 }, ['.sidebar-group-row:first-child .sidebar-group-name']);
+    await screenshot(page, 'sidebar', { top: 59 }, { top: 46 });
   });
   await test('banking-reflows-after-inset-change', async page => {
     await insets(page, { top: 24 }, { top: 56 });
@@ -365,7 +425,7 @@ async function main() {
     const before = await assertBankingTop();
     await insets(page, { top: 90 }, { top: 90 });
     const after = await assertBankingTop();
-    assert.ok(after > before + 30, 'Banking iframe follows increased native insets beyond the minimum reservation');
+    assert.ok(after > before + 30, 'Banking iframe follows increased reported native insets');
     await assertFullscreenControls(page, { top: 90 }, { top: 90 });
   });
 
