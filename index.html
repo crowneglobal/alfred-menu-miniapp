@@ -1150,7 +1150,7 @@
         const searchOk = !searchQuery || row.querySelector('.task-name').textContent.toLowerCase().includes(searchQuery.toLowerCase());
         const groupOk = !activeGroupFilter || (row.dataset.group || '') === activeGroupFilter;
         const assigneeVal = (row.dataset.assignee || '').toLowerCase();
-        const assigneeOk = activeAssigneeFilter === 'all' || assigneeVal === 'dro238' || assigneeVal === 'dro' || assigneeVal === 'darren';
+        const assigneeOk = activeAssigneeFilter === 'all' || assigneeVal === 'dro238';
         const hidden = !(statusOk && personOk && searchOk && groupOk && assigneeOk);
         row.classList.toggle('hidden', hidden);
         const wrapper = row.closest('.swipe-wrapper');
