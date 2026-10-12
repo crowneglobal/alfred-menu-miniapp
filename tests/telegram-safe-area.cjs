@@ -20,7 +20,7 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const sdk = fs.readFileSync(sdkPath, 'utf8');
 const origin = 'https://miniapp.test';
 const zero = { top: 0, right: 0, bottom: 0, left: 0 };
-const headerControls = ['#header-sidebar-button', '#app-title-toggle'];
+const headerControls = ['#app-title-toggle', '#header-sidebar-button'];
 fs.mkdirSync(evidenceDir, { recursive: true });
 
 async function settle(page) {
@@ -47,7 +47,7 @@ async function createApp(browser, options = {}) {
       postEvent(type, data) {
         // Capture synchronously at the bridge boundary: startup padding must
         // exist before Telegram can draw its fullscreen controls over the app.
-        const selectors = ['#header-sidebar-button', '#app-title-toggle'];
+        const selectors = ['#app-title-toggle', '#header-sidebar-button'];
         const positions = {};
         for (const selector of selectors) {
           const node = document.querySelector(selector);
@@ -411,7 +411,8 @@ async function main() {
     await insets(page, { top: 90 }, { top: 90 });
     const after = await assertBankingTop();
     assert.ok(after > before + 30, 'Banking iframe follows increased reported native insets');
-    await assertFullscreenControls(page, { top: 90 }, { top: 90 });
+    await assertFullscreenControls(page, { top: 90 }, { top: 90 }, ['#app-title-toggle']);
+    assert.equal(await page.locator('#header-sidebar-button').isVisible(), false, 'Planning sidebar control is hidden in banking');
   });
 
   await browser.close();
