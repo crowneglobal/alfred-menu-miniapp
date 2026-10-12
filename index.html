@@ -117,7 +117,6 @@
       flex-shrink: 0;
     }
     .header-sidebar-button { font-size: 16px; line-height: 36px; }
-    .header-spacer { width: 36px; flex-shrink: 0; }
     #context-tabs { margin-top: 12px !important; }
     .app-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
     .profile-trigger {
@@ -754,10 +753,9 @@
       display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px;
       background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line); box-shadow: none;
     }
-    .header-spacer { width: 44px; }
     .app-title { font-size: 26px; font-weight: 750; letter-spacing: -.9px; line-height: 1.2; }
     #date-week-bar { color: var(--ui-muted); opacity: 1 !important; font-size: 11px !important; font-weight: 550 !important; margin-top: 5px !important; letter-spacing: .25px !important; }
-    #context-tabs { margin-top: 16px !important; padding: 4px !important; border: 1px solid var(--ui-line); background: var(--ui-soft) !important; border-radius: 16px; }
+    #context-tabs { align-items: center; gap: 6px; margin-top: 16px !important; padding: 4px !important; border: 1px solid var(--ui-line); background: var(--ui-soft) !important; border-radius: 16px; }
     :is(body, body.light) .section-tab { min-height: 44px; border-radius: 12px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; line-height: 1.2; }
     :is(body, body.light) .section-tab.active { background: var(--ui-surface); color: var(--ui-ink); box-shadow: 0 2px 5px rgba(20, 40, 24, .07); }
     :is(body, body.light) .focus-banner { background: var(--ui-tint); border: 1px solid var(--ui-line); border-radius: 18px; padding: 14px 16px; gap: 12px; margin-bottom: 20px; }
@@ -901,15 +899,12 @@
 
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
     <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
-      <div style="display:flex; gap:0; align-items:center;">
-        <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
-      </div>
       <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
-      <span class="header-spacer" aria-hidden="true"></span>
     </div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
-      <div id="nav-planning" style="display:flex; gap:2px; width:100%;">
+      <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
+      <div id="nav-planning" style="display:flex; flex:1; min-width:0; gap:2px;">
         <button class="section-tab" id="topnav-board" data-qf="board">Rocstars®</button>
         <button class="section-tab" id="topnav-people" data-qf="people">Roctavos (45d)</button>
         <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
