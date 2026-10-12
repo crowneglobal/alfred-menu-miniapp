@@ -87,7 +87,7 @@
       position: relative;
       display: flex; align-items: center; justify-content: space-between;
       min-height: 42px; margin-bottom: 10px;
-      padding-top: max(env(safe-area-inset-top, 0px), 50px) !important;
+      padding-top: max(env(safe-area-inset-top), 70px) !important;
     }
     .header-add-button, .header-search-button, .header-sidebar-button {
       width: 36px; height: 36px; border: 0; border-radius: 50%;
@@ -637,7 +637,7 @@
     }
     .sidebar-panel.open { transform: translateX(0); }
     .sidebar-header {
-      padding: max(env(safe-area-inset-top, 0px), 52px) 16px 12px;
+      padding: max(env(safe-area-inset-top), 70px) 16px 12px;
       border-bottom: 1px solid rgba(255,255,255,0.07);
       font-size: 12px; font-weight: 800; letter-spacing: 0.7px;
       color: rgba(255,255,255,0.45); text-transform: uppercase;
