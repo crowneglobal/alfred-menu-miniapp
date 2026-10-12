@@ -23,7 +23,7 @@ const chrome = [
   '.app-header', '#app-title-toggle', '#date-week-bar', '#context-tabs',
   '#focus-banner', '#bottom-sheet',
 ];
-const controls = ['#header-sidebar-button', '#app-title-toggle', '#sheet-handle', '#tray-search-trigger', '#tray-new-task'];
+const controls = ['#header-sidebar-button', '#app-title-toggle', '#sheet-handle', '#tray-search-trigger', '#tray-new-task', '#search-bubble', '#profile-trigger'];
 fs.mkdirSync(evidenceDir, { recursive: true });
 
 async function settle(page) {
@@ -72,7 +72,7 @@ async function createApp(browser, options = {}) {
   });
   const params = new URLSearchParams({
     tgWebAppVersion: '8.0', tgWebAppPlatform: 'ios',
-    tgWebAppData: new URLSearchParams({ user: JSON.stringify({ id: 1078092674, first_name: 'Darren', username: 'dro238' }) }).toString(),
+    tgWebAppData: new URLSearchParams({ user: JSON.stringify({ id: 1078092674, first_name: 'Darren', username: 'dro238', ...(options.userPhoto ? { photo_url: 'https://images.miniapp.test/user.svg' } : {}) }) }).toString(),
   });
   await page.goto(`${origin}/#${params}`, { waitUntil: 'load' });
   await page.waitForFunction(() => document.querySelectorAll('.week-section .task-row').length === 30);
