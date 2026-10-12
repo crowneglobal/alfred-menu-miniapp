@@ -11,11 +11,18 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      /* Device cutouts and Telegram's own controls occupy separate areas. */
+      --app-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+      --app-safe-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
+      --app-safe-left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + var(--tg-content-safe-area-inset-left, 0px));
+      --app-safe-right: calc(max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px)) + var(--tg-content-safe-area-inset-right, 0px));
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: #EEF4E8; color: #1A0E00;
       min-height: 100vh;
-      padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 72px);
+      padding: 0 calc(var(--app-safe-right) + 12px) calc(var(--app-safe-bottom) + 72px) calc(var(--app-safe-left) + 12px);
       transition: background 0.2s, color 0.2s;
     }
 
@@ -74,7 +81,7 @@
 
     /* ── COB banking test ── */
     #view-banking {
-      position: fixed; left: 0; right: 0; bottom: 0;
+      position: fixed; left: var(--app-safe-left); right: var(--app-safe-right); bottom: var(--app-safe-bottom);
       top: var(--banking-top, 64px); margin: 0; overflow: hidden;
     }
     .banking-frame {
@@ -87,7 +94,7 @@
       position: relative;
       display: flex; align-items: center; justify-content: space-between;
       min-height: 42px; margin-bottom: 10px;
-      padding-top: max(env(safe-area-inset-top), 70px) !important;
+      padding-top: calc(var(--app-safe-top) + 8px);
     }
     .header-add-button, .header-search-button, .header-sidebar-button {
       width: 36px; height: 36px; border: 0; border-radius: 50%;
@@ -110,7 +117,7 @@
     .profile-view {
       display: none; position: fixed; inset: 0; z-index: 300; overflow-y: auto;
       background: #EEF4E8; color: #1A0E00;
-      padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
+      padding: calc(var(--app-safe-top) + 8px) calc(var(--app-safe-right) + 16px) calc(var(--app-safe-bottom) + 28px) calc(var(--app-safe-left) + 16px);
     }
     body.light .profile-view { background: #EEF4E8; }
     .profile-view.open { display: block; }
@@ -637,12 +644,12 @@
     }
     .sidebar-panel.open { transform: translateX(0); }
     .sidebar-header {
-      padding: max(env(safe-area-inset-top), 70px) 16px 12px;
+      padding: calc(var(--app-safe-top) + 8px) 16px 12px calc(var(--app-safe-left) + 16px);
       border-bottom: 1px solid rgba(255,255,255,0.07);
       font-size: 12px; font-weight: 800; letter-spacing: 0.7px;
       color: rgba(255,255,255,0.45); text-transform: uppercase;
     }
-    .sidebar-body { flex: 1; overflow-y: auto; padding: 6px 0 calc(env(safe-area-inset-bottom, 0px) + 20px); }
+    .sidebar-body { flex: 1; overflow-y: auto; padding: 6px 0 calc(var(--app-safe-bottom) + 20px) var(--app-safe-left); }
     .sidebar-group-row {
       display: flex; align-items: center; gap: 10px; padding: 12px 16px;
       cursor: pointer; transition: background 0.15s; border-left: 3px solid transparent;
@@ -914,6 +921,13 @@
       </div>
     </div>
   </div>
+
+  <div class="sidebar-trigger" id="sidebar-trigger" role="button" aria-label="Open groups sidebar" tabindex="0"><div class="sidebar-trigger-line"></div></div>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <aside class="sidebar-panel" id="sidebar-panel" aria-label="Groups">
+    <div class="sidebar-header">Spaces</div>
+    <div class="sidebar-body" id="sidebar-body"></div>
+  </aside>
 
   <script>
     const tg = window.Telegram && window.Telegram.WebApp;
@@ -2126,6 +2140,13 @@
 
     // ── Section switcher: tap the Alfred title ──
     let activeSection = 'planning';
+    function updateBankingTop() {
+      const headerBottom = document.querySelector('.app-header').getBoundingClientRect().bottom;
+      document.documentElement.style.setProperty('--banking-top', Math.ceil(headerBottom) + 'px');
+    }
+    // Telegram updates its inset CSS variables asynchronously and on rotation.
+    new ResizeObserver(updateBankingTop).observe(document.querySelector('.app-header'), { box: 'border-box' });
+    window.addEventListener('resize', updateBankingTop);
     function switchSection(section) {
       activeSection = section;
       const titleToggle = document.getElementById('app-title-toggle');
@@ -2141,10 +2162,7 @@
         document.getElementById('view-planning').style.display = 'none';
         document.getElementById('view-banking').style.display = '';
         sheet.style.display = 'none';
-        requestAnimationFrame(() => {
-          const headerBottom = document.querySelector('.app-header').getBoundingClientRect().bottom;
-          document.documentElement.style.setProperty('--banking-top', Math.ceil(headerBottom) + 'px');
-        });
+        requestAnimationFrame(updateBankingTop);
       } else {
         titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
         dateWeekBar.style.display = '';
@@ -2379,11 +2397,5 @@
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
 
-  <div class="sidebar-trigger" id="sidebar-trigger" role="button" aria-label="Open groups sidebar" tabindex="0"><div class="sidebar-trigger-line"></div></div>
-  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
-  <aside class="sidebar-panel" id="sidebar-panel" aria-label="Groups">
-    <div class="sidebar-header">Spaces</div>
-    <div class="sidebar-body" id="sidebar-body"></div>
-  </aside>
 </body>
 </html>
