@@ -65,6 +65,12 @@
     #nav-planning .section-tab, #nav-banking .section-tab { min-width: 0; padding-left: 8px; padding-right: 8px; }
     body.light .section-tabs { background: rgba(0,0,0,0.07); }
     body.light .section-tab.active { background: #2A2A25; color: #C5D4A8; }
+    /* ── Assignee filter tabs ── */
+    .assignee-tabs { display: flex; gap: 4px; padding: 4px 8px 2px; }
+    .assignee-tab { flex: 1; padding: 6px 0; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.2px; cursor: pointer; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.55); transition: background 0.15s, color 0.15s; }
+    .assignee-tab.active { background: #2A2A25; color: #C5D4A8; }
+    body.light .assignee-tab { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.45); }
+    body.light .assignee-tab.active { background: #2A2A25; color: #C5D4A8; }
 
     /* ── COB banking test ── */
     #view-banking {
@@ -718,6 +724,10 @@
   </section>
 
   <div id="view-planning">
+  <div class="assignee-tabs" id="assignee-tabs">
+    <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
+    <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
+  </div>
   <!-- Per-user focus task -->
   <div class="focus-banner focus-hidden" id="focus-banner">
     <span class="focus-icon">🎯</span>
@@ -1002,6 +1012,7 @@
     let searchQuery = '';
     let allTasks = [];
     let activeGroupFilter = null;
+    let activeAssigneeFilter = 'me';
 
     const API_BASE = 'http://104.155.173.140:8086';
 
@@ -1135,7 +1146,9 @@
         const personOk = !activePersonId || row.dataset.person === activePersonId;
         const searchOk = !searchQuery || row.querySelector('.task-name').textContent.toLowerCase().includes(searchQuery.toLowerCase());
         const groupOk = !activeGroupFilter || (row.dataset.group || '') === activeGroupFilter;
-        const hidden = !(statusOk && personOk && searchOk && groupOk);
+        const assigneeVal = (row.dataset.assignee || '').toLowerCase();
+        const assigneeOk = activeAssigneeFilter === 'all' || assigneeVal === 'dro238' || assigneeVal === 'dro' || assigneeVal === 'darren';
+        const hidden = !(statusOk && personOk && searchOk && groupOk && assigneeOk);
         row.classList.toggle('hidden', hidden);
         const wrapper = row.closest('.swipe-wrapper');
         if (wrapper) wrapper.classList.toggle('hidden-wrapper', hidden);
@@ -2346,6 +2359,13 @@
       sidebarPanelEl.classList.remove('open');
       sidebarBackdropEl.classList.remove('open');
     }
+    document.querySelectorAll('.assignee-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        activeAssigneeFilter = tab.dataset.assignee;
+        document.querySelectorAll('.assignee-tab').forEach(function(t) { t.classList.toggle('active', t === tab); });
+        applyAllFilters();
+      });
+    });
     document.getElementById('sidebar-trigger').addEventListener('click', openSidebar);
     document.getElementById('sidebar-trigger').addEventListener('keydown', function(e){
       if (e.key==='Enter'||e.key===' '){ e.preventDefault(); openSidebar(); }
