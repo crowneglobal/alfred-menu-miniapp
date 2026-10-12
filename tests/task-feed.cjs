@@ -163,6 +163,13 @@ async function expectedNames(page, ids, today = true) {
   assert.deepEqual(await names(page, today), expected, 'Visible tasks reflect the active filters');
 }
 
+async function selectAssignee(page, assignee) {
+  const handle = page.locator('#sheet-handle');
+  if (await handle.getAttribute('aria-expanded') !== 'true') await handle.click();
+  await page.locator(`.assignee-tab[data-assignee="${assignee}"]`).click();
+  if (await handle.getAttribute('aria-expanded') === 'true') await handle.click();
+}
+
 async function selectGroup(page, group) {
   await page.locator('#header-sidebar-button').click();
   await page.locator('#sidebar-body .sidebar-group-name').filter({ hasText: new RegExp('^' + group + '$') }).click();
@@ -237,9 +244,9 @@ async function main() {
   }
 
   await test('today-all-updates-immediately', async ({ page }) => {
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await expectedNames(page, [1, 2, 3, 4, 5, 7]);
-    await page.locator('.assignee-tab[data-assignee="me"]').click();
+    await selectAssignee(page, 'me');
     await expectedNames(page, [1, 2, 3, 7]);
   });
 
@@ -252,10 +259,10 @@ async function main() {
   });
 
   await test('today-all-and-me-respect-selected-group', async ({ page }) => {
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await selectGroup(page, fioGroup);
     await expectedNames(page, [2, 3, 4]);
-    await page.locator('.assignee-tab[data-assignee="me"]').click();
+    await selectAssignee(page, 'me');
     await expectedNames(page, [2, 3]);
     await selectGroup(page, darrenGroup);
     await expectedNames(page, [1, 7]);
@@ -280,7 +287,7 @@ async function main() {
   await test('week-me-and-all-use-same-filter-rules', async ({ page }) => {
     await page.locator('#topnav-week').click();
     await expectedNames(page, [1, 2, 3, 6, 7], false);
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await selectGroup(page, fioGroup);
     await expectedNames(page, [2, 3, 4, 6], false);
     await page.locator('#topnav-pending').click();
@@ -290,7 +297,7 @@ async function main() {
   await test('today-rebuilds-after-filter-state-change', async ({ page }) => {
     // Exercise the common filter pipeline directly. The UI's search and status
     // buttons switch to Week, but no Today renderer may keep stale filter state.
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await page.evaluate(() => { activeStatus = 'stuck'; applyAllFilters(); });
     await expectedNames(page, [3, 7]);
     await page.evaluate(() => { searchQuery = 'first name'; applyAllFilters(); });
@@ -331,7 +338,7 @@ async function main() {
   await test('empty-selected-filter-has-explanation', async ({ page }) => {
     await expectedNames(page, []);
     await assertStatus(page, /no .*tasks|no tasks/i, false);
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await settledFeed(page);
     assert.equal(await page.locator('#task-feed-status').isVisible(), false);
     await expectedNames(page, [1, 2, 3, 4, 5, 7]);
@@ -339,7 +346,7 @@ async function main() {
 
   await test('retry-renders-once-and-preserves-filter', async ({ page, apiRequests }) => {
     await assertStatus(page, /could not load|unable to load|failed/i, true);
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await settledFeed(page);
     await assertStatus(page, /could not load|unable to load|failed/i, true);
     await page.locator('#task-feed-retry').click();
@@ -370,10 +377,10 @@ async function main() {
 
   await test('assignee-tabs-refetch-the-correct-server-scope', async ({ page, apiRequests }) => {
     assert.equal(await page.locator('.week-section .task-row').count(), 5);
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await expectedNames(page, [1, 2, 3, 4, 5, 7]);
     assert.equal(await page.locator('.week-section .task-row').count(), 7);
-    await page.locator('.assignee-tab[data-assignee="me"]').click();
+    await selectAssignee(page, 'me');
     await expectedNames(page, [1, 2, 3, 7]);
     assert.equal(await page.locator('.week-section .task-row').count(), 5);
     assert.deepEqual(apiRequests.map(url => new URL(url).searchParams.get('scope')), ['me', 'all', 'me']);
@@ -428,10 +435,10 @@ async function main() {
 
   await test('latest-scope-response-wins-race', async app => {
     const { page, apiRequests } = app;
-    await page.locator('.assignee-tab[data-assignee="all"]').click();
+    await selectAssignee(page, 'all');
     await settle(page);
     await assertStatus(page, /loading/i, false);
-    await page.locator('.assignee-tab[data-assignee="me"]').click();
+    await selectAssignee(page, 'me');
     await settledFeed(page);
     assert.deepEqual(await names(page), ['Latest Me task']);
     await app.release('stale-all');
@@ -451,6 +458,7 @@ async function main() {
   });
 
   await test('unauthorized-all-scope-is-disabled', async ({ page, apiRequests }) => {
+    await page.locator('#sheet-handle').click();
     const all = page.locator('.assignee-tab[data-assignee="all"]');
     assert.equal(await all.isDisabled(), true);
     await all.evaluate(button => button.click());
