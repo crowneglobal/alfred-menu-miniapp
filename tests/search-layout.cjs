@@ -17,10 +17,10 @@ const origin = 'https://miniapp.test';
 const fixtures = Array.from({ length: 30 }, (_, index) => ({
   id: index + 1,
   task: `${index < 24 ? 'Alpha' : 'Other'} search task ${String(index + 1).padStart(2, '0')}`,
-  status: 'In Progress', assignee: 'dro238', group_name: 'Alfred & Darren Chat',
+  status: 'In Progress', assignee: index < 24 ? 'dro238' : 'Fiorella', group_name: 'Alfred & Darren Chat',
 }));
 const chrome = [
-  '.app-header', '#app-title-toggle', '#date-week-bar', '#context-tabs', '#assignee-tabs',
+  '.app-header', '#app-title-toggle', '#date-week-bar', '#context-tabs',
   '#focus-banner', '#sidebar-trigger', '#bottom-sheet',
 ];
 const controls = ['#header-sidebar-button', '#app-title-toggle', '#sheet-handle', '#tray-search-trigger', '#tray-new-task'];
@@ -84,7 +84,9 @@ async function createApp(browser, options = {}) {
     bridge.receiveEvent('viewport_changed', { height: 844, is_expanded: true, is_state_stable: true });
   });
   await page.locator('#topnav-week').click();
+  await page.locator('#sheet-handle').click();
   await page.locator('#assignee-tab-all').click();
+  await page.locator('#sheet-handle').click();
   await settle(page);
   return { context, page, errors, mutations };
 }
@@ -109,7 +111,7 @@ async function openSearch(page) {
 }
 
 async function assertSearchGeometry(page) {
-  for (const selector of chrome) assert.equal(await page.locator(selector).isVisible(), false, `${selector} is hidden during search`);
+  for (const selector of [...chrome, '#assignee-tabs']) assert.equal(await page.locator(selector).isVisible(), false, `${selector} is hidden during search`);
   assert.equal(await page.locator('#search-overlay-input').isVisible(), true);
   const geometry = await page.evaluate(({ controls }) => {
     const planning = document.getElementById('view-planning');
@@ -151,6 +153,7 @@ async function assertRestored(page) {
   assert.equal(await page.locator('#search-overlay-input').inputValue(), '');
   assert.equal(await page.locator('#sheet-handle').getAttribute('aria-expanded'), 'false', 'Tray returns collapsed after search');
   assert.equal(await page.locator('#tray-actions').isVisible(), false, 'Search and creation stay tucked away after search');
+  assert.equal(await page.locator('#assignee-tabs').isVisible(), false, 'Me and All stay tucked away after search');
   assert.deepEqual(await page.locator('#nav-planning .section-tab').allTextContents(), ['Rocstars®', 'Roctavos (45d)', 'Week', 'Today']);
   assert.deepEqual(await page.locator('#assignee-tabs button').allTextContents(), ['Me', 'All']);
   assert.equal(await page.locator('.week-section .task-row:not(.hidden)').count(), fixtures.length, 'Closing search clears the query');

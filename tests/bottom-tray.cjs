@@ -18,6 +18,9 @@ async function assertTray(page, expanded) {
   assert.equal(await page.locator('#tray-actions').isVisible(), expanded);
   assert.equal(await page.locator('#tray-search-trigger').isVisible(), expanded);
   assert.equal(await page.locator('#tray-new-task').isVisible(), expanded);
+  for (const selector of ['#assignee-tabs', '#assignee-tab-me', '#assignee-tab-all']) {
+    assert.equal(await page.locator(selector).isVisible(), expanded, `${selector} follows tray expansion`);
+  }
   for (const selector of ['#sheet-handle', '#profile-trigger', '.sheet-pinned [data-status="stuck"]', '.sheet-pinned [data-status="progress"]', '.sheet-pinned [data-status="done"]']) {
     assert.equal(await page.locator(selector).isVisible(), true, `${selector} stays available`);
   }
@@ -64,7 +67,7 @@ async function main() {
     assert.equal(await page.locator('#header-search-button, #header-add-button').count(), 0, 'No duplicated search or add actions remain in the header');
     assert.equal(await page.locator('#sheet-handle').evaluate(node => node.tagName), 'BUTTON', 'Handle has native keyboard behavior');
     assert.equal(await page.locator('#sheet-handle').getAttribute('aria-controls'), 'tray-actions', 'Handle identifies its drawer');
-    for (const selector of ['#tray-search-trigger', '#tray-new-task']) {
+    for (const selector of ['#tray-search-trigger', '#tray-new-task', '#assignee-tab-me', '#assignee-tab-all']) {
       await page.locator(selector).evaluate(node => node.focus());
       assert.notEqual(await page.evaluate(() => document.activeElement.id), selector.slice(1), 'Collapsed actions cannot receive focus');
     }
@@ -74,6 +77,10 @@ async function main() {
   await test('tray-click-and-keyboard-toggle', async page => {
     await page.locator('#sheet-handle').click();
     await assertTray(page, true);
+    await page.locator('#assignee-tab-me').click();
+    assert.equal(await page.locator('.week-section .task-row:not(.hidden)').count(), 24, 'Me still filters tasks from inside the tray');
+    await page.locator('#assignee-tab-all').click();
+    assert.equal(await page.locator('.week-section .task-row:not(.hidden)').count(), 30, 'All restores other assignees from inside the tray');
     await screenshot(page, 'tray-expanded');
     await page.locator('#sheet-handle').press('Enter');
     await assertTray(page, false);
