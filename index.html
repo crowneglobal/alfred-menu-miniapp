@@ -1117,6 +1117,24 @@
     let taskFeedRequest = null;
     let taskFeedScope = null;
     let taskFeedCanViewAll = true;
+    // Keep the full searchable list, but build swipe controls only near the viewport.
+    const taskRowObserver = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && entry.target.isConnected && !entry.target.classList.contains('hidden')) {
+              enhanceRow(entry.target);
+              taskRowObserver.unobserve(entry.target);
+            }
+          });
+        }, { rootMargin: '350px' })
+      : null;
+    const prepareTaskInteraction = event => {
+      const row = event.target.closest('.task-row');
+      if (row && row.closest('.week-section')) enhanceRow(row);
+    };
+    ['touchstart', 'mousedown', 'click'].forEach(type => {
+      document.getElementById('view-planning').addEventListener(type, prepareTaskInteraction, { capture: true, passive: true });
+    });
 
     function taskApiFetch(path, options = {}) {
       return fetch(API_BASE + path, {
@@ -1145,7 +1163,7 @@
       const priorityClass = t.is_priority ? 'dot-p1' : 'dot-p2';
       const avatarSeed = (hashStr(t.assignee || '') % 70) + 1;
       const assigneeLabel = t.assignee_name || t.assignee || (t.assignee_id ? String(t.assignee_id) : 'Unassigned');
-      const groupLabel = t.group_name || '';
+      const groupLabel = t.group_name || 'Ungrouped';
       const tagClass = statusKey === 'done' ? 'tag-42' : '';
       const escapeText = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const row = document.createElement('div');
@@ -1231,13 +1249,16 @@
         const uniqueTasks = Array.from(new Map(tasks.map(task => [String(task.id), task])).values());
         const rows = uniqueTasks.map(renderApiTask);
         // Replace the previous feed only after all pages have loaded successfully.
+        if (taskRowObserver) taskRowObserver.disconnect();
         document.querySelectorAll('.week-section .task-row[data-task-id]').forEach(row => {
           (row.closest('.swipe-wrapper') || row).remove();
         });
         rows.forEach(row => {
           const list = document.getElementById(row.dataset.status === 'done' ? 'list-42' : 'list-41');
           list.insertBefore(row, list.querySelector('.inline-add-row'));
-          enhanceRow(row);
+          ensureSwipeWrapper(row);
+          if (taskRowObserver) taskRowObserver.observe(row);
+          else enhanceRow(row);
         });
         assignTaskNumbers();
         taskFeedState = 'ready';
@@ -1993,9 +2014,20 @@
       if (commentsSection) commentsSection.style.display = '';
     });
 
-    function makeSwipeWrapper(row) {
+    function ensureSwipeWrapper(row) {
+      const existing = row.closest('.swipe-wrapper');
+      if (existing) return existing;
       const wrapper = document.createElement('div');
       wrapper.className = 'swipe-wrapper';
+      wrapper.classList.toggle('hidden-wrapper', row.classList.contains('hidden'));
+      row.parentNode.insertBefore(wrapper, row);
+      wrapper.appendChild(row);
+      return wrapper;
+    }
+
+    function makeSwipeWrapper(row) {
+      const wrapper = ensureSwipeWrapper(row);
+      if (wrapper.dataset.actionsReady === '1') return wrapper;
       const leftActions = document.createElement('div');
       leftActions.className = 'swipe-actions-left';
       const quickDates = Array.from({ length: 4 }, (_, offset) => {
@@ -2026,13 +2058,14 @@
       const actions = document.createElement('div');
       actions.className = 'swipe-actions';
       actions.innerHTML = '<button class="swipe-btn sa-done">💤</button><button class="swipe-btn sa-status">⟳</button><button class="swipe-btn sa-delete">✕</button>';
-      row.parentNode.insertBefore(wrapper, row);
-      wrapper.append(leftActions, actions, row);
+      wrapper.prepend(leftActions, actions);
+      wrapper.dataset.actionsReady = '1';
       return wrapper;
     }
 
     const GROUP_LABELS = { 'list-41': 'Active', 'list-42': 'Done', 'list-group': 'This Group' };
     function enhanceRow(row) {
+      if (row.dataset.enhanced === '1') return;
       row.dataset.priority = row.dataset.priority || 'p2';
       row.dataset.due = row.dataset.due || '';
       row.dataset.notes = row.dataset.notes || '';
@@ -2058,7 +2091,7 @@
         chip.style.display = 'none';
         info.appendChild(chip);
       }
-      if (!row.closest('.swipe-wrapper')) makeSwipeWrapper(row);
+      makeSwipeWrapper(row);
       bindTaskRow(row);
       refreshDueChip(row);
       // Cycle kanban state on badge tap
@@ -2096,7 +2129,7 @@
           }
         });
       }
-
+      row.dataset.enhanced = '1';
     }
 
     function assignTaskNumbers() {
@@ -2178,6 +2211,7 @@
           item.querySelectorAll('[onclick]').forEach(node => node.removeAttribute('onclick'));
           item._sourceRow = row;
           item.addEventListener('click', event => {
+            enhanceRow(row);
             const name = event.target.closest('.task-name');
             if (name) {
               event.stopPropagation();

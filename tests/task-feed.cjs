@@ -47,7 +47,7 @@ async function settledFeed(page) {
 }
 
 async function createApp(browser, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block', hasTouch: !!options.hasTouch });
   const page = await context.newPage();
   page.setDefaultTimeout(2000);
   const errors = [];
@@ -59,14 +59,22 @@ async function createApp(browser, options = {}) {
   let callCount = 0;
   const responses = options.responses || [{ status: 200, body: envelope() }];
   page.on('pageerror', error => errors.push(error.message));
-  await context.addInitScript(({ ignoreAbort }) => {
+  await context.addInitScript(({ ignoreAbort, observerMode }) => {
     localStorage.setItem('alfred-dark-mode', 'false');
     window.TelegramWebviewProxy = { postEvent() {} };
+    if (observerMode === 'unavailable') window.IntersectionObserver = undefined;
+    if (observerMode === 'held') {
+      window.IntersectionObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+    }
     if (ignoreAbort) {
       const nativeFetch = window.fetch.bind(window);
       window.fetch = (url, config = {}) => nativeFetch(url, { ...config, signal: undefined });
     }
-  }, { ignoreAbort: !!options.ignoreAbort });
+  }, { ignoreAbort: !!options.ignoreAbort, observerMode: options.observerMode });
   const cors = {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'X-Telegram-Init-Data, Content-Type',
@@ -205,6 +213,28 @@ async function main() {
     assert.equal(await page.locator('#today-view').isVisible(), true);
     await expectedNames(page, [1, 2, 3, 7]);
   });
+
+  await test('today-task-opens-before-observer-callback', async ({ page }) => {
+    const name = page.locator('#today-view .task-name').filter({ hasText: /^Darren username task$/ });
+    await name.click();
+    const editor = page.getByRole('textbox', { name: 'Edit task name' });
+    assert.equal(await editor.inputValue(), 'Darren username task');
+    await editor.press('Escape');
+    await name.locator('..').locator('..').locator('.badge').click();
+    assert.equal(await page.locator('#detail-overlay').isVisible(), true);
+    assert.equal(await page.locator('#detail-title').innerText(), 'Darren username task');
+  }, { observerMode: 'held' });
+
+  for (const [observerMode, gesture] of [['held', 'click'], ['held', 'tap'], ['unavailable', 'click']]) {
+    await test(`first-status-${gesture}-works-with-observer-${observerMode}`, async ({ page, patchRequests }) => {
+      await page.locator('#topnav-week').click();
+      const row = page.locator('.week-section .task-row[data-task-id="1"]');
+      await row.locator('.badge')[gesture]();
+      await page.waitForFunction(() => document.querySelector('[data-task-id="1"]').dataset.status === 'done');
+      assert.equal(patchRequests.length, 1, 'The first tap saves once even without a visibility callback');
+      assert.equal(await row.locator('.badge').innerText(), 'Done');
+    }, { observerMode, hasTouch: gesture === 'tap', patchResponses: [{ status: 200, body: { ok: true } }] });
+  }
 
   await test('today-all-updates-immediately', async ({ page }) => {
     await page.locator('.assignee-tab[data-assignee="all"]').click();

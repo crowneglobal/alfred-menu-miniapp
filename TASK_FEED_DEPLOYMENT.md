@@ -12,8 +12,14 @@ The frontend task fix depends on the authenticated task API and nginx route in t
 ## Release verification
 
 1. Follow the server repository review and deployment rule, including Fio merge. Validate nginx configuration and the signed API contract after deployment. Unauthenticated requests must fail; the exact GitHub Pages origin must pass CORS preflight.
-2. Run `tests/task-feed.cjs` and `tests/telegram-safe-area.cjs` with Playwright and the official Telegram SDK snapshot supplied through `TG_SDK_PATH`. These are fixtures, not a phone or live API verification.
+2. Run `tests/task-feed.cjs`, `tests/telegram-safe-area.cjs`, and `tests/search-layout.cjs` with Playwright and the official Telegram SDK snapshot supplied through `TG_SDK_PATH`. These are fixtures, not a phone or live API verification.
 3. Publish the frontend only after the authenticated HTTPS API works. Confirm the served HTML matches the tested commit.
 4. Open the named Telegram app and check personal tasks, All, groups, Today and Week. Record actual phone confirmation separately from automated tests.
 
 No task records should be written by deployment checks. The local tests intercept all traffic and block task mutations.
+
+## Large lists
+
+All cursor pages remain searchable. Swipe controls are populated near the viewport or on the first interaction. Lightweight row wrappers are created during initial rendering so initialization cannot cancel an in-flight click by reparenting its target. Today editing/details also initialize the corresponding source row before interaction. Browsers without IntersectionObserver populate controls immediately.
+
+A desktop Chromium fixture with 6,441 synthetic tasks rendered in 1.06 seconds versus 3.66 seconds before deferred controls; searching the oldest task took 0.44 seconds. These local-response measurements do not establish phone or production-network performance. All source rows remain in the DOM, so this reduces initial overhead but is not full list virtualization.
