@@ -1066,9 +1066,9 @@
         <!-- People sub-picker -->
         <div class="expand-panel" id="panel-people">
           <button class="expand-btn btn-p active" data-person="all">All People</button>
-          <button class="expand-btn btn-p" data-person="12"><img class="p-avatar" src="https://i.pravatar.cc/72?img=12"> Darren</button>
-          <button class="expand-btn btn-p" data-person="5"><img class="p-avatar" src="https://i.pravatar.cc/72?img=5"> Fiorella</button>
-          <button class="expand-btn btn-p" data-person="4"><img class="p-avatar" src="https://i.pravatar.cc/72?img=4"> Alfred</button>
+          <button class="expand-btn btn-p" data-person="12"><span class="p-avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden;width:28px;height:28px;border-radius:50%">${getInitialsAvatar('dro238', 28)}</span> Darren</button>
+          <button class="expand-btn btn-p" data-person="5"><svg class="p-avatar" width="28" height="28" viewBox="0 0 28 28" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="14" fill="#9b2335"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="12" font-family="system-ui,sans-serif" font-weight="600">F</text></svg> Fiorella</button>
+          <button class="expand-btn btn-p" data-person="4"><svg class="p-avatar" width="28" height="28" viewBox="0 0 28 28" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="14" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="12" font-family="system-ui,sans-serif" font-weight="600">A</text></svg> Alfred</button>
         </div>
       </div>
     </div>
@@ -1344,7 +1344,30 @@
     }
 
     // Simple hash for avatar seed from string
+
+    function getInitialsAvatar(assignee, size) {
+      size = size || 36;
+      var label = '';
+      var bg = '#4a7c59';
+      if (!assignee || assignee === 'null') { label = '?'; bg = '#888'; }
+      else if (assignee === 'dro238') { label = 'D'; bg = '#2d6a4f'; }
+      else if (assignee === '@hintxorg' || assignee === '@Hintxorg') { label = 'S'; bg = '#6b3fa0'; }
+      else { label = assignee.replace(/^@/, '').charAt(0).toUpperCase(); }
+      return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" style="border-radius:50%;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + (size/2) + '" fill="' + bg + '"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="' + Math.round(size*0.42) + '" font-family="system-ui,sans-serif" font-weight="600">' + label + '</text></svg>';
+    }
+
     function hashStr(s) {
+    function getInitialsAvatar(assignee, size) {
+      size = size || 36;
+      var label = '';
+      var bg = '#4a7c59';
+      if (!assignee || assignee === 'null') { label = '?'; bg = '#888'; }
+      else if (assignee === 'dro238') { label = 'D'; bg = '#2d6a4f'; }
+      else if (assignee === '@hintxorg' || assignee === '@Hintxorg') { label = 'S'; bg = '#6b3fa0'; }
+      else { label = assignee.replace(/^@/, '').charAt(0).toUpperCase(); }
+      return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" style="border-radius:50%;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + (size/2) + '" fill="' + bg + '"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="' + Math.round(size*0.42) + '" font-family="system-ui,sans-serif" font-weight="600">' + label + '</text></svg>';
+    }
+
       let h = 0;
       for (let i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) & 0x7fffffff;
       return h;
@@ -1374,7 +1397,7 @@
       row.dataset.taskId = String(t.id);
       row.innerHTML = [
         `<div class="accent ${meta[0]}"></div>`,
-        `<img class="avatar" src="https://i.pravatar.cc/72?img=${avatarSeed}" alt="" onclick="filterPersonAvatar(event,'${avatarSeed}')">`,
+        `<span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden" onclick="filterPersonAvatar(event,'${avatarSeed}')">${getInitialsAvatar(t.assignee, 36)}</span>`,
         `<div class="task-info">`,
         `  <span class="priority-dot ${priorityClass}"></span>`,
         `  <span class="task-name">${escapeText(t.task)}</span>`,
@@ -1811,7 +1834,7 @@
       const row = document.createElement('div');
       row.className = 'task-row'; row.dataset.status = status; row.dataset.person = '4'; row.dataset.comments = '[]';
       row.innerHTML = `<div class="accent ${accentClass}"></div>
-        <img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')">
+        <span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><svg width="36" height="36" viewBox="0 0 36 36" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui,sans-serif" font-weight="600">A</text></svg></span>
         <div class="task-info"><span class="task-name">${name}</span><span class="task-assignee">Alfred</span></div>
         <span class="badge ${badgeClass}">${badgeLabel}</span>`;
       document.getElementById('list-' + week).appendChild(row);
@@ -1912,7 +1935,7 @@
           taskApiFetch('/api/tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task: name, status: _smap2[row.dataset.status] || 'In Progress' })
+            body: JSON.stringify({ task: name, status: _smap2[row.dataset.status] || 'In Progress', assignee_username: 'dro238' })
           }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.id) row.dataset.taskId = String(data.id);
           }).catch(function(err) { console.warn('Task create failed:', err); });
@@ -2340,7 +2363,7 @@
       const group = GROUP_LABELS[listId] || '';
       const tagClass = listId === 'list-42' ? 'tag-42' : listId === 'list-group' ? 'tag-grp' : '';
       const tagLabel = listId === 'list-41' ? 'W41' : listId === 'list-42' ? 'W42' : 'Group';
-      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><div class="accent ${meta[0]}"></div><img class="avatar" src="https://i.pravatar.cc/72?img=4" alt="" onclick="filterPersonAvatar(event,'4')"><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span></div>`;
+      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><div class="accent ${meta[0]}"></div><span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><svg width="36" height="36" viewBox="0 0 36 36" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui,sans-serif" font-weight="600">A</text></svg></span><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span></div>`;
       const row = list.firstElementChild;
       row.querySelector('.task-name').textContent = name;
       document.getElementById(listId).appendChild(row);
