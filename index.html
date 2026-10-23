@@ -1014,7 +1014,7 @@
 
   <!-- COB banking test: trusted iframe parent is restricted server-side. -->
   <div id="view-banking" style="display:none">
-    <iframe class="banking-frame" id="banking-frame" title="COB Banking" src="https://banking.crowne-cards.com/" allow="clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    <iframe class="banking-frame" id="banking-frame" title="COB Banking" src="https://alfred.ai/banking/users/sign_in" allow="clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </div>
 
   <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
@@ -2582,8 +2582,20 @@
     applyAllFilters();
     setTodayMode(true);
 
+    // Share signed Telegram identity only with the exact Banking frame and origin.
+    const bankingFrame = document.getElementById('banking-frame');
+    function sendBankingIdentity() {
+      if (tg && tg.initData && bankingFrame && bankingFrame.contentWindow) {
+        bankingFrame.contentWindow.postMessage({type:'alfred:telegram:init', initData:tg.initData}, 'https://alfred.ai');
+      }
+    }
+    bankingFrame.addEventListener('load', sendBankingIdentity);
+    window.addEventListener('message', event => {
+      if (event.origin === 'https://alfred.ai' && event.source === bankingFrame.contentWindow && event.data && event.data.type === 'alfred:telegram:ready') sendBankingIdentity();
+    });
+
     function openCOB() {
-      const url = 'https://banking.crowne-cards.com';
+      const url = 'https://alfred.ai/banking/users/sign_in';
       if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
         Telegram.WebApp.openLink(url);
       } else {
