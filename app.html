@@ -1,0 +1,2902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Alfred</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      /* Device cutouts and Telegram's own controls occupy separate areas. */
+      --app-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+      --app-safe-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
+      --app-safe-left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + var(--tg-content-safe-area-inset-left, 0px));
+      --app-safe-right: calc(max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px)) + var(--tg-content-safe-area-inset-right, 0px));
+    }
+    html.telegram-fullscreen {
+      /* Missing native events need a startup fallback; reported insets replace it. */
+      --app-fallback-device-top: 59px;
+      --app-fallback-content-top: 56px;
+      --app-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), var(--app-fallback-device-top)) + var(--app-fallback-content-top));
+    }
+    html.telegram-fullscreen[data-telegram-platform="ios"] { --app-fallback-content-top: 46px; }
+    html.telegram-fullscreen.telegram-device-insets-known { --app-fallback-device-top: 0px; }
+    html.telegram-fullscreen.telegram-content-insets-known { --app-fallback-content-top: var(--tg-content-safe-area-inset-top); }
+    /* A portrait phone's keyboard must not select the landscape fallback. */
+    @media (orientation: landscape) and (min-width: 600px) {
+      html.telegram-fullscreen { --app-fallback-device-top: 0px; }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      background: #EEF4E8; color: #1A0E00;
+      min-height: 100vh;
+      padding: 0 calc(var(--app-safe-right) + 12px) calc(var(--task-tray-height, 92px) + 8px) calc(var(--app-safe-left) + 12px);
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── Light mode ── */
+    body.light { background: #EEF4E8; color: #1A0E00; }
+    body.light .focus-banner { background: linear-gradient(135deg, #EEF4E8, #F5F2EA); border-color: rgba(197,212,168,0.4); }
+    body.light .focus-label  { color: #442B22; }
+    body.light .focus-task-name { color: #231708; }
+    body.light .task-row     { background: #F5F2EA; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    body.light .task-row:active { background: #E5EDD8; }
+    body.light .task-assignee { color: #aaa; }
+    body.light .section-sep  { color: #aaa; }
+    body.light .section-sep::before, body.light .section-sep::after { background: rgba(0,0,0,0.1); }
+    body.light .bottom-nav   { background: #EEF4E8; border-top-color: rgba(0,0,0,0.09); }
+    body.light .nav-tab      { color: #aaa; }
+    body.light .expand-panel { background: transparent; }
+    body.light .expand-btn   { background: rgba(0,0,0,0.05); color: #444; }
+    body.light .expand-btn.active { color: #231708; }
+    body.light .modal-sheet  { background: #EEF4E8; }
+    body.light .modal-input, body.light .modal-select { background: #F5F2EA; color: #231708; border-color: rgba(0,0,0,0.12); }
+    body.light .modal-label  { color: #666; }
+    body.light .detail-sheet { background: #EEF4E8; }
+    body.light .comment-item { background: rgba(0,0,0,0.04); }
+    body.light .detail-comment-input { background: rgba(0,0,0,0.05); }
+    /* body.light .search-input handled in glass block below */
+    body.light .board-card { background: #F5F2EA; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    body.light .app-header, body.light .profile-header { color: #1A0E00; }
+    body.light .profile-card, body.light .settings-card { background: #F5F2EA; border-color: rgba(0,0,0,0.08); }
+    body.light .settings-row + .settings-row { border-top-color: rgba(0,0,0,0.08); }
+    body.light .profile-subtitle, body.light .settings-row-note, body.light .profile-back { color: #6b6259; }
+
+    /* ── Section tabs (Planning / Banking) ── */
+    .section-tabs {
+      display: flex; gap: 2px; border-radius: 20px;
+      background: rgba(0,0,0,0.08); padding: 3px; margin-top: 6px;
+      max-width: 100%; overflow-x: auto; scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .section-tabs::-webkit-scrollbar { display: none; }
+    .section-tab {
+      flex: 1; border: 0; border-radius: 16px; padding: 5px 18px;
+      font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+      color: #888; background: transparent; transition: background 0.18s, color 0.18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .section-tab.active { background: #2A2A25; color: #C5D4A8; }
+    #nav-planning .section-tab, #nav-banking .section-tab { min-width: 0; padding-left: 8px; padding-right: 8px; }
+    body.light .section-tabs { background: rgba(0,0,0,0.07); }
+    body.light .section-tab.active { background: #2A2A25; color: #C5D4A8; }
+    /* ── Assignee filter tabs ── */
+    .assignee-tabs { display: flex; gap: 4px; padding: 4px 8px 2px; }
+    .assignee-tab { flex: 1; padding: 6px 0; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.2px; cursor: pointer; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.55); transition: background 0.15s, color 0.15s; }
+    .assignee-tab.active { background: #2A2A25; color: #C5D4A8; }
+    body.light .assignee-tab { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.45); }
+    body.light .assignee-tab.active { background: #2A2A25; color: #C5D4A8; }
+
+    /* ── COB banking test ── */
+    #view-banking {
+      position: fixed; left: var(--app-safe-left); right: var(--app-safe-right); bottom: var(--app-safe-bottom);
+      top: var(--banking-top, 64px); margin: 0; overflow: hidden;
+    }
+    .banking-frame {
+      display: block; width: 100%; height: 100%;
+      min-height: 0; border: 0; background: #fff;
+    }
+
+    /* App header and profile */
+    .app-header {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 42px; margin-bottom: 10px;
+      padding-top: calc(var(--app-safe-top) + 8px);
+      background: #EEF4E8;
+    }
+    .header-sidebar-button {
+      width: 36px; height: 36px; border: 0; border-radius: 50%;
+      background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 25px;
+      font-weight: 400; line-height: 34px; cursor: pointer; z-index: 2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.16); -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    .header-sidebar-button { font-size: 16px; line-height: 36px; }
+    #context-tabs { margin-top: 12px !important; }
+    .app-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+    .profile-trigger {
+      width: 40px; height: 40px; border-radius: 50%; padding: 0; overflow: hidden;
+      display: grid; place-items: center; border: 2px solid rgba(197,212,168,0.65);
+      background: #C5D4A8; color: #2A2400; font: inherit; font-size: 13px; font-weight: 800;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .profile-trigger img, .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .profile-view {
+      display: none; position: fixed; inset: 0; z-index: 300; overflow-y: auto;
+      background: #EEF4E8; color: #1A0E00;
+      padding: calc(var(--app-safe-top) + 8px) calc(var(--app-safe-right) + 16px) calc(var(--app-safe-bottom) + 28px) calc(var(--app-safe-left) + 16px);
+    }
+    body.light .profile-view { background: #EEF4E8; }
+    .profile-view.open { display: block; }
+    .profile-header { display: flex; align-items: center; min-height: 42px; margin-bottom: 18px; }
+    .profile-back {
+      border: 0; background: transparent; color: #aaa; padding: 8px 4px;
+      font: inherit; font-size: 14px; font-weight: 650; cursor: pointer;
+    }
+    .profile-card, .settings-card {
+      background: #2A1500; color: #fff; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+    }
+    .profile-card { padding: 24px 16px 18px; text-align: center; }
+    .profile-avatar {
+      width: 96px; height: 96px; margin: 0 auto 13px; overflow: hidden; border-radius: 50%;
+      display: grid; place-items: center; background: #C5D4A8; border: 3px solid #9DB885;
+      color: #2A2400; font-size: 30px; font-weight: 800;
+    }
+    .profile-name { font-size: 22px; font-weight: 800; letter-spacing: -0.35px; }
+    .profile-subtitle { color: rgba(255,255,255,0.55); font-size: 12px; margin-top: 4px; }
+    .profile-stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .profile-stat { padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+    .profile-stat.done { background: #6E9E5E; color: #fff; }
+    .profile-stat.progress { background: #C07840; color: #fff; }
+    .profile-stat.stuck { background: #B85248; color: #fff; }
+    .settings-title { margin: 24px 4px 8px; color: #442B22; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; }
+    .settings-card { overflow: hidden; }
+    .settings-row { min-height: 58px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .settings-row + .settings-row { border-top: 1px solid rgba(255,255,255,0.07); }
+    .settings-row-label { font-size: 14px; font-weight: 650; }
+    .settings-row-note { color: #666; font-size: 12px; text-align: right; }
+    .theme-switch { position: relative; width: 48px; height: 28px; flex: 0 0 auto; }
+    .theme-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .theme-slider { position: absolute; inset: 0; border-radius: 999px; background: #4a4a4a; cursor: pointer; transition: background 0.2s; }
+    .theme-slider::after { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+    .theme-switch input:checked + .theme-slider { background: #C5D4A8; }
+    .theme-switch input:checked + .theme-slider::after { transform: translateX(20px); background: #2A2400; }
+
+    /* Focus banner */
+    .focus-banner {
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg,#2B1500,#3D2000);
+      border: 1px solid rgba(197,212,168,0.3);
+      border-radius: 12px; padding: 11px 14px; margin-bottom: 12px;
+    }
+    .focus-icon { font-size: 18px; flex-shrink: 0; }
+    .focus-label { font-size: 9px; font-weight: 700; color: #B8C9A0; text-transform: uppercase; letter-spacing: 0.8px; }
+    .focus-task-name { font-size: 15px; font-weight: 700; color: #fff; margin-top: 1px; }
+    .focus-hidden { display: none; }
+    /* ── Search input — frosted glass ── */
+    .search-input {
+      width: 100%; padding: 11px 18px; border-radius: 24px;
+      background: rgba(255,255,255,0.12);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.22);
+      color: #fff; font-size: 14px; outline: none;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    body.light .search-input {
+      background: rgba(255,255,255,0.55);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-color: rgba(0,0,0,0.12); color: #1A0E00;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .search-input:focus { border-color: rgba(255,255,255,0.5); box-shadow: 0 2px 20px rgba(0,0,0,0.25), 0 0 0 2px rgba(197,212,168,0.3), inset 0 1px 0 rgba(255,255,255,0.15); }
+    body.light .search-input:focus { border-color: rgba(197,212,168,0.8); box-shadow: 0 2px 20px rgba(0,0,0,0.1), 0 0 0 2px rgba(197,212,168,0.4); }
+
+    /* Search uses the available screen for results above the keyboard dock. */
+    .search-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      pointer-events: none; color: #1A0E00;
+    }
+    .search-overlay.open { display: block; }
+    .search-overlay-header {
+      position: fixed; left: calc(var(--app-safe-left) + 8px); right: calc(var(--app-safe-right) + 8px);
+      bottom: calc(var(--search-bottom-inset, var(--app-safe-bottom)) + 8px);
+      display: flex; align-items: center; gap: 8px; z-index: 1002;
+      padding: 7px; border: 1px solid rgba(0,0,0,0.1); border-radius: 19px;
+      background: rgba(238,244,232,0.94); box-shadow: 0 5px 24px rgba(0,0,0,0.2);
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      backdrop-filter: blur(18px) saturate(180%);
+      pointer-events: auto;
+      transition: bottom 0.12s ease;
+    }
+    .search-overlay-pill {
+      height: 42px; flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding: 0 12px; border-radius: 13px; background: rgba(0,0,0,0.07);
+    }
+    .search-overlay-icon { color: #777; font-size: 16px; line-height: 1; }
+    .search-overlay-input {
+      min-width: 0; flex: 1; border: 0; outline: 0; background: transparent;
+      color: #1A0E00; font: inherit; font-size: 16px;
+    }
+    .search-overlay-input::-webkit-search-cancel-button { display: none; }
+    .search-clear, .search-exit {
+      border: 0; background: transparent; color: #6b6259; cursor: pointer;
+      font: inherit; font-weight: 700; -webkit-tap-highlight-color: transparent;
+    }
+    .search-clear { width: 24px; height: 24px; border-radius: 50%; font-size: 18px; line-height: 22px; }
+    .search-clear[hidden] { display: none; }
+    .search-exit { flex: 0 0 auto; width: 34px; height: 34px; padding: 0; font-size: 20px; }
+    .search-results { display: none; }
+    .search-result-row {
+      height: 58px; display: flex; align-items: center; gap: 11px; padding: 0 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.07); cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .search-result-row img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+    .search-result-main { min-width: 0; flex: 1; }
+    .search-result-name { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .search-result-assignee { margin-top: 2px; color: #777; font-size: 12px; }
+    .search-filter-chips { display: none; }
+    .search-filter-chip {
+      border: 1px solid rgba(0,0,0,0.1); border-radius: 999px; padding: 7px 11px;
+      background: #F5F2EA; color: #6b6259; font: inherit; font-size: 12px; font-weight: 700;
+      white-space: nowrap; cursor: pointer;
+    }
+    .search-filter-chip.active { background: #2A2A25; color: #C5D4A8; border-color: #2A2A25; }
+    body.search-mode { overflow: hidden; }
+    body.search-mode .app-header,
+    body.search-mode .assignee-tabs,
+    body.search-mode .focus-banner,
+    body.search-mode .bottom-sheet,
+    body.search-mode .sidebar-trigger,
+    body.search-mode .week-label,
+    body.search-mode .inline-add-row,
+    body.search-mode .inline-task-wrap { display: none !important; }
+    body.search-mode #view-planning {
+      position: fixed;
+      top: calc(var(--app-safe-top) + 8px);
+      right: calc(var(--app-safe-right) + 12px);
+      bottom: calc(var(--search-bottom-inset, var(--app-safe-bottom)) + var(--search-dock-height, 58px) + 16px);
+      left: calc(var(--app-safe-left) + 12px);
+      overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    }
+    body.search-mode .task-list,
+    body.search-mode .week-section.collapsed .task-list { max-height: none; }
+    body.search-mode .week-section { margin-bottom: 5px; }
+
+    .task-feed-status { padding: 24px 12px; text-align: center; color: #6b6259; font-size: 14px; }
+    .task-feed-status[hidden] { display: none; }
+    .task-feed-status button { display: block; margin: 12px auto 0; padding: 8px 16px; border: 0; border-radius: 8px; background: #2A2A25; color: #C5D4A8; font: inherit; cursor: pointer; }
+    .task-feed-status button[hidden] { display: none; }
+    .today-view { display: none; }
+    .today-view.open { display: block; }
+    .today-task-row {
+      height: 58px; display: flex; align-items: center; background: #F5F2EA;
+      border-radius: 10px; margin-bottom: 5px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1); cursor: pointer;
+    }
+
+    /* Week sections */
+    .week-section { margin-bottom: 12px; }
+    .week-section.week-hidden { display: none; }
+    .week-section.section-empty { display: none; }
+
+    .week-label {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 700;
+      margin-bottom: 8px; cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .label-41    { background: #C5D4A8; color: #2A2400; }
+    .label-42    { background: #C5D4A8; color: #2A2400; }
+    .label-grp   { background: rgba(110,158,94,0.25); color: #3A5A2A; }
+    .week-chevron { font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
+    .week-section.collapsed .week-chevron { transform: rotate(-90deg); }
+    .task-list { overflow: hidden; }
+    .week-section.collapsed .task-list { max-height: 0; }
+
+    /* Group separator — clean text divider */
+    .section-sep {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; color: #442B22; text-transform: uppercase;
+      letter-spacing: 0.8px; margin: 6px 0 8px; cursor: pointer;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .section-sep::before, .section-sep::after {
+      content: ''; flex: 1; height: 1px; background: rgba(0,0,0,0.15);
+    }
+
+    /* Task rows */
+    .swipe-wrapper { position: relative; overflow: hidden; border-radius: 10px; margin-bottom: 5px; }
+    .swipe-wrapper.hidden-wrapper { display: none; }
+    .swipe-wrapper.sortable-ghost { opacity: 0.35; }
+    .swipe-wrapper.sortable-drag { opacity: 0.95; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; flex-direction: row; align-items: stretch; }
+    .swipe-actions-left {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 232px;
+      display: flex; flex-direction: row; align-items: stretch;
+    }
+    .sa-date {
+      width: 58px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #C5D4A8; color: #2A2400; font-size: 10px; font-weight: 700;
+      cursor: pointer; border: none; gap: 2px;
+    }
+    .swipe-actions-left .sa-date { flex: 1 1 0; width: auto; min-width: 0; padding: 0; }
+    .sa-date .date-day { font-size: 12px; font-weight: 800; }
+    .sa-date .date-num { font-size: 10px; opacity: 0.8; }
+    .sa-date.sa-today { background: #6E9E5E; }
+    .sa-date.sa-clock { background: #C07840; font-size: 18px; }
+    .quick-due-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .swipe-btn { width: 70px; border: 0; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .sa-done { background: #6E9E5E; color: #fff; }
+    .sa-status { background: #C07840; color: #fff; }
+    .sa-delete { background: #ef4444; }
+    .task-row {
+      display: flex; align-items: center;
+      background: #F5F2EA; color: #1A0E00; border-radius: 10px; margin-bottom: 5px;
+      height: 58px; overflow: hidden; cursor: grab;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+      touch-action: none; -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+    }
+    .swipe-wrapper .task-row { position: relative; margin-bottom: 0; border-radius: 0; transition: transform 0.22s ease, background 0.1s, opacity 0.25s, height 0.25s; }
+    .task-row.swiped-open { transform: translateX(-210px); }
+    .task-row.done-flash { animation: doneFlash 0.45s ease; }
+    @keyframes doneFlash { 0%,100% { background: #F5F2EA; color: #1A0E00; } 45% { background: #E5EDD8; color: #1A0E00; } }
+    @keyframes doneFlashLight { 0%,100% { background: #F5F2EA; } 45% { background: #E5EDD8; } }
+    body.light .task-row.done-flash { animation-name: doneFlashLight; }
+    .task-row:active { background: #ede8d8; cursor: grabbing; }
+    .task-row.hidden { display: none; }
+    .task-row.sortable-ghost { opacity: 0.35; }
+    .task-row.sortable-drag  { opacity: 0.95; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border-radius: 10px; }
+
+    .accent { width: 4px; height: 100%; flex-shrink: 0; }
+    .accent-done     { background: #6E9E5E; }
+    .accent-progress { background: #C07840; }
+    .accent-stuck    { background: #B85248; }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      object-fit: cover; margin: 0 9px 0 2px; cursor: pointer; transition: outline 0.1s;
+      order: 4;
+    }
+    .avatar.active-filter { outline: 2.5px solid #fff; outline-offset: 1px; }
+    body.light .avatar.active-filter { outline-color: #333; }
+
+    .task-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 0 10px; overflow: hidden; order: 2; }
+    .task-name  { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-name-input {
+      width: 100%; min-width: 0; padding: 1px 3px; border: 0; border-radius: 4px;
+      outline: 2px solid rgba(122,171,106,0.45); background: rgba(255,255,255,0.72);
+      color: #1A0E00; font: inherit; font-size: 14px; font-weight: 500;
+    }
+    .task-assignee { font-size: 11px; color: rgba(0,0,0,0.45); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .priority-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-right: 5px; display: inline-block; vertical-align: middle; }
+    .dot-p1 { background: #ef4444; }
+    .dot-p2 { background: #F68B42; }
+    .dot-p3 { background: #6E9E5E; }
+    .due-chip { font-size: 10px; font-weight: 600; margin-top: 2px; display: inline-block; }
+    .due-chip.overdue { color: #B85248; }
+    .due-chip.due-today { color: #C07840; }
+    .due-chip.due-soon { color: #94a3b8; }
+    .task-meta-row { display: flex; align-items: center; gap: 5px; min-width: 0; margin-top: 1px; }
+    .task-group-tag {
+      display: inline-block; min-width: 0; max-width: 96px;
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      background: rgba(197,212,168,0.22); color: #7AAB6A; text-transform: uppercase; letter-spacing: 0.4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .task-group-tag.tag-42 { background: rgba(192,120,64,0.15); color: #C07840; }
+    .task-group-tag.tag-grp { background: rgba(110,158,94,0.15); color: #6E9E5E; }
+
+    .badge { padding: 4px 8px; border-radius: 16px; font-size: 10px; font-weight: 700; margin-right: 4px; flex-shrink: 0; white-space: nowrap; order: 3; }
+    .accent { order: 1; }
+    .badge-done     { background: #6E9E5E; color: #fff; }
+    .badge-progress { background: #C07840; color: #fff; }
+    .badge-stuck    { background: #B85248; color: #fff; }
+
+    /* ── Bottom Sheet — slides like iOS keyboard ── */
+    .bottom-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #2A2A25; border-radius: 14px 14px 0 0;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      z-index: 100; overflow: visible;
+      padding: 0 var(--app-safe-right) var(--app-safe-bottom) var(--app-safe-left);
+    }
+    .bottom-sheet.expanded { transform: none; }
+    body.light .bottom-sheet { background: #EEF4E8; border-top-color: rgba(0,0,0,0.09); }
+    .sheet-handle-bar {
+      display: flex; justify-content: center; align-items: center;
+      width: 100%; height: 24px; border: 0; background: transparent; cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sheet-handle-pill {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.2);
+    }
+    body.light .sheet-handle-pill { background: rgba(0,0,0,0.15); }
+    .tray-actions { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; }
+    .tray-actions[hidden] { display: none; }
+    .tray-actions .assignee-tabs { padding: 0; }
+    .tray-tools { display: flex; align-items: center; gap: 8px; }
+    .tray-search-trigger {
+      flex: 1; min-width: 0; height: 44px; padding: 0 15px;
+      border: 1px solid rgba(0,0,0,0.1); border-radius: 22px; background: rgba(255,255,255,0.62);
+      color: #777; font: inherit; font-size: 14px; text-align: left; cursor: text;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tray-new-task {
+      flex-shrink: 0; height: 44px; padding: 0 12px; border: 0; border-radius: 22px;
+      background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sheet-pinned {
+      display: flex; flex-direction: row; align-items: center;
+      justify-content: space-around; height: 64px; overflow: visible;
+    }
+    .sheet-expanded {
+      max-height: calc(50dvh - 66px - env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .sheet-expanded-inner {
+      padding: 8px 12px 6px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .sheet-extra-nav {
+      display: flex; flex-direction: row; gap: 4px; flex-wrap: wrap; align-items: center;
+    }
+    .sheet-safe-area { height: env(safe-area-inset-bottom, 0px); }
+    .nav-center-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: #C5D4A8; border: 3px solid rgba(255,255,255,0.25);
+      color: #2A2400; font-family: inherit; font-size: 14px; font-weight: 800;
+      flex-shrink: 0; min-width: 46px; min-height: 46px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 0 0 2px #2A2A25, 0 4px 14px rgba(0,0,0,0.4);
+      overflow: hidden; -webkit-tap-highlight-color: transparent;
+      padding: 0;
+    }
+    .nav-center-avatar img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .nav-tab {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0 13px; font-size: 12px; font-weight: 600; color: #666;
+      white-space: nowrap; flex-shrink: 0; cursor: pointer;
+      border-top: 2.5px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .nav-tab.chip-stuck.active    { color: #ef4444; border-top-color: #ef4444; font-weight: 700; }
+    .nav-tab.chip-progress.active { color: #F68B42; border-top-color: #F68B42; font-weight: 700; }
+    .nav-tab.chip-done.active     { color: #7AAB6A; border-top-color: #7AAB6A; font-weight: 700; }
+    .nav-tab.tab-week.active      { color: #7AAB6A; border-top-color: #7AAB6A; font-weight: 700; }
+    .nav-tab.tab-people.active    { color: #7AAB6A; border-top-color: #7AAB6A; font-weight: 700; }
+    .nav-tab.tab-group.active     { color: #7AAB6A; border-top-color: #7AAB6A; font-weight: 700; }
+    .nav-tab.tab-board.active     { color: #7AAB6A; border-top-color: #7AAB6A; font-weight: 700; }
+    .nav-tab.tab-new              { color: #ef4444; font-weight: 800; font-size: 13px; }
+    .nav-tab.tab-pending.active   { color: #C5D4A8; border-top-color: #C5D4A8; font-weight: 700; }
+    .task-topic-dot { width: 7px; height: 7px; border-radius: 50%; background: #7AAB6A; flex-shrink: 0; margin-left: 3px; display: none; vertical-align: middle; }
+    .task-row[data-topic="true"] .task-topic-dot { display: inline-block; }
+    .btn-topic {
+      flex: 1; padding: 12px; border-radius: 10px;
+      background: rgba(197,212,168,0.12); color: #C5D4A8;
+      font-size: 13px; font-weight: 700; border: 1px solid rgba(197,212,168,0.25); cursor: pointer;
+    }
+    .btn-topic.topic-done { background: rgba(110,158,94,0.2); color: #7AAB6A; border-color: rgba(110,158,94,0.4); }
+    .nav-divider { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; margin: 10px 0; flex-shrink: 0; }
+
+    /* ── Inline sub-pickers (inside bottom sheet) ── */
+    .expand-panel { display: none; flex-direction: row; gap: 8px; flex-wrap: wrap; }
+    .expand-panel.open { display: flex; }
+    .expand-btn {
+      display: inline-flex; align-items: center;
+      padding: 7px 14px; border-radius: 20px;
+      background: rgba(255,255,255,0.07); color: #bbb;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: none; -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .expand-btn.active { background: #C5D4A8; color: #2A2400; font-weight: 700; }
+    .expand-btn.btn-all.active  { background: #C5D4A8; color: #2A2400; }
+    .expand-btn.btn-41.active   { background: #C5D4A8; color: #2A2400; }
+    .expand-btn.btn-42.active   { background: #C07840; color: #fff; }
+    .expand-btn.btn-p.active    { outline: 2.5px solid #fff; outline-offset: 2px; }
+    .expand-btn .p-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; margin-right: 6px; pointer-events: none; }
+
+    /* +New modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      z-index: 200; align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      background: #1A0E00; color: #fff; border-radius: 18px 18px 0 0; padding: 20px 18px 36px;
+      width: 100%; max-height: 70vh; overflow-y: auto;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+    .modal-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 5px; margin-top: 12px; }
+    .modal-input, .modal-select {
+      width: 100%; padding: 7px 10px; border-radius: 10px;
+      background: #1A0E00; color: #fff; font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.1); outline: none;
+      -webkit-appearance: none; appearance: none;
+    }
+    .modal-input:focus { border-color: rgba(197,212,168,0.5); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .btn-add    { flex: 1; padding: 12px; border-radius: 10px; background: #ef4444; color: #fff; font-size: 14px; font-weight: 700; border: none; cursor: pointer; }
+    .btn-cancel { padding: 12px 18px; border-radius: 10px; background: rgba(255,255,255,0.08); color: #ccc; font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
+
+    .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 210; display: none; align-items: flex-end; }
+    .detail-overlay.open { display: flex; }
+    .detail-sheet { background: #1A0E00; color: #fff; border-radius: 20px 20px 0 0; padding: 8px 14px 16px; width: 100%; max-height: 52vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s ease; }
+    .detail-overlay.open .detail-sheet { transform: translateY(0); }
+    .detail-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 10px; }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .detail-title-text { font-size: 15px; font-weight: 700; }
+    .detail-close { background: none; border: none; color: #888; font-size: 18px; cursor: pointer; }
+    .detail-meta-row { display: flex; gap: 7px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .detail-meta-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.07); color: #bbb; }
+    body.light .detail-meta-chip { background: rgba(0,0,0,0.06); color: #555; }
+    .detail-section-label { display: none; }
+    .detail-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 7px; margin-top: 0; }
+    .detail-pill { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.07); color: #bbb; cursor: pointer; border: none; }
+    .detail-pill.active.pill-stuck, .detail-pill.active.pill-p1 { background: #B85248; color: #fff; }
+    .detail-pill.active.pill-progress, .detail-pill.active.pill-p2 { background: #C07840; color: #fff; }
+    .detail-pill.active.pill-done { background: #6E9E5E; color: #fff; }
+    .detail-pill.active.pill-p3 { background: #6E9E5E; color: #fff; }
+    .detail-overdue { color: #B85248; font-size: 12px; margin-top: 4px; }
+    .detail-notes { resize: vertical; min-height: 44px; }
+    .detail-comments-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 160px; overflow-y: auto; }
+    .comment-item { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 10px; }
+    .comment-author { font-size: 10px; font-weight: 700; color: #7AAB6A; margin-bottom: 2px; }
+    .comment-text { font-size: 13px; }
+    .comment-time { font-size: 10px; color: #555; margin-top: 2px; }
+    .detail-comment-input-row { display: flex; gap: 8px; align-items: center; }
+    .detail-comment-input { flex: 1; padding: 9px 12px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 13px; outline: none; }
+    .detail-comment-send { width: 36px; height: 36px; border-radius: 50%; background: #C5D4A8; color: #2A2400; border: none; font-size: 16px; cursor: pointer; flex-shrink: 0; }
+
+    #board-view {
+      position: relative; width: 100%;
+      height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0px));
+      min-height: 360px; overflow-y: auto; overflow-x: hidden; background: inherit; z-index: 1;
+      overscroll-behavior-y: contain; scrollbar-width: none;
+    }
+    #board-view::-webkit-scrollbar { display: none; }
+    .board-columns {
+      display: flex; flex-direction: column; width: 100%; gap: 10px; padding: 8px 0 96px;
+    }
+    .board-col {
+      width: 100%; display: flex; flex-direction: column;
+      background: transparent; border: 0;
+      overflow: hidden;
+      /* each lane is independently scrollable */
+      flex-shrink: 0;
+    }
+    .board-col-header {
+      min-height: 38px; padding: 0 4px; font-size: 13px; font-weight: 800;
+      display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .board-col-title { flex: 1; letter-spacing: 0.15px; }
+    .board-count {
+      min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #777; background: transparent; font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+    .board-chevron { font-size: 17px; line-height: 1; transition: transform 0.24s ease; }
+    .board-col.collapsed .board-chevron { transform: rotate(-90deg); }
+    .board-col.collapsed .board-col-body { display: none; }
+    .col-header-stuck, .col-header-progress, .col-header-done { background: transparent; color: inherit; }
+    .board-col-body {
+      display: flex; flex-direction: column; gap: 6px; padding: 7px;
+      max-height: 28vh; overflow-y: auto; overscroll-behavior: contain;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .board-col-body::-webkit-scrollbar { display: none; }
+    .board-col.expanded .board-col-body { max-height: none; overflow-y: visible; }
+
+    /* ── Asana-style inline add row ── */
+    .inline-add-row {
+      display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+      cursor: pointer; opacity: 0.45; font-size: 13px; border-radius: 8px;
+      transition: opacity 0.15s; user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .inline-add-row:hover, .inline-add-row:active { opacity: 0.9; }
+    .inline-add-row::before { content: '+'; font-size: 17px; font-weight: 700; line-height: 1; }
+    .inline-task-wrap {
+      display: none; align-items: center; gap: 9px; padding: 8px 12px;
+      background: rgba(255,255,255,0.12); border-radius: 10px; margin: 3px 8px 3px;
+      border: 1.5px solid rgba(197,212,168,0.35);
+    }
+    body.light .inline-task-wrap { background: rgba(0,0,0,0.04); border-color: rgba(197,212,168,0.5); }
+    .inline-task-wrap.active { display: flex; }
+    .inline-task-wrap input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-size: 14px; color: inherit; font-family: inherit; caret-color: #C5D4A8;
+    }
+    .inline-task-wrap input::placeholder { opacity: 0.45; }
+    .board-card { background: #F5F2EA; color: #1A0E00; border-radius: 8px; border-left: 4px solid var(--lane-color, #C07840); padding: 10px 12px; display: flex; align-items: center; gap: 9px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .board-card-name { font-size: 13px; font-weight: 500; flex: 1; }
+    .board-card-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+    .board-card .priority-dot { width: 7px; height: 7px; }
+    .board-empty {
+      min-height: 54vh; display: grid; place-content: center; justify-items: center;
+      gap: 10px; color: #777; text-align: center;
+    }
+    .board-empty-icon { font-size: 38px; opacity: 0.55; }
+    .board-empty-text { font-size: 14px; font-weight: 650; }
+    .board-empty-add {
+      width: 52px; height: 52px; border: 0; border-radius: 50%; margin-top: 4px;
+      background: #2A2A25; color: #C5D4A8; font: inherit; font-size: 30px;
+      cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    }
+
+    /* ── Detail header: assignee left + days badge right ── */
+    .detail-header { align-items: center; gap: 8px; }
+    .detail-header-left { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .detail-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .detail-title-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-assignee-avatar {
+      width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.22);
+    }
+    .detail-assignee-label {
+      font-size: 12px; font-weight: 600; color: #aaa; white-space: nowrap;
+    }
+    .days-old-badge {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; color: #888; flex-shrink: 0; letter-spacing: -0.3px;
+    }
+    body.light .days-old-badge { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.12); color: #aaa; }
+    body.light .detail-assignee-avatar { border-color: rgba(0,0,0,0.12); }
+
+    /* Sidebar */
+    .sidebar-trigger {
+      position: fixed; left: 0; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 72px; background: rgba(42,42,37,0.9);
+      border-radius: 0 10px 10px 0; z-index: 390;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      border: 1px solid rgba(255,255,255,0.08); border-left: 0;
+    }
+    .sidebar-trigger-line { width: 3px; height: 30px; border-radius: 2px; background: rgba(197,212,168,0.55); }
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    }
+    .sidebar-backdrop.open { display: block; }
+    .sidebar-panel {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 75%; max-width: 300px;
+      z-index: 401; background: #1C1C1E; border-right: 1px solid rgba(255,255,255,0.09);
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.32,0,0,1);
+    }
+    .sidebar-panel.open { transform: translateX(0); }
+    .sidebar-header {
+      padding: calc(var(--app-safe-top) + 8px) 16px 12px calc(var(--app-safe-left) + 16px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      font-size: 12px; font-weight: 800; letter-spacing: 0.7px;
+      color: rgba(255,255,255,0.45); text-transform: uppercase;
+    }
+    .sidebar-body { flex: 1; overflow-y: auto; padding: 6px 0 calc(var(--app-safe-bottom) + 20px) var(--app-safe-left); }
+    .sidebar-group-row {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+      cursor: pointer; transition: background 0.15s; border-left: 3px solid transparent;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sidebar-group-row:active { background: rgba(255,255,255,0.06); }
+    .sidebar-group-row.active {
+      background: rgba(101,163,82,0.14); border-left-color: #7AAB6A; padding-left: 13px;
+    }
+    .sidebar-group-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .sidebar-group-name {
+      flex: 1; font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.8);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-group-row.active .sidebar-group-name { font-weight: 700; color: #fff; }
+    .sidebar-count-badge {
+      min-width: 22px; height: 20px; padding: 0 5px; border-radius: 10px;
+      background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.45);
+      font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .sidebar-group-row.active .sidebar-count-badge { background: rgba(122,171,106,0.28); color: #C5D4A8; }
+    .sidebar-subtitle {
+      display: inline-block; max-width: 120px; margin-left: 3px;
+      font-size: 11px; font-weight: 600; color: rgba(197,212,168,0.7);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+    }
+    /* Alfred interface: shared surfaces, type, contrast and interaction states. */
+    body {
+      --ui-bg: #EEF4E8; --ui-surface: #F5F2EA; --ui-soft: #E5EDD8;
+      --ui-ink: #1A0E00; --ui-muted: #6B6259; --ui-line: #DADCCE;
+      --ui-accent: #2A2A25; --ui-accent-ink: #C5D4A8; --ui-tint: #C5D4A8;
+      --ui-glass: rgba(245, 242, 234, .96); --ui-shadow: 0 12px 40px rgba(42, 36, 0, .09);
+      --ui-progress: #FFFFFF; --ui-progress-bg: #C07840;
+      --ui-stuck: #FFFFFF; --ui-stuck-bg: #B85248; --ui-done: #FFFFFF; --ui-done-bg: #6E9E5E;
+      font-feature-settings: 'ss01' on; -webkit-font-smoothing: antialiased;
+      line-height: 1.45;
+    }
+    body:not(.light) {
+      --ui-bg: #1E1E1A; --ui-surface: #2A2A25; --ui-soft: #38382F;
+      --ui-ink: #F5F2EA; --ui-muted: #C5C0B2; --ui-line: #4A493E;
+      --ui-accent: #C5D4A8; --ui-accent-ink: #2A2400; --ui-tint: #424B35;
+      --ui-glass: rgba(42, 42, 37, .97); --ui-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+    body, body.light { background: var(--ui-bg); color: var(--ui-ink); }
+    button, input, select, textarea { font-family: inherit; }
+    button { touch-action: manipulation; }
+    :is(button, [role="button"], input, select, textarea):focus-visible {
+      outline: 3px solid var(--ui-accent); outline-offset: 3px;
+    }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .ui-icon { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .app-header { margin-bottom: 18px; }
+    :is(body, body.light) .app-header { color: var(--ui-ink); }
+    .header-sidebar-button {
+      display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px;
+      background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line); box-shadow: none;
+    }
+    .app-title { font-size: 26px; font-weight: 750; letter-spacing: -.9px; line-height: 1.2; }
+    #date-week-bar { color: var(--ui-muted); opacity: 1 !important; font-size: 11px !important; font-weight: 550 !important; margin-top: 5px !important; letter-spacing: .25px !important; }
+    #context-tabs { align-items: center; gap: 6px; margin-top: 16px !important; padding: 4px !important; border: 1px solid var(--ui-line); background: var(--ui-soft) !important; border-radius: 16px; }
+    :is(body, body.light) .section-tab { min-height: 44px; border-radius: 12px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; line-height: 1.2; }
+    :is(body, body.light) .section-tab.active { background: var(--ui-accent); color: var(--ui-accent-ink); box-shadow: 0 2px 5px rgba(20, 40, 24, .07); }
+    :is(body, body.light) .focus-banner { background: linear-gradient(135deg, #2B1500, #3D2000); border: 1px solid rgba(197,212,168,.3); border-radius: 18px; padding: 14px 16px; gap: 12px; margin-bottom: 20px; }
+    .focus-icon { display: grid; place-items: center; width: 34px; height: 34px; color: #C5D4A8; }
+    :is(body, body.light) .focus-label { color: #B8C9A0; font-size: 9px; letter-spacing: 1.4px; }
+    :is(body, body.light) .focus-task-name { color: #FFFFFF; font-size: 16px; font-weight: 650; margin-top: 3px; }
+    .week-label { background: #C5D4A8; color: #2A2400; padding: 4px 12px; margin: 0 0 10px; font-size: 11px; font-weight: 650; letter-spacing: .6px; }
+    .week-section { margin-bottom: 20px; }
+    :is(body, body.light) :is(.task-row, .today-task-row) {
+      height: 82px; background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line);
+      border-radius: 16px; box-shadow: 0 2px 3px rgba(20, 40, 24, .025); margin-bottom: 8px;
+    }
+    .swipe-wrapper { border: 1px solid var(--ui-line); border-radius: 16px; margin-bottom: 8px; }
+    .task-list { max-height: none; }
+    .swipe-actions { top: 1px; bottom: 1px; right: 1px; border-radius: 0 15px 15px 0; overflow: hidden; }
+    .swipe-actions-left { top: 1px; bottom: 1px; left: 1px; border-radius: 15px 0 0 15px; overflow: hidden; }
+    :is(body, body.light) .swipe-wrapper .task-row { margin-bottom: 0; border: 0; border-radius: 0; }
+    :is(body, body.light) .task-row:active { background: var(--ui-soft); }
+    .task-info { position: relative; gap: 3px; padding: 0 10px 0 12px; }
+    .task-name { font-size: 15px; font-weight: 650; letter-spacing: -.25px; line-height: 20px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    :is(body, body.light) .task-assignee { color: var(--ui-muted); font-size: 11px; margin-top: 0; }
+    .task-meta-row { margin: 0; gap: 6px; }
+    .task-group-tag, .task-group-tag.tag-grp { background: rgba(110,158,94,.15); color: #527747; font-size: 9px; padding: 2px 5px; font-weight: 600; letter-spacing: .1px; text-transform: none; }
+    .task-group-tag.tag-42 { background: rgba(192,120,64,.15); color: #965826; }
+    body:not(.light) .task-group-tag { color: #C5D4A8; }
+    body:not(.light) .task-group-tag.tag-42 { color: #E1AB80; }
+    .priority-dot { position: absolute; top: 4px; left: 1px; width: 7px; height: 7px; margin: 0; }
+    .accent { order: 0; width: 4px; height: 100%; margin-left: 0; border-radius: 0; }
+    .accent-progress { background: #C07840; } .accent-stuck { background: #B85248; } .accent-done { background: #6E9E5E; }
+    .badge { order: 3; border-radius: 999px; font-size: 11px; line-height: 14px; padding: 5px 8px; font-weight: 650; margin-right: 12px; }
+    .badge-progress { color: var(--ui-progress); background: var(--ui-progress-bg); }
+    .badge-stuck { color: var(--ui-stuck); background: var(--ui-stuck-bg); }
+    .badge-done { color: var(--ui-done); background: var(--ui-done-bg); }
+    .avatar { order: 1; width: 36px; height: 36px; margin: 0 0 0 10px; border: 1px solid var(--ui-line); }
+    .task-name-input { color: var(--ui-ink); background: var(--ui-soft); font-size: 16px; padding: 4px; }
+    .inline-add-row { opacity: 1; color: var(--ui-muted); padding: 12px; font-size: 12px; }
+    :is(body, body.light) .bottom-sheet {
+      --ui-surface: #2A2A25; --ui-soft: #424239; --ui-ink: #F5F2EA; --ui-muted: #C1C3B2; --ui-line: #55564A;
+      --ui-accent: #C5D4A8; --ui-accent-ink: #2A2400; --ui-tint: #C5D4A8; --ui-glass: rgba(42,42,37,.98);
+      background: var(--ui-glass); border: 1px solid var(--ui-line); border-bottom: 0; border-radius: 24px 24px 0 0;
+      box-shadow: 0 -8px 32px rgba(23, 42, 27, .06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    }
+    .sheet-handle-bar { height: 28px; border-radius: 24px 24px 0 0; }
+    :is(body, body.light) .sheet-handle-pill { width: 32px; height: 4px; background: var(--ui-muted); opacity: .38; }
+    .sheet-pinned { height: 60px; gap: 4px; padding: 0 14px 8px; }
+    :is(body, body.light) .sheet-pinned .nav-tab {
+      flex: 1; min-width: 0; min-height: 44px; border: 0; border-radius: 12px; padding: 0 6px;
+      background: transparent; color: var(--ui-muted); font: inherit; font-size: 11px; font-weight: 600; gap: 6px;
+    }
+    .sheet-pinned .nav-tab::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .7; flex-shrink: 0; }
+    :is(body, body.light) .sheet-pinned .chip-stuck.active { background: var(--ui-stuck-bg); color: var(--ui-stuck); }
+    :is(body, body.light) .sheet-pinned .chip-progress.active { background: var(--ui-progress-bg); color: var(--ui-progress); }
+    :is(body, body.light) .sheet-pinned .chip-done.active { background: var(--ui-done-bg); color: var(--ui-done); }
+    .nav-center-avatar { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border: 3px solid var(--ui-surface); background: var(--ui-tint); color: var(--ui-accent-ink); box-shadow: 0 0 0 1px var(--ui-line); font-size: 12px; }
+    .tray-search-bubble { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin-left: 5px; padding: 0; border: 0; border-radius: 50%; background: var(--ui-accent); color: var(--ui-accent-ink); cursor: pointer; }
+    .tray-actions { padding: 6px 16px 16px; gap: 12px; }
+    .tray-scope-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .tray-actions .assignee-tabs { flex: 1; min-width: 0; padding: 4px; gap: 4px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-soft); }
+    :is(body, body.light) .assignee-tab { min-height: 36px; border-radius: 9px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; }
+    :is(body, body.light) .assignee-tab.active { color: var(--ui-ink); background: var(--ui-surface); box-shadow: 0 1px 4px rgba(20,40,24,.07); }
+    .tray-search-trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; border-radius: 14px; border: 1px solid var(--ui-line); background: var(--ui-surface); color: var(--ui-muted); font-size: 13px; padding: 0 12px; }
+    .tray-search-trigger .ui-icon { width: 17px; height: 17px; }
+    .tray-new-task { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 0 14px; border-radius: 14px; background: var(--ui-accent); color: var(--ui-accent-ink); font-size: 13px; font-weight: 650; }
+    .tray-new-task .ui-icon { width: 16px; height: 16px; }
+    .search-overlay-header { border: 1px solid var(--ui-line); border-radius: 20px; background: var(--ui-glass); padding: 8px; box-shadow: var(--ui-shadow); }
+    .search-overlay-pill { height: 48px; border-radius: 13px; background: var(--ui-soft); }
+    .search-overlay-input { color: var(--ui-ink); font-size: 16px; }
+    .search-overlay-input:focus-visible { outline: none; }
+    .search-overlay-pill:focus-within { box-shadow: 0 0 0 2px var(--ui-accent); }
+    .search-overlay-input::placeholder { color: var(--ui-muted); }
+    .search-overlay-icon, .search-clear, .search-exit { color: var(--ui-muted); }
+    .search-exit { width: 40px; height: 44px; }
+    .task-feed-status { padding: 22px; margin: 8px 0 18px; border: 1px solid var(--ui-line); border-radius: 18px; background: var(--ui-surface); color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+    .task-feed-status[hidden] { display: none; }
+    .task-feed-status button { margin-top: 12px; border: 0; padding: 10px 16px; border-radius: 10px; background: var(--ui-accent); color: var(--ui-accent-ink); font: inherit; font-weight: 650; }
+    :is(body, body.light) :is(.modal-sheet, .detail-sheet) { background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line); border-radius: 24px 24px 0 0; padding: 22px max(20px, var(--app-safe-right)) max(24px, var(--app-safe-bottom)) max(20px, var(--app-safe-left)); box-shadow: var(--ui-shadow); }
+    .modal-title { font-size: 23px; letter-spacing: -.6px; font-weight: 700; }
+    :is(body, body.light) :is(.modal-label, .detail-section-label) { color: var(--ui-muted); font-size: 10px; letter-spacing: .8px; margin-top: 18px; }
+    :is(body, body.light) :is(.modal-input, .modal-select, .detail-comment-input) { min-height: 46px; color: var(--ui-ink); background: var(--ui-soft); border: 1px solid var(--ui-line); border-radius: 12px; font-size: 16px; padding: 10px 12px; }
+    :is(body, body.light) .modal-select { padding-right: 36px; background-image: linear-gradient(45deg, transparent 50%, var(--ui-muted) 50%), linear-gradient(135deg, var(--ui-muted) 50%, transparent 50%); background-position: right 18px center, right 13px center; background-size: 5px 5px; background-repeat: no-repeat; }
+    .modal-input::placeholder, .detail-comment-input::placeholder { color: var(--ui-muted); }
+    .btn-add, .btn-cancel, .btn-topic { min-height: 46px; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 650; }
+    .btn-add { background: var(--ui-accent); color: var(--ui-accent-ink); }
+    .btn-cancel { background: var(--ui-soft); color: var(--ui-muted); border: 1px solid var(--ui-line); }
+    .btn-topic { background: var(--ui-soft); color: var(--ui-accent); border-color: var(--ui-line); }
+    .btn-topic.topic-done { background: var(--ui-done-bg); color: var(--ui-done); border-color: var(--ui-line); }
+    .detail-handle { background: var(--ui-line); margin-top: -10px; }
+    .detail-title-text { font-size: 19px; color: var(--ui-ink); letter-spacing: -.4px; }
+    .detail-close { background: var(--ui-soft); color: var(--ui-muted); width: 44px; height: 44px; min-width: 44px; border-radius: 12px; }
+    .detail-section-label { display: block; margin-bottom: 7px; }
+    :is(body, body.light) :is(.detail-meta-chip, .days-old-badge) { background: var(--ui-soft); color: var(--ui-muted); border-color: var(--ui-line); }
+    .detail-pill { background: var(--ui-soft); color: var(--ui-muted); border-color: var(--ui-line); padding: 9px 12px; }
+    .detail-pill.active { background: var(--ui-tint); color: var(--ui-ink); border-color: var(--ui-accent); }
+    .detail-pill.active.pill-stuck, .detail-pill.active.pill-p1 { background: var(--ui-stuck-bg); color: var(--ui-stuck); border-color: var(--ui-stuck); }
+    .detail-pill.active.pill-progress, .detail-pill.active.pill-p2 { background: var(--ui-progress-bg); color: var(--ui-progress); border-color: var(--ui-progress); }
+    .detail-pill.active.pill-done, .detail-pill.active.pill-p3 { background: var(--ui-done-bg); color: var(--ui-done); border-color: var(--ui-done); }
+    :is(body, body.light) .profile-view { background: var(--ui-bg); color: var(--ui-ink); }
+    :is(body, body.light) :is(.profile-card, .settings-card) { background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line); border-radius: 20px; }
+    .profile-card { padding: 28px 20px; }
+    .profile-avatar { border: 4px solid var(--ui-surface); box-shadow: 0 0 0 1px var(--ui-line); background: var(--ui-tint); color: var(--ui-ink); }
+    .profile-name { letter-spacing: -.7px; font-size: 26px; }
+    :is(body, body.light) :is(.profile-subtitle, .profile-back, .settings-row-note) { color: var(--ui-muted); }
+    .settings-title { color: var(--ui-muted); font-size: 10px; letter-spacing: 1.2px; margin-top: 28px; }
+    :is(body, body.light) .settings-row + .settings-row { border-color: var(--ui-line); }
+    .profile-stat { font-size: 11px; font-weight: 650; padding: 8px 11px; border-radius: 10px; }
+    .profile-stat.done { background: var(--ui-done-bg); color: var(--ui-done); }
+    .profile-stat.progress { background: var(--ui-progress-bg); color: var(--ui-progress); }
+    .profile-stat.stuck { background: var(--ui-stuck-bg); color: var(--ui-stuck); }
+    .theme-slider { background: var(--ui-line); }
+    .theme-switch input:checked + .theme-slider { background: var(--ui-accent); }
+    .theme-switch input:checked + .theme-slider::after { background: var(--ui-accent-ink); }
+    .sidebar-trigger { display: none; }
+    .sidebar-panel { background: var(--ui-surface); color: var(--ui-ink); border-color: var(--ui-line); }
+    .sidebar-header { color: var(--ui-muted); border-color: var(--ui-line); }
+    .sidebar-group-name, .sidebar-group-row.active .sidebar-group-name { color: var(--ui-ink); }
+    .sidebar-group-row.active { background: var(--ui-tint); border-left-color: var(--ui-accent); }
+    .sidebar-count-badge, .sidebar-group-row.active .sidebar-count-badge { color: var(--ui-muted); background: var(--ui-soft); }
+    .sidebar-subtitle { color: var(--ui-muted); max-width: 96px; font-size: 10px; }
+    .board-col { background: var(--ui-surface); border: 1px solid var(--ui-line); border-radius: 16px; }
+    :is(body, body.light) .board-card { background: var(--ui-soft); color: var(--ui-ink); border-color: var(--ui-line); box-shadow: none; }
+    :is(body, body.light) .board-card { border-left-color: var(--lane-color, var(--ui-line)); }
+    .board-empty { color: var(--ui-muted); }
+    .board-empty-add { background: var(--ui-accent); color: var(--ui-accent-ink); }
+    @media (max-width: 350px) {
+      .app-title { font-size: 23px; }
+      #nav-planning .section-tab { font-size: 10px; padding-left: 4px; padding-right: 4px; }
+      .sheet-pinned { padding-left: 8px; padding-right: 8px; gap: 0; }
+      :is(body, body.light) .sheet-pinned .nav-tab { font-size: 10px; padding: 0 3px; gap: 4px; }
+      .tray-actions { padding-left: 12px; padding-right: 12px; }
+      .tray-new-task { padding: 0 10px; }
+      .task-name { font-size: 14px; }
+      .task-info { padding-left: 9px; padding-right: 7px; }
+      .badge { font-size: 10px; padding: 5px 7px; margin-right: 8px; }
+      .avatar { width: 32px; height: 32px; margin-left: 8px; }
+    }
+    @media (orientation: landscape) and (min-width: 600px) {
+      .tray-actions { flex-direction: row; align-items: center; }
+      .tray-scope-row { flex: 0 0 40%; }
+      .tray-tools { flex: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body class="light">
+
+  <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
+    <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
+      <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+    </div>
+    <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
+    <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
+      <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
+      <div id="nav-planning" style="display:flex; flex:1; min-width:0; gap:2px;">
+        <button class="section-tab" id="topnav-board" data-qf="board">Rocstars®</button>
+        <button class="section-tab" id="topnav-people" data-qf="people">Roctavos (45d)</button>
+        <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
+        <button class="section-tab active" id="topnav-pending" data-qf="pending">Today</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="profile-view" id="profile-view" aria-hidden="true">
+    <div class="profile-header">
+      <button class="profile-back" id="profile-back" type="button">&lt; Back</button>
+    </div>
+    <div class="profile-card">
+      <div class="profile-avatar">
+        <img class="current-user-photo" alt="User avatar">
+        <span class="current-user-initials">A</span>
+      </div>
+      <div class="profile-name" id="profile-name">Alfred User</div>
+      <div class="profile-subtitle" id="profile-subtitle">Telegram account</div>
+      <div class="profile-stats" aria-label="Task statistics">
+        <span class="profile-stat done"><span id="profile-done-count">0</span> Done</span>
+        <span class="profile-stat progress"><span id="profile-progress-count">0</span> In Progress</span>
+        <span class="profile-stat stuck"><span id="profile-stuck-count">0</span> Stuck</span>
+      </div>
+    </div>
+    <div class="settings-title">Settings</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <span class="settings-row-label">Dark Mode</span>
+        <label class="theme-switch" aria-label="Dark Mode">
+          <input id="dark-mode-toggle" type="checkbox" checked>
+          <span class="theme-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-label">Account</span>
+        <span class="settings-row-note" id="account-row-note">Telegram account ›</span>
+      </div>
+    </div>
+  </section>
+
+  <div id="view-planning">
+  <div id="task-feed-status" class="task-feed-status" role="status" aria-live="polite" hidden>
+    <span id="task-feed-message"></span>
+    <button id="task-feed-retry" type="button" hidden>Try again</button>
+    <button id="task-feed-clear" type="button" hidden>Show all active tasks</button>
+  </div>
+  <div id="task-save-error" class="task-feed-status" role="alert" hidden></div>
+  <!-- Per-user focus task -->
+  <div class="focus-banner focus-hidden" id="focus-banner">
+    <span class="focus-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></span>
+    <div>
+      <div class="focus-label">Focus</div>
+      <div class="focus-task-name" id="focus-task-name"></div>
+    </div>
+  </div>
+
+  <!-- Week 41 -->
+  <div class="week-section" id="section-41">
+    <div class="week-label label-41" onclick="toggleCollapse('section-41')">
+      Active <span class="week-chevron">▼</span>
+    </div>
+    <div class="task-list" id="list-41">
+      <div class="inline-add-row" onclick="showInlineAdd(this,'list-41','Active')">Add task</div>
+      <div class="inline-task-wrap"><input type="text" placeholder="Task name, then Enter..."></div>
+    </div>
+  </div>
+
+  <!-- Done -->
+  <div class="week-section" id="section-42">
+    <div class="week-label label-42" onclick="toggleCollapse('section-42')">
+      Done <span class="week-chevron">▼</span>
+    </div>
+    <div class="task-list" id="list-42">
+      <div class="inline-add-row" onclick="showInlineAdd(this,'list-42','Done')">Add task</div>
+      <div class="inline-task-wrap"><input type="text" placeholder="Task name, then Enter..."></div>
+    </div>
+  </div>
+
+  <!-- This Group -->
+  <div class="week-section" id="section-group">
+    <div class="week-label label-grp" onclick="toggleCollapse('section-group')">
+      This Group <span class="week-chevron">▼</span>
+    </div>
+    <div class="task-list" id="list-group">
+      <div class="inline-add-row" onclick="showInlineAdd(this,'list-group','This Group')">Add task</div>
+      <div class="inline-task-wrap"><input type="text" placeholder="Task name, then Enter..."></div>
+    </div>
+  </div>
+
+  <div id="board-view" class="board-view" style="display:none">
+    <div class="board-columns">
+      <div class="board-col" id="col-stuck"><div class="board-col-header col-header-stuck" role="button" tabindex="0" aria-expanded="true"><span class="board-col-title">🔴 Stuck</span><span class="board-count" id="count-stuck">0</span><span class="board-chevron">⌄</span></div><div class="board-col-body" id="col-body-stuck"></div></div>
+      <div class="board-col" id="col-progress"><div class="board-col-header col-header-progress" role="button" tabindex="0" aria-expanded="true"><span class="board-col-title">🟡 In Progress</span><span class="board-count" id="count-progress">0</span><span class="board-chevron">⌄</span></div><div class="board-col-body" id="col-body-progress"></div></div>
+      <div class="board-col" id="col-done"><div class="board-col-header col-header-done" role="button" tabindex="0" aria-expanded="true"><span class="board-col-title">✅ Done</span><span class="board-count" id="count-done">0</span><span class="board-chevron">⌄</span></div><div class="board-col-body" id="col-body-done"></div></div>
+    </div>
+  </div>
+
+  <div id="today-view" class="today-view" aria-label="Today's tasks"></div>
+
+  </div><!-- /view-planning -->
+
+  <!-- COB banking test: trusted iframe parent is restricted server-side. -->
+  <div id="view-banking" style="display:none">
+    <iframe class="banking-frame" id="banking-frame" title="COB Banking" src="https://alfred.ai/banking/users/sign_in" allow="clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+
+  <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
+  <div class="bottom-sheet" id="bottom-sheet">
+    <button class="sheet-handle-bar" id="sheet-handle" type="button" aria-label="Expand task tray" aria-expanded="false" aria-controls="tray-actions">
+      <span class="sheet-handle-pill" aria-hidden="true"></span>
+    </button>
+    <div class="sheet-pinned">
+      <button class="nav-tab chip-stuck" type="button" data-status="stuck" aria-pressed="false">Stuck</button>
+      <button class="nav-tab chip-progress" type="button" data-status="progress" aria-pressed="false">In Progress</button>
+      <button class="nav-tab chip-done" type="button" data-status="done" aria-pressed="false">Done</button>
+      <button class="tray-search-bubble" id="search-bubble" type="button" aria-label="Search tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg></button>
+    </div>
+
+    <div class="tray-actions" id="tray-actions" hidden>
+      <div class="tray-scope-row">
+        <div class="assignee-tabs" id="assignee-tabs">
+          <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
+          <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
+        </div>
+        <button class="nav-center-avatar" id="profile-trigger" type="button" aria-label="Open profile">
+          <img class="current-user-photo" alt="">
+          <span class="current-user-initials">A</span>
+        </button>
+      </div>
+      <div class="tray-tools">
+        <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>Search tasks</button>
+        <button class="tray-new-task" id="tray-new-task" type="button" aria-label="Create new task"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New task</button>
+      </div>
+    </div>
+
+    <!-- Legacy controls retained only as non-rendered hooks for existing state logic. -->
+    <div class="sheet-expanded" id="sheet-expanded" hidden aria-hidden="true">
+      <div class="sheet-expanded-inner">
+        <!-- More tabs -->
+        <div class="sheet-extra-nav">
+          <div class="nav-tab tab-pending" id="tab-pending">Pending</div>
+          <div class="nav-tab tab-week"   id="tab-week">Week</div>
+          <div class="nav-tab tab-people" id="tab-people">People</div>
+          <div class="nav-tab tab-group"  id="tab-group">Group</div>
+          <div class="nav-tab tab-board"  id="tab-board">Board</div>
+          <div class="nav-tab tab-new"    id="tab-new">+ New</div>
+        </div>
+        <!-- Week sub-picker -->
+        <div class="expand-panel" id="panel-week">
+          <button class="expand-btn btn-all active" data-week="all">All Weeks</button>
+          <button class="expand-btn btn-41" data-week="41">Week 41</button>
+          <button class="expand-btn btn-42" data-week="42">Week 42</button>
+        </div>
+        <!-- People sub-picker -->
+        <div class="expand-panel" id="panel-people">
+          <button class="expand-btn btn-p active" data-person="all">All People</button>
+          <button class="expand-btn btn-p" data-person="12"><span class="p-avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden;width:28px;height:28px;border-radius:50%">${getInitialsAvatar('dro238', 28)}</span> Darren</button>
+          <button class="expand-btn btn-p" data-person="5"><svg class="p-avatar" width="28" height="28" viewBox="0 0 28 28" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="14" fill="#9b2335"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="12" font-family="system-ui,sans-serif" font-weight="600">F</text></svg> Fiorella</button>
+          <button class="expand-btn btn-p" data-person="4"><svg class="p-avatar" width="28" height="28" viewBox="0 0 28 28" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="14" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="12" font-family="system-ui,sans-serif" font-weight="600">A</text></svg> Alfred</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <section class="search-overlay" id="search-overlay" aria-hidden="true">
+    <div class="search-overlay-header">
+      <label class="search-overlay-pill" for="search-overlay-input">
+        <span class="search-overlay-icon" aria-hidden="true">⌕</span>
+        <input class="search-overlay-input" id="search-overlay-input" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Search">
+        <button class="search-clear" id="search-clear" type="button" aria-label="Clear search" hidden>×</button>
+      </label>
+      <button class="search-exit" id="search-exit" type="button" aria-label="Close search">×</button>
+    </div>
+    <div class="search-results" id="search-results"></div>
+    <div class="search-filter-chips" id="search-filter-chips" aria-label="Search field">
+      <button class="search-filter-chip active" type="button" data-search-field="name">By Name</button>
+      <button class="search-filter-chip" type="button" data-search-field="assignee">By Assignee</button>
+      <button class="search-filter-chip" type="button" data-search-field="status">By Status</button>
+    </div>
+  </section>
+
+  <!-- +New modal -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-title" id="create-modal-title">New Task</div>
+      <div class="modal-label" id="create-name-label">Task name</div>
+      <input class="modal-input" id="new-task-name" type="text" placeholder="What needs to get done?">
+      <div class="modal-label">Status</div>
+      <select class="modal-select" id="new-task-status">
+        <option value="progress">In Progress</option>
+        <option value="stuck">Stuck</option>
+        <option value="done">Done</option>
+      </select>
+      <div class="modal-label" id="create-week-label">Week</div>
+      <select class="modal-select" id="new-task-week">
+        <option value="41">Week 41</option>
+        <option value="42">Week 42</option>
+      </select>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-add" id="create-submit" onclick="addTask()">Add Task</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-overlay" id="detail-overlay">
+    <div class="detail-sheet" id="detail-sheet">
+      <div class="detail-handle"></div>
+      <div class="detail-header">
+        <div class="detail-header-left">
+          <img class="detail-assignee-avatar" id="detail-assignee-avatar" src="" alt="">
+        </div>
+        <span class="detail-title-text" id="detail-title">Task name</span>
+        <div class="detail-header-right">
+          <div class="days-old-badge" id="days-old-badge">?</div>
+          <button class="detail-close" id="detail-close">✕</button>
+        </div>
+      </div>
+      <div class="detail-meta-row">
+        <span class="detail-meta-chip" id="detail-group-chip">—</span>
+      </div>
+      <div class="detail-section-label">Goal</div>
+      <input class="modal-input" type="text" id="detail-goal" placeholder="Link to a goal...">
+      <div class="detail-section-label">Status</div>
+      <div class="detail-pills" id="detail-status-pills"><div class="detail-pill pill-stuck" data-s="stuck">Stuck</div><div class="detail-pill pill-progress" data-s="progress">In Progress</div><div class="detail-pill pill-done" data-s="done">Done</div></div>
+      <div class="detail-section-label">Priority</div>
+      <div class="detail-pills" id="detail-priority-pills"><div class="detail-pill pill-p1" data-p="p1">🔴 P1</div><div class="detail-pill pill-p2" data-p="p2">🟡 P2</div><div class="detail-pill pill-p3" data-p="p3">🔵 P3</div></div>
+      <div class="detail-section-label">Due Date</div>
+      <input class="modal-input" type="date" id="detail-due">
+      <div id="detail-overdue" class="detail-overdue" style="display:none">⚠️ Overdue</div>
+      <div class="detail-section-label">Notes</div>
+      <textarea class="modal-input detail-notes" id="detail-notes" rows="2" placeholder="Add notes..."></textarea>
+      <div id="detail-comments-section" style="display:none">
+        <div class="detail-section-label">Comments</div>
+        <div class="detail-comments-list" id="detail-comments-list"></div>
+        <div class="detail-comment-input-row">
+          <input class="detail-comment-input" id="detail-comment-input" type="text" placeholder="Add a comment...">
+          <button class="detail-comment-send" id="detail-comment-send">↑</button>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:8px">
+        <button class="btn-topic" id="detail-topic-btn">🧵 Create Topic</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-trigger" id="sidebar-trigger" role="button" aria-label="Open groups sidebar" tabindex="0"><div class="sidebar-trigger-line"></div></div>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <aside class="sidebar-panel" id="sidebar-panel" aria-label="Groups">
+    <div class="sidebar-header">Spaces</div>
+    <div class="sidebar-body" id="sidebar-body"></div>
+  </aside>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    let darkModeEnabled = localStorage.getItem('alfred-dark-mode') === 'true';
+    function applyTheme() {
+      const isLight = !darkModeEnabled;
+      document.body.classList.toggle('light', isLight);
+      const bg = getComputedStyle(document.body).getPropertyValue('--ui-bg').trim();
+      if (tg) { tg.setBackgroundColor(bg); tg.setHeaderColor(bg); }
+    }
+    if (tg) {
+      const root = document.documentElement;
+      root.dataset.telegramPlatform = tg.platform || '';
+      let deviceInsetsKnown = tg.isFullscreen && Object.values(tg.safeAreaInset || {}).some(value => value > 0);
+      let contentInsetsKnown = tg.isFullscreen && (tg.contentSafeAreaInset?.top || 0) > 0;
+      function syncReportedInsets() {
+        root.classList.toggle('telegram-device-insets-known', deviceInsetsKnown);
+        root.classList.toggle('telegram-content-insets-known', contentInsetsKnown);
+      }
+      tg.onEvent('safeAreaChanged', () => { deviceInsetsKnown = !!tg.isFullscreen; syncReportedInsets(); });
+      tg.onEvent('contentSafeAreaChanged', () => {
+        contentInsetsKnown = tg.isFullscreen && (tg.contentSafeAreaInset?.top || 0) > 0;
+        syncReportedInsets();
+      });
+      syncReportedInsets();
+      let fullscreenPending = false;
+      function syncFullscreenClearance() {
+        document.documentElement.classList.toggle('telegram-fullscreen', fullscreenPending || tg.isFullscreen);
+      }
+      function finishFullscreenRequest() {
+        fullscreenPending = false;
+        if (!tg.isFullscreen) {
+          deviceInsetsKnown = false;
+          contentInsetsKnown = false;
+          syncReportedInsets();
+        }
+        syncFullscreenClearance();
+      }
+      tg.onEvent('fullscreenChanged', finishFullscreenRequest);
+      tg.onEvent('fullscreenFailed', finishFullscreenRequest);
+      syncFullscreenClearance();
+      tg.expand();
+      if (tg.requestFullscreen && tg.isVersionAtLeast('8.0') && !tg.isFullscreen) {
+        // Move controls down before the native fullscreen animation starts.
+        fullscreenPending = true;
+        syncFullscreenClearance();
+        try {
+          tg.requestFullscreen();
+        } catch (_) {
+          finishFullscreenRequest();
+        }
+      }
+      tg.onEvent('themeChanged', applyTheme);
+    }
+    applyTheme();
+
+    // Focus banner
+    const FOCUS = { '1078092674': 'COB review' };
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
+      ? String(tg.initDataUnsafe.user.id) : null;
+    const telegramUser = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
+    const displayName = telegramUser
+      ? [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || telegramUser.username || 'Alfred User'
+      : 'Alfred User';
+    const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'A';
+    document.getElementById('profile-name').textContent = displayName;
+    document.getElementById('profile-subtitle').textContent = telegramUser && telegramUser.username ? '@' + telegramUser.username : 'Telegram account';
+    document.getElementById('account-row-note').textContent = telegramUser && telegramUser.username ? '@' + telegramUser.username + ' ›' : 'Telegram account ›';
+    document.querySelectorAll('.current-user-initials').forEach(node => { node.textContent = initials; });
+    if (telegramUser && telegramUser.photo_url) {
+      document.querySelectorAll('.current-user-photo').forEach(photo => {
+        photo.src = telegramUser.photo_url;
+        photo.style.display = 'block';
+        photo.addEventListener('load', () => {
+          const fallback = photo.nextElementSibling;
+          if (fallback) fallback.style.display = 'none';
+        }, { once: true });
+      });
+    }
+    if (userId && FOCUS[userId]) {
+      document.getElementById('focus-task-name').textContent = FOCUS[userId];
+      document.getElementById('focus-banner').classList.remove('focus-hidden');
+    }
+
+    const profileView = document.getElementById('profile-view');
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    darkModeToggle.checked = darkModeEnabled;
+    function updateProfileStats() {
+      const counts = { done: 0, progress: 0, stuck: 0 };
+      document.querySelectorAll('.task-row').forEach(row => {
+        if (Object.prototype.hasOwnProperty.call(counts, row.dataset.status)) counts[row.dataset.status] += 1;
+      });
+      document.getElementById('profile-done-count').textContent = counts.done;
+      document.getElementById('profile-progress-count').textContent = counts.progress;
+      document.getElementById('profile-stuck-count').textContent = counts.stuck;
+    }
+    function openProfile() {
+      closeAllPanels();
+      updateProfileStats();
+      profileView.classList.add('open');
+      profileView.setAttribute('aria-hidden', 'false');
+      if (tg && tg.BackButton) tg.BackButton.show();
+    }
+    function closeProfile() {
+      profileView.classList.remove('open');
+      profileView.setAttribute('aria-hidden', 'true');
+      if (tg && tg.BackButton) tg.BackButton.hide();
+    }
+    document.getElementById('profile-back').addEventListener('click', closeProfile);
+    darkModeToggle.addEventListener('change', () => {
+      darkModeEnabled = darkModeToggle.checked;
+      localStorage.setItem('alfred-dark-mode', String(darkModeEnabled));
+      applyTheme();
+    });
+    if (tg && tg.BackButton) tg.BackButton.onClick(closeProfile);
+
+    // Drag-and-drop
+    const sortables = {};
+    ['list-41','list-42','list-group'].forEach(id => {
+      sortables[id] = Sortable.create(document.getElementById(id), {
+        group: 'tasks', animation: 150,
+        ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+        delay: 120, delayOnTouchOnly: true, forceFallback: true, fallbackTolerance: 3,
+        onEnd: assignTaskNumbers,
+      });
+    });
+
+    // Collapse/expand individual sections
+    function toggleCollapse(id) {
+      document.getElementById(id).classList.toggle('collapsed');
+    }
+
+    // ── State ──
+    let activeStatus = null;
+    let activePersonId = null;
+    let weekFilter = 'all';
+    let groupVisible = true;
+    let searchQuery = '';
+    let allTasks = [];
+    let activeGroupFilter = null;
+    let activeAssigneeFilter = 'me';
+
+    const API_BASE = ''; // Same-origin route to the existing local Tasks API.
+    let taskFeedState = 'loading';
+    let taskFeedRequest = null;
+    let taskFeedScope = null;
+    let taskFeedCanViewAll = true;
+    // Keep the full searchable list, but build swipe controls only near the viewport.
+    const taskRowObserver = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && entry.target.isConnected && !entry.target.classList.contains('hidden')) {
+              enhanceRow(entry.target);
+              taskRowObserver.unobserve(entry.target);
+            }
+          });
+        }, { rootMargin: '350px' })
+      : null;
+    const prepareTaskInteraction = event => {
+      const row = event.target.closest('.task-row');
+      if (row && row.closest('.week-section')) enhanceRow(row);
+    };
+    ['touchstart', 'mousedown', 'click'].forEach(type => {
+      document.getElementById('view-planning').addEventListener(type, prepareTaskInteraction, { capture: true, passive: true });
+    });
+
+    function taskApiFetch(path, options = {}) {
+      return fetch(API_BASE + path, {
+        ...options,
+        headers: { ...options.headers, 'X-Telegram-Init-Data': tg?.initData || '' },
+      });
+    }
+
+    // Map API status text → internal status key
+    function apiStatusToKey(s) {
+      if (!s) return 'progress';
+      const m = { 'Stuck': 'stuck', 'In Progress': 'progress', 'Done': 'done' };
+      return m[s] || 'progress';
+    }
+
+    // Simple hash for avatar seed from string
+
+    function getInitialsAvatar(assignee, size) {
+      size = size || 36;
+      var label = '';
+      var bg = '#4a7c59';
+      if (!assignee || assignee === 'null') { label = '?'; bg = '#888'; }
+      else if (assignee === 'dro238') { label = 'D'; bg = '#2d6a4f'; }
+      else if (assignee === '@hintxorg' || assignee === '@Hintxorg') { label = 'S'; bg = '#6b3fa0'; }
+      else { label = assignee.replace(/^@/, '').charAt(0).toUpperCase(); }
+      return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" style="border-radius:50%;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + (size/2) + '" fill="' + bg + '"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="' + Math.round(size*0.42) + '" font-family="system-ui,sans-serif" font-weight="600">' + label + '</text></svg>';
+    }
+
+    function hashStr(s) {
+    function getInitialsAvatar(assignee, size) {
+      size = size || 36;
+      var label = '';
+      var bg = '#4a7c59';
+      if (!assignee || assignee === 'null') { label = '?'; bg = '#888'; }
+      else if (assignee === 'dro238') { label = 'D'; bg = '#2d6a4f'; }
+      else if (assignee === '@hintxorg' || assignee === '@Hintxorg') { label = 'S'; bg = '#6b3fa0'; }
+      else { label = assignee.replace(/^@/, '').charAt(0).toUpperCase(); }
+      return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" style="border-radius:50%;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + (size/2) + '" fill="' + bg + '"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="' + Math.round(size*0.42) + '" font-family="system-ui,sans-serif" font-weight="600">' + label + '</text></svg>';
+    }
+
+      let h = 0;
+      for (let i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) & 0x7fffffff;
+      return h;
+    }
+
+    function renderApiTask(t) {
+      const statusKey = apiStatusToKey(t.status);
+      const meta = statusMeta[statusKey];
+      const priorityClass = t.is_priority ? 'dot-p1' : 'dot-p2';
+      const avatarSeed = (hashStr(t.assignee || '') % 70) + 1;
+      const assigneeLabel = t.assignee_name || t.assignee || (t.assignee_id ? String(t.assignee_id) : 'Unassigned');
+      const rawGroupLabel = t.group_name || 'Ungrouped';
+      const groupLabel = /^-\d{7,}$/.test(rawGroupLabel) ? '\u2026' + rawGroupLabel.slice(-4) : rawGroupLabel;
+      const tagClass = statusKey === 'done' ? 'tag-42' : '';
+      const escapeText = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const row = document.createElement('div');
+      row.className = 'task-row';
+      row.dataset.status = statusKey;
+      row.dataset.person = String(avatarSeed);
+      row.dataset.priority = t.is_priority ? 'p1' : 'p2';
+      row.dataset.due = '';
+      row.dataset.notes = '';
+      row.dataset.goal = '';
+      row.dataset.group = groupLabel;
+      row.dataset.assignee = t.assignee || assigneeLabel;
+      row.dataset.assigneeId = String(t.assignee_id || '');
+      row.dataset.comments = '[]';
+      row.dataset.taskId = String(t.id);
+      row.innerHTML = [
+        `<span class="drag-handle" aria-hidden="true" style="color:#999;font-size:14px;padding:0 2px 0 10px;cursor:grab;order:0;flex-shrink:0;touch-action:auto;user-select:none;">⠣</span>`,
+        `<div class="accent ${meta[0]}"></div>`,
+        `<span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden" onclick="filterPersonAvatar(event,'${avatarSeed}')">${getInitialsAvatar(t.assignee, 36)}</span>`,
+        `<div class="task-info">`,
+        `  <span class="priority-dot ${priorityClass}"></span>`,
+        `  <span class="task-name">${escapeText(t.task)}</span>`,
+        `  <div class="task-meta-row">`,
+        `    <span class="task-assignee">${escapeText(assigneeLabel)}</span>`,
+        `    <span class="task-group-tag ${tagClass}">${escapeText(groupLabel)}</span>`,
+        `  </div>`,
+        `</div>`,
+        `<span class="badge ${meta[1]}">${meta[2]}</span>`,
+        `<button class="task-delete-btn" type="button" aria-label="Delete task" style="border:none;background:transparent;color:#999;font-size:16px;padding:0 8px 0 4px;cursor:pointer;flex-shrink:0;order:5;-webkit-tap-highlight-color:transparent;">🗑</button>`,
+      ].join('');
+      return row;
+    }
+
+    function updateTaskFeedStatus() {
+      const status = document.getElementById('task-feed-status');
+      const message = document.getElementById('task-feed-message');
+      const retry = document.getElementById('task-feed-retry');
+      const clear = document.getElementById('task-feed-clear');
+      const visible = todayActive
+        ? todayView.children.length
+        : allTasks.filter(row => !row.classList.contains('hidden') && !row.closest('.week-hidden')).length;
+      status.hidden = boardActive || (taskFeedState === 'ready' && visible > 0);
+      retry.hidden = taskFeedState !== 'error';
+      clear.hidden = taskFeedState !== 'ready' || visible > 0 || allTasks.length === 0;
+      if (taskFeedState === 'loading') message.textContent = 'Loading tasks…';
+      else if (taskFeedState === 'error') message.textContent = 'Could not load tasks. Try again.';
+      else message.textContent = allTasks.length
+        ? 'No tasks match these filters.'
+        : 'No tasks yet.';
+    }
+
+    async function loadTasks() {
+      const scope = activeAssigneeFilter === 'all' ? 'all' : 'me';
+      if (taskFeedRequest && taskFeedScope === scope) return;
+      if (taskFeedRequest) taskFeedRequest.abort();
+      const controller = new AbortController();
+      taskFeedRequest = controller;
+      taskFeedScope = scope;
+      taskFeedState = 'loading';
+      updateTaskFeedStatus();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      try {
+        const tasks = [];
+        const cursors = new Set();
+        let cursor = null;
+        do {
+          const params = new URLSearchParams({ scope, limit: '200' });
+          if (scope === 'me' && userId) params.set('user_id', userId);
+          if (cursor !== null) params.set('before_id', cursor);
+          const response = await taskApiFetch('/api/tasks?' + params, { signal: controller.signal });
+          if (!response.ok) throw new Error('Task feed HTTP ' + response.status);
+          const page = await response.json();
+          if (!page || !Array.isArray(page.tasks) || page.tasks.some(task => !task || typeof task.task !== 'string' || task.id == null)) {
+            throw new Error('Invalid task feed');
+          }
+          if (taskFeedRequest !== controller) return;
+          tasks.push(...page.tasks);
+          taskFeedCanViewAll = page.can_view_all === true;
+          cursor = page.next_cursor ?? null;
+          if (cursor !== null) {
+            if (!page.tasks.length || cursors.has(String(cursor))) throw new Error('Invalid task cursor');
+            cursors.add(String(cursor));
+          }
+        } while (cursor !== null);
+        if (taskFeedRequest !== controller) return;
+        const uniqueTasks = Array.from(new Map(tasks.map(task => [String(task.id), task])).values());
+        const rows = uniqueTasks.map(renderApiTask);
+        // Replace the previous feed only after all pages have loaded successfully.
+        if (taskRowObserver) taskRowObserver.disconnect();
+        document.querySelectorAll('.week-section .task-row[data-task-id]').forEach(row => {
+          (row.closest('.swipe-wrapper') || row).remove();
+        });
+        rows.forEach(row => {
+          const list = document.getElementById(row.dataset.status === 'done' ? 'list-42' : 'list-41');
+          list.insertBefore(row, list.querySelector('.inline-add-row'));
+          ensureSwipeWrapper(row);
+          if (taskRowObserver) taskRowObserver.observe(row);
+          else enhanceRow(row);
+        });
+        assignTaskNumbers();
+        taskFeedState = 'ready';
+        document.getElementById('assignee-tab-all').disabled = !taskFeedCanViewAll;
+        applyAllFilters();
+        renderSidebarGroups();
+      } catch (error) {
+        if (taskFeedRequest !== controller) return;
+        taskFeedState = 'error';
+        console.error('loadTasks error:', error);
+      } finally {
+        clearTimeout(timeout);
+        if (taskFeedRequest === controller) {
+          taskFeedRequest = null;
+          updateTaskFeedStatus();
+        }
+      }
+    }
+
+    document.getElementById('task-feed-retry').addEventListener('click', loadTasks);
+    document.getElementById('task-feed-clear').addEventListener('click', () => {
+      activeGroupFilter = null;
+      activeAssigneeFilter = taskFeedCanViewAll ? 'all' : 'me';
+      activeStatus = 'pending';
+      activePersonId = null;
+      weekFilter = 'all';
+      groupVisible = true;
+      searchQuery = '';
+      searchOverlayInput.value = '';
+      document.querySelectorAll('.assignee-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.assignee === activeAssigneeFilter));
+      document.querySelectorAll('.nav-tab[data-status]').forEach(tab => tab.classList.remove('active'));
+      document.getElementById('tab-pending').classList.add('active');
+      selectGroup(null);
+      loadTasks();
+    });
+
+
+    let searchField = 'name';
+
+    function syncAllTasks() {
+      allTasks = Array.from(document.querySelectorAll('.week-section .task-row'));
+      return allTasks;
+    }
+
+    // Auto-hide sections with no visible tasks
+    function updateSectionVisibility() {
+      ['section-41','section-42','section-group'].forEach(secId => {
+        const sec = document.getElementById(secId);
+        const visibleRows = sec.querySelectorAll('.task-row:not(.hidden)');
+        sec.classList.toggle('section-empty', visibleRows.length === 0);
+      });
+      // Week filter overrides
+      document.getElementById('section-41').classList.toggle('week-hidden', weekFilter === '42');
+      document.getElementById('section-42').classList.toggle('week-hidden', weekFilter === '41');
+      document.getElementById('section-group').classList.toggle('week-hidden', !groupVisible);
+    }
+
+    function applyAllFilters() {
+      syncAllTasks();
+      document.querySelectorAll('.sheet-pinned [data-status], .assignee-tab, #nav-planning .section-tab').forEach(control => {
+        control.setAttribute('aria-pressed', String(control.classList.contains('active')));
+      });
+      document.querySelectorAll('.task-row').forEach(row => {
+        const statusOk = !activeStatus
+          || (activeStatus === 'pending' ? row.dataset.status !== 'done' : row.dataset.status === activeStatus);
+        const personOk = !activePersonId || row.dataset.person === activePersonId;
+        const searchOk = !searchQuery || row.querySelector('.task-name').textContent.toLowerCase().includes(searchQuery.toLowerCase());
+        const groupOk = !activeGroupFilter || (row.dataset.group || '') === activeGroupFilter;
+        const assigneeOk = activeAssigneeFilter === 'all' || isAssignedToCurrentUser(row);
+        const hidden = !(statusOk && personOk && searchOk && groupOk && assigneeOk);
+        row.classList.toggle('hidden', hidden);
+        const wrapper = row.closest('.swipe-wrapper');
+        if (wrapper) wrapper.classList.toggle('hidden-wrapper', hidden);
+      });
+      updateSectionVisibility();
+      if (boardActive) buildBoard();
+      if (todayActive) buildTodayView();
+      updateTaskFeedStatus();
+    }
+
+    const searchOverlay = document.getElementById('search-overlay');
+    const searchOverlayInput = document.getElementById('search-overlay-input');
+    const searchResults = document.getElementById('search-results');
+    const searchClear = document.getElementById('search-clear');
+    let searchHistoryActive = false;
+    let searchBlurTimer = null;
+
+    function renderSearchResults() {
+      searchQuery = searchOverlayInput.value.trim();
+      searchClear.hidden = !searchQuery;
+      applyAllFilters();
+    }
+
+    function updateKeyboardGlue() {
+      const viewport = window.visualViewport;
+      const visibleBottom = Math.min(
+        window.innerHeight,
+        viewport ? viewport.height + viewport.offsetTop : window.innerHeight,
+        tg?.viewportHeight > 0 ? tg.viewportHeight : window.innerHeight
+      );
+      const keyboardHeight = Math.max(0, window.innerHeight - visibleBottom);
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--search-bottom-inset', keyboardHeight > 80
+        ? keyboardHeight + 'px'
+        : 'calc(var(--app-safe-bottom) + ' + keyboardHeight + 'px)');
+      const dock = document.querySelector('.search-overlay-header');
+      rootStyle.setProperty('--search-dock-height', dock.getBoundingClientRect().height + 'px');
+    }
+
+    function openSearchMode() {
+      setTrayExpanded(false);
+      closeSidebar();
+      closeAllPanels();
+      exitBoardView();
+      setTodayMode(false);
+      activeStatus = null;
+      activePersonId = null;
+      weekFilter = 'all';
+      groupVisible = true;
+      activeAssigneeFilter = taskFeedCanViewAll ? 'all' : 'me';
+      if (taskFeedScope !== activeAssigneeFilter) loadTasks();
+      document.querySelectorAll('.assignee-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.assignee === activeAssigneeFilter));
+      document.querySelectorAll('.nav-tab[data-status]').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('#nav-planning .section-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.qf === 'week'));
+      searchOverlay.classList.add('open');
+      searchOverlay.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('search-mode');
+      searchOverlayInput.value = '';
+      searchQuery = '';
+      searchField = 'name';
+      document.querySelectorAll('.search-filter-chip').forEach(chip => chip.classList.toggle('active', chip.dataset.searchField === 'name'));
+      renderSearchResults();
+      updateKeyboardGlue();
+      if (!searchHistoryActive) {
+        history.pushState({ alfredSearch: true }, '');
+        searchHistoryActive = true;
+      }
+      if (tg && tg.BackButton) tg.BackButton.show();
+      searchOverlayInput.focus({ preventScroll: true });
+      requestAnimationFrame(() => searchOverlayInput.focus({ preventScroll: true }));
+    }
+
+    function closeSearchMode(fromHistory = false) {
+      if (!searchOverlay.classList.contains('open')) return;
+      clearTimeout(searchBlurTimer);
+      searchOverlayInput.blur();
+      searchOverlay.classList.remove('open');
+      searchOverlay.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('search-mode');
+      searchOverlayInput.value = '';
+      searchQuery = '';
+      searchClear.hidden = true;
+      applyAllFilters();
+      searchResults.replaceChildren();
+      document.documentElement.style.removeProperty('--search-bottom-inset');
+      document.documentElement.style.removeProperty('--search-dock-height');
+      if (tg && tg.BackButton && !profileView.classList.contains('open')) tg.BackButton.hide();
+      if (searchHistoryActive && !fromHistory) {
+        searchHistoryActive = false;
+        history.back();
+      } else {
+        searchHistoryActive = false;
+      }
+    }
+
+    searchOverlayInput.addEventListener('input', renderSearchResults);
+    searchClear.addEventListener('click', event => {
+      event.preventDefault();
+      searchOverlayInput.value = '';
+      renderSearchResults();
+      searchOverlayInput.focus({ preventScroll: true });
+    });
+    document.getElementById('search-exit').addEventListener('click', () => closeSearchMode());
+    document.querySelectorAll('.search-filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        searchField = chip.dataset.searchField;
+        document.querySelectorAll('.search-filter-chip').forEach(item => item.classList.toggle('active', item === chip));
+        renderSearchResults();
+        searchOverlayInput.focus({ preventScroll: true });
+      });
+    });
+    searchOverlayInput.addEventListener('blur', () => {
+      searchBlurTimer = setTimeout(() => {
+        if (searchOverlay.classList.contains('open') && document.activeElement !== searchOverlayInput) closeSearchMode();
+      }, 120);
+    });
+    searchOverlayInput.addEventListener('focus', () => clearTimeout(searchBlurTimer));
+    window.addEventListener('popstate', () => {
+      if (searchOverlay.classList.contains('open')) closeSearchMode(true);
+    });
+    if (tg && tg.BackButton) {
+      tg.BackButton.onClick(() => {
+        if (searchOverlay.classList.contains('open')) closeSearchMode();
+      });
+    }
+    if (tg) tg.onEvent('viewportChanged', updateKeyboardGlue);
+    window.addEventListener('resize', updateKeyboardGlue);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateKeyboardGlue);
+      window.visualViewport.addEventListener('scroll', updateKeyboardGlue);
+    }
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && searchOverlay.classList.contains('open')) closeSearchMode();
+    });
+
+    // Status tabs
+    document.querySelectorAll('.nav-tab[data-status]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        closeAllPanels();
+        exitBoardView();
+        setTodayMode(false);
+        document.querySelectorAll('#nav-planning .section-tab').forEach(item => item.classList.toggle('active', item.dataset.qf === 'week'));
+        const s = tab.dataset.status;
+        const pendingTab = document.getElementById('tab-pending');
+        pendingTab.classList.remove('active');
+        if (activeStatus === s) {
+          activeStatus = null; tab.classList.remove('active');
+        } else {
+          activeStatus = s;
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+        }
+        applyAllFilters();
+      });
+    });
+
+    // Pending tab — shows Stuck + In Progress, hides Done
+    const tabPending = document.getElementById('tab-pending');
+    tabPending.addEventListener('click', () => {
+      closeAllPanels();
+      if (activeStatus === 'pending') {
+        activeStatus = null; tabPending.classList.remove('active');
+      } else {
+        activeStatus = 'pending';
+        document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+        tabPending.classList.add('active');
+      }
+      applyAllFilters();
+    });
+
+    // Week tab — toggle panel
+    const tabWeek = document.getElementById('tab-week');
+    const panelWeek = document.getElementById('panel-week');
+    tabWeek.addEventListener('click', () => {
+      const open = panelWeek.classList.toggle('open');
+      if (open) { panelPeople.classList.remove('open'); tabPeople.classList.remove('active'); }
+      tabWeek.classList.toggle('active', open);
+    });
+    panelWeek.querySelectorAll('.expand-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        weekFilter = btn.dataset.week;
+        panelWeek.querySelectorAll('.expand-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        tabWeek.textContent = weekFilter === 'all' ? 'Week' : 'Wk ' + weekFilter;
+        panelWeek.classList.remove('open');
+        tabWeek.classList.toggle('active', weekFilter !== 'all');
+        applyAllFilters();
+      });
+    });
+
+    // People tab — toggle panel
+    const tabPeople = document.getElementById('tab-people');
+    const panelPeople = document.getElementById('panel-people');
+    tabPeople.addEventListener('click', () => {
+      const open = panelPeople.classList.toggle('open');
+      if (open) { panelWeek.classList.remove('open'); tabWeek.classList.remove('active'); }
+      tabPeople.classList.toggle('active', open || !!activePersonId);
+    });
+    panelPeople.querySelectorAll('.expand-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = btn.dataset.person;
+        activePersonId = pid === 'all' ? null : pid;
+        panelPeople.querySelectorAll('.expand-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // sync task-row avatars
+        document.querySelectorAll('.task-row .avatar').forEach(a => a.classList.remove('active-filter'));
+        panelPeople.classList.remove('open');
+        tabPeople.classList.toggle('active', !!activePersonId);
+        applyAllFilters();
+      });
+    });
+
+    // Avatar tap in task row
+    function filterPersonAvatar(e, personId) {
+      e.stopPropagation();
+      closeAllPanels();
+      if (activePersonId === personId) {
+        activePersonId = null;
+        document.querySelectorAll('.task-row .avatar').forEach(a => a.classList.remove('active-filter'));
+        tabPeople.classList.remove('active');
+        panelPeople.querySelectorAll('.expand-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.person === 'all');
+        });
+      } else {
+        activePersonId = personId;
+        document.querySelectorAll('.task-row .avatar').forEach(a => a.classList.remove('active-filter'));
+        e.target.classList.add('active-filter');
+        tabPeople.classList.add('active');
+        panelPeople.querySelectorAll('.expand-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.person === personId);
+        });
+      }
+      applyAllFilters();
+    }
+
+    // Group tab
+    const tabGroup = document.getElementById('tab-group');
+    tabGroup.addEventListener('click', () => {
+      closeAllPanels();
+      groupVisible = !groupVisible;
+      tabGroup.classList.toggle('active', groupVisible);
+      updateSectionVisibility();
+    });
+    function closeAllPanels() {
+      panelWeek.classList.remove('open');
+      panelPeople.classList.remove('open');
+    }
+
+    // Close panels on body tap (not inside the bottom sheet)
+    document.body.addEventListener('click', e => {
+      if (!e.target.closest('.bottom-sheet')) {
+        closeAllPanels();
+      }
+    });
+
+    // Contextual create flow shared by the tray and goal board.
+    let createMode = 'task';
+    function openCreateFlow() {
+      setTrayExpanded(false);
+      closeAllPanels();
+      createMode = (typeof boardActive !== 'undefined' && boardActive) ? 'goal' : 'task';
+      const isGoal = createMode === 'goal';
+      document.getElementById('create-modal-title').textContent = isGoal ? 'New Goal' : 'New Task';
+      document.getElementById('create-name-label').textContent = isGoal ? 'Goal name' : 'Task name';
+      document.getElementById('new-task-name').placeholder = isGoal ? 'What do you want to achieve?' : 'What needs to get done?';
+      document.getElementById('create-week-label').style.display = isGoal ? 'none' : '';
+      document.getElementById('new-task-week').style.display = isGoal ? 'none' : '';
+      document.getElementById('create-submit').textContent = isGoal ? 'Add Goal' : 'Add Task';
+      document.getElementById('modal-overlay').classList.add('open');
+      setTimeout(() => document.getElementById('new-task-name').focus(), 100);
+    }
+    document.getElementById('tab-new').addEventListener('click', openCreateFlow);
+    document.getElementById('tray-new-task').addEventListener('click', openCreateFlow);
+    function closeModal(e) {
+      if (!e || e.target === document.getElementById('modal-overlay')) {
+        document.getElementById('modal-overlay').classList.remove('open');
+      }
+    }
+    function addTask() {
+      const name = document.getElementById('new-task-name').value.trim();
+      if (!name) return;
+      const status = document.getElementById('new-task-status').value;
+      const week   = document.getElementById('new-task-week').value;
+      const badgeClass  = status === 'done' ? 'badge-done' : status === 'stuck' ? 'badge-stuck' : 'badge-progress';
+      const accentClass = status === 'done' ? 'accent-done' : status === 'stuck' ? 'accent-stuck' : 'accent-progress';
+      const badgeLabel  = status === 'done' ? 'Done' : status === 'stuck' ? 'Stuck' : 'In Progress';
+      const row = document.createElement('div');
+      row.className = 'task-row'; row.dataset.status = status; row.dataset.person = '4'; row.dataset.comments = '[]';
+      row.innerHTML = `<div class="accent ${accentClass}"></div>
+        <span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><svg width="36" height="36" viewBox="0 0 36 36" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui,sans-serif" font-weight="600">A</text></svg></span>
+        <div class="task-info"><span class="task-name">${name}</span><span class="task-assignee">Alfred</span></div>
+        <span class="badge ${badgeClass}">${badgeLabel}</span>`;
+      document.getElementById('list-' + week).appendChild(row);
+      document.getElementById('new-task-name').value = '';
+      document.getElementById('modal-overlay').classList.remove('open');
+      applyAllFilters();
+    }
+
+    // Advanced task interactions
+    const statusMeta = {
+      stuck: ['accent-stuck', 'badge-stuck', 'Stuck'],
+      progress: ['accent-progress', 'badge-progress', 'In Progress'],
+      done: ['accent-done', 'badge-done', 'Done']
+    };
+
+    function updateRowStatus(row, status, flash) {
+      row.dataset.status = status;
+      const meta = statusMeta[status];
+      row.querySelector('.accent').className = 'accent ' + meta[0];
+      const badge = row.querySelector('.badge');
+      badge.className = 'badge ' + meta[1];
+      badge.textContent = meta[2];
+      if (flash) {
+        row.classList.remove('done-flash');
+        void row.offsetWidth;
+        row.classList.add('done-flash');
+        setTimeout(() => row.classList.remove('done-flash'), 500);
+      }
+      applyAllFilters();
+    }
+
+    function snapClosed(row) {
+      row.style.transition = 'transform 0.22s ease';
+      row.style.transform = 'translateX(0)';
+      row.classList.remove('swiped-open');
+    }
+
+    function closeOtherSwipes(row) {
+      document.querySelectorAll('.task-row.swiped-open').forEach(other => {
+        if (other !== row) snapClosed(other);
+      });
+    }
+
+    function deleteRow(row) {
+      const wrapper = row.closest('.swipe-wrapper');
+      row.style.opacity = '0';
+      wrapper.style.height = wrapper.offsetHeight + 'px';
+      wrapper.style.transition = 'height 0.25s, margin 0.25s';
+      void wrapper.offsetHeight;
+      wrapper.style.height = '0';
+      wrapper.style.marginBottom = '0';
+      setTimeout(() => { wrapper.remove(); assignTaskNumbers(); applyAllFilters(); }, 260);
+    }
+
+    function deleteRowWithUndo(row) {
+      const wrapper = row.closest('.swipe-wrapper') || row.parentNode;
+      if (!wrapper) return;
+      const list = wrapper.parentNode;
+      if (!list) return;
+      const origIdx = Array.from(list.children).indexOf(wrapper);
+      snapClosed(row);
+      wrapper.style.opacity = '0.4';
+      row.style.color = '#aaa';
+      const addRow = list.querySelector('.inline-add-row');
+      if (addRow) list.insertBefore(wrapper, addRow); else list.appendChild(wrapper);
+      const existing = wrapper.querySelector('.task-undo-btn');
+      if (existing) existing.remove();
+      const undoBtn = document.createElement('button');
+      undoBtn.className = 'task-undo-btn';
+      undoBtn.textContent = 'Undo';
+      undoBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 10px;border-radius:6px;background:#2A2A25;color:#C5D4A8;border:none;font-size:12px;font-weight:700;z-index:10;cursor:pointer;pointer-events:auto;';
+      wrapper.style.position = 'relative';
+      wrapper.appendChild(undoBtn);
+      let undone = false;
+      const timer = setTimeout(function() {
+        if (!undone) {
+          const taskId = row.dataset.taskId;
+          if (taskId) { taskApiFetch('/api/tasks/' + taskId, { method: 'DELETE' }).catch(function(e) { console.warn('Delete failed:', e); }); }
+          wrapper.style.position = '';
+          deleteRow(row);
+        }
+      }, 5000);
+      undoBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        undone = true; clearTimeout(timer);
+        undoBtn.remove();
+        wrapper.style.opacity = ''; wrapper.style.position = ''; row.style.color = '';
+        const kids = Array.from(list.children);
+        const target = kids[Math.min(origIdx, kids.length - 1)];
+        if (target && target !== wrapper) list.insertBefore(wrapper, target); else list.appendChild(wrapper);
+        applyAllFilters();
+      });
+    }
+
+    let activeTaskEditor = null;
+
+    function createInlineTaskBelow(row) {
+      const list = row.closest('.task-list');
+      const currentWrapper = row.closest('.swipe-wrapper');
+      const nextWrapper = createTaskWrapper('', row.dataset.status || 'progress', list.id);
+      const nextRow = nextWrapper.querySelector('.task-row');
+      nextRow.dataset.inlineNew = '1';
+      nextRow.dataset.person = row.dataset.person || '4';
+      nextRow.dataset.assignee = row.dataset.assignee || 'Alfred';
+      const assignee = nextRow.querySelector('.task-assignee');
+      if (assignee) assignee.textContent = nextRow.dataset.assignee;
+      const sourceAvatar = row.querySelector('.avatar');
+      const nextAvatar = nextRow.querySelector('.avatar');
+      if (sourceAvatar && nextAvatar) nextAvatar.src = sourceAvatar.src;
+      currentWrapper.parentNode.insertBefore(nextWrapper, currentWrapper.nextSibling);
+      assignTaskNumbers();
+      return nextRow;
+    }
+
+    function finishInlineTaskEdit(cancel = false, createNext = false) {
+      const editor = activeTaskEditor;
+      if (!editor) return;
+      activeTaskEditor = null;
+      const { input, row, original, displayNode, todayItem } = editor;
+      const value = input.value.trim();
+      const name = cancel ? original : (value || original);
+      const replacement = document.createElement('span');
+      replacement.className = 'task-name';
+      replacement.textContent = name;
+      if (input.isConnected) input.replaceWith(replacement);
+      if (displayNode !== row.querySelector('.task-name')) {
+        const sourceName = row.querySelector('.task-name');
+        if (sourceName) sourceName.textContent = name;
+      }
+
+      if (!cancel && row.dataset.inlineNew === '1' && !name && !createNext) {
+        row.closest('.swipe-wrapper').remove();
+      } else if (!cancel && name) {
+        const _wasNew = row.dataset.inlineNew === '1';
+        delete row.dataset.inlineNew;
+        if (_wasNew) {
+          const _smap2 = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+          taskApiFetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task: name, status: _smap2[row.dataset.status] || 'In Progress', assignee_username: (telegramUser && telegramUser.username) || 'dro238', user_id: userId ? parseInt(userId) : undefined })
+          }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.id) row.dataset.taskId = String(data.id);
+          }).catch(function(err) { console.warn('Task create failed:', err); });
+        } else if (row.dataset.taskId) {
+          taskApiFetch('/api/tasks/' + row.dataset.taskId, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task: name })
+          }).catch(function(err) { console.warn('Task update failed:', err); });
+        }
+      }
+      applyAllFilters();
+
+      if (!cancel && createNext && name) {
+        const nextRow = createInlineTaskBelow(row);
+        if (todayItem) {
+          buildTodayView();
+          const nextItem = Array.from(todayView.children).find(item => item._sourceRow === nextRow);
+          if (nextItem) startInlineTaskEdit(nextRow, nextItem.querySelector('.task-name'), nextItem);
+        } else {
+          startInlineTaskEdit(nextRow);
+        }
+      }
+    }
+
+    function startInlineTaskEdit(row, displayNode = row.querySelector('.task-name'), todayItem = null) {
+      if (!displayNode || displayNode.tagName === 'INPUT') return;
+      if (activeTaskEditor) finishInlineTaskEdit();
+      const original = row.querySelector('.task-name')?.textContent || displayNode.textContent || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'task-name-input';
+      input.value = original;
+      input.setAttribute('aria-label', 'Edit task name');
+      displayNode.replaceWith(input);
+      activeTaskEditor = { input, row, original, displayNode, todayItem };
+      input.addEventListener('click', event => event.stopPropagation());
+      input.addEventListener('touchstart', event => event.stopPropagation(), { passive: true });
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          finishInlineTaskEdit(false, true);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          finishInlineTaskEdit(true, false);
+        }
+      });
+      input.addEventListener('blur', () => {
+        if (activeTaskEditor && activeTaskEditor.input === input) finishInlineTaskEdit();
+      });
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+
+    function bindTaskRow(row) {
+      if (row.dataset.swipeBound === '1') return;
+      row.dataset.swipeBound = '1';
+      const wrapper = row.closest('.swipe-wrapper');
+      const listId = row.closest('.task-list').id;
+      let startX = 0, startY = 0, deltaX = 0, horizontal = false, moved = false;
+
+      row.addEventListener('touchstart', event => {
+        const touch = event.touches[0];
+        startX = touch.clientX; startY = touch.clientY;
+        deltaX = 0; horizontal = false; moved = false;
+        row.style.transition = 'none';
+        closeOtherSwipes(row);
+      }, { passive: true });
+
+      row.addEventListener('touchmove', event => {
+        const touch = event.touches[0];
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        if (!horizontal && Math.abs(dx) > Math.abs(dy) + 10) {
+          horizontal = true;
+          sortables[listId].option('disabled', true);
+        }
+        if (!horizontal) return;
+        event.preventDefault();
+        moved = true; deltaX = dx;
+        row.style.touchAction = 'pan-y';
+        row.style.transform = `translateX(${dx < 0 ? Math.max(dx, -210) : Math.min(dx, 232)}px)`;
+      }, { passive: false });
+
+      row.addEventListener('touchend', () => {
+        if (horizontal) sortables[listId].option('disabled', false);
+        row.style.touchAction = 'none';
+        row.style.transition = 'transform 0.22s ease';
+        if (deltaX < -120) {
+          deleteRowWithUndo(row);
+        } else if (deltaX < -60) {
+          row.style.transform = 'translateX(-80px)';
+          row.classList.add('swiped-open');
+        } else if (deltaX > 120) {
+          updateRowStatus(row, 'done', true);
+          if (row.dataset.taskId) { taskApiFetch('/api/tasks/' + row.dataset.taskId + '/state', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'Done'})}).catch(()=>{}); }
+          snapClosed(row);
+        } else if (deltaX > 60) {
+          row.style.transform = 'translateX(80px)';
+          row.classList.add('swiped-open');
+        } else {
+          snapClosed(row);
+        }
+        if (moved) {
+          row.dataset.suppressClick = '1';
+          setTimeout(() => delete row.dataset.suppressClick, 350);
+        }
+      });
+
+      wrapper.querySelector('.sa-swipe-done').addEventListener('click', event => {
+        event.stopPropagation();
+        updateRowStatus(row, 'done', true);
+        if (row.dataset.taskId) { taskApiFetch('/api/tasks/' + row.dataset.taskId + '/state', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'Done'})}).catch(()=>{}); }
+        snapClosed(row);
+      });
+      wrapper.querySelector('.sa-delete').addEventListener('click', event => {
+        event.stopPropagation(); deleteRowWithUndo(row);
+      });
+      const deleteBtnEl = row.querySelector('.task-delete-btn');
+      if (deleteBtnEl && !deleteBtnEl.dataset.bound) {
+        deleteBtnEl.dataset.bound = '1';
+        deleteBtnEl.addEventListener('click', function(event) { event.stopPropagation(); deleteRowWithUndo(row); });
+      }
+      row.addEventListener('click', event => {
+        if (row.dataset.suppressClick || event.target.closest('.avatar')) return;
+        const name = event.target.closest('.task-name');
+        if (name) {
+          event.stopPropagation();
+          startInlineTaskEdit(row, name);
+          return;
+        }
+        openDetail(row);
+      });
+    }
+
+    const TODAY = new Date();
+    TODAY.setHours(0, 0, 0, 0);
+    function refreshDueChip(row) {
+      const chip = row.querySelector('.due-chip');
+      const due = row.dataset.due || '';
+      chip.className = 'due-chip';
+      if (!due) { chip.style.display = 'none'; chip.textContent = ''; return; }
+      chip.style.display = 'inline-block';
+      const diff = Math.round((new Date(due + 'T00:00:00') - TODAY) / 86400000);
+      if (diff < 0) { chip.textContent = '⚠️ Overdue · ' + due; chip.classList.add('overdue'); }
+      else if (diff === 0) { chip.textContent = 'Due today'; chip.classList.add('due-today'); }
+      else { chip.textContent = 'Due ' + due; chip.classList.add('due-soon'); }
+    }
+
+    let currentDetailRow = null;
+    let selectedDetailStatus = 'progress';
+    let selectedDetailPriority = 'p2';
+    const detailOverlay = document.getElementById('detail-overlay');
+
+    function setActivePill(containerId, key, value) {
+      document.querySelectorAll(`#${containerId} .detail-pill`).forEach(pill => {
+        pill.classList.toggle('active', pill.dataset[key] === value);
+      });
+    }
+    function updateDetailOverdue() {
+      const value = document.getElementById('detail-due').value;
+      document.getElementById('detail-overdue').style.display = value && new Date(value + 'T00:00:00') < TODAY ? 'block' : 'none';
+    }
+    function escapeCommentHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[char]);
+    }
+    function formatCommentTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return `${day} · ${time}`;
+    }
+    function getComments(row) {
+      try {
+        const comments = JSON.parse(row.dataset.comments || '[]');
+        return Array.isArray(comments) ? comments : [];
+      } catch (error) {
+        return [];
+      }
+    }
+    function renderComments(row) {
+      const list = document.getElementById('detail-comments-list');
+      list.innerHTML = getComments(row).map(comment => `
+        <div class="comment-item">
+          <div class="comment-author">${escapeCommentHtml(comment.author || 'DRO')}</div>
+          <div class="comment-text">${escapeCommentHtml(comment.text || '')}</div>
+          <div class="comment-time">${escapeCommentHtml(formatCommentTime(comment.time))}</div>
+        </div>`).join('');
+    }
+    function addDetailComment() {
+      if (!currentDetailRow) return;
+      const input = document.getElementById('detail-comment-input');
+      const text = input.value.trim();
+      if (!text) return;
+      const comments = getComments(currentDetailRow);
+      comments.push({ text, author: 'DRO', time: new Date().toISOString() });
+      currentDetailRow.dataset.comments = JSON.stringify(comments);
+      renderComments(currentDetailRow);
+      input.value = '';
+      const list = document.getElementById('detail-comments-list');
+      list.scrollTop = list.scrollHeight;
+    }
+    function openDetail(row) {
+      currentDetailRow = row;
+      selectedDetailStatus = row.dataset.status;
+      selectedDetailPriority = row.dataset.priority || 'p2';
+      document.getElementById('detail-title').textContent = row.querySelector('.task-name').textContent;
+      document.getElementById('detail-due').value = row.dataset.due || '';
+      document.getElementById('detail-notes').value = row.dataset.notes || '';
+      document.getElementById('detail-goal').value = row.dataset.goal || '';
+      document.getElementById('detail-group-chip').textContent = row.dataset.group || '—';
+      // Assignee avatar + name in header
+      const avatarEl = row.querySelector('.avatar');
+      const detailAvatar = document.getElementById('detail-assignee-avatar');
+      const detailAssigneeName = document.getElementById('detail-assignee-name');
+      if (avatarEl && avatarEl.src) { detailAvatar.src = avatarEl.src; detailAvatar.style.display = 'block'; } else { detailAvatar.style.display = 'none'; }
+      if (detailAssigneeName) detailAssigneeName.textContent = row.dataset.assignee || '';
+      // Days old badge
+      const badgeEl = document.getElementById('days-old-badge');
+      if (badgeEl) {
+        const created = row.dataset.created;
+        if (created) {
+          const days = Math.max(0, Math.floor((TODAY - new Date(created + 'T00:00:00')) / 86400000));
+          badgeEl.textContent = days <= 30 ? days + 'd' : Math.ceil(days / 7) + 'W';
+        } else { badgeEl.textContent = '?'; }
+      }
+      // Comments visibility — only if task has a topicId
+      const commentsSection = document.getElementById('detail-comments-section');
+      if (commentsSection) commentsSection.style.display = row.dataset.topicId ? '' : 'none';
+      const topicBtn = document.getElementById('detail-topic-btn');
+      if (row.dataset.topic === 'true') {
+        topicBtn.textContent = '✓ Topic Marked'; topicBtn.classList.add('topic-done');
+      } else {
+        topicBtn.textContent = '🧵 Create Topic'; topicBtn.classList.remove('topic-done');
+      }
+      document.getElementById('detail-comment-input').value = '';
+      renderComments(row);
+      setActivePill('detail-status-pills', 's', selectedDetailStatus);
+      setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
+      updateDetailOverdue();
+      detailOverlay.classList.add('open');
+    }
+    function closeDetail() {
+      detailOverlay.classList.remove('open');
+      setTimeout(() => { currentDetailRow = null; }, 300);
+    }
+    document.querySelectorAll('#detail-status-pills .detail-pill').forEach(pill => pill.addEventListener('click', () => {
+      selectedDetailStatus = pill.dataset.s; setActivePill('detail-status-pills', 's', selectedDetailStatus);
+      if (currentDetailRow) updateRowStatus(currentDetailRow, selectedDetailStatus, selectedDetailStatus === 'done');
+    }));
+    document.querySelectorAll('#detail-priority-pills .detail-pill').forEach(pill => pill.addEventListener('click', () => {
+      selectedDetailPriority = pill.dataset.p; setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
+      if (currentDetailRow) { currentDetailRow.dataset.priority = selectedDetailPriority; currentDetailRow.querySelector('.priority-dot').className = 'priority-dot dot-' + selectedDetailPriority; }
+    }));
+    document.getElementById('detail-due').addEventListener('change', () => {
+      updateDetailOverdue();
+      if (currentDetailRow) { currentDetailRow.dataset.due = document.getElementById('detail-due').value; refreshDueChip(currentDetailRow); }
+    });
+    document.getElementById('detail-notes').addEventListener('input', () => {
+      if (currentDetailRow) currentDetailRow.dataset.notes = document.getElementById('detail-notes').value;
+    });
+    document.getElementById('detail-comment-send').addEventListener('click', addDetailComment);
+    document.getElementById('detail-comment-input').addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); addDetailComment(); }
+    });
+    document.getElementById('detail-close').addEventListener('click', closeDetail);
+    detailOverlay.addEventListener('click', event => { if (event.target === detailOverlay) closeDetail(); });
+    document.getElementById('detail-topic-btn').addEventListener('click', () => {
+      if (!currentDetailRow) return;
+      const hasTopic = currentDetailRow.dataset.topic === 'true';
+      if (hasTopic) return;
+      currentDetailRow.dataset.topic = 'true';
+      const topicId = 'tp' + Date.now();
+      currentDetailRow.dataset.topicId = topicId;
+      const btn = document.getElementById('detail-topic-btn');
+      btn.textContent = '✓ Topic Created';
+      btn.classList.add('topic-done');
+      const commentsSection = document.getElementById('detail-comments-section');
+      if (commentsSection) commentsSection.style.display = '';
+    });
+
+    function ensureSwipeWrapper(row) {
+      const existing = row.closest('.swipe-wrapper');
+      if (existing) return existing;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'swipe-wrapper';
+      wrapper.classList.toggle('hidden-wrapper', row.classList.contains('hidden'));
+      row.parentNode.insertBefore(wrapper, row);
+      wrapper.appendChild(row);
+      return wrapper;
+    }
+
+    function makeSwipeWrapper(row) {
+      const wrapper = ensureSwipeWrapper(row);
+      if (wrapper.dataset.actionsReady === '1') return wrapper;
+      const leftActions = document.createElement('div');
+      leftActions.className = 'swipe-actions-left';
+      const swipeDoneBtn = document.createElement('button');
+      swipeDoneBtn.className = 'swipe-btn sa-swipe-done';
+      swipeDoneBtn.style.cssText = 'flex:1;background:#6E9E5E;color:#fff;font-weight:700;font-size:13px;';
+      swipeDoneBtn.textContent = '\u2713 Done';
+      leftActions.appendChild(swipeDoneBtn);
+      const actions = document.createElement('div');
+      actions.className = 'swipe-actions';
+      const swipeDeleteBtn = document.createElement('button');
+      swipeDeleteBtn.className = 'swipe-btn sa-delete';
+      swipeDeleteBtn.style.cssText = 'width:80px;background:#ef4444;color:#fff;font-weight:700;font-size:13px;';
+      swipeDeleteBtn.textContent = '\u2715 Delete';
+      actions.appendChild(swipeDeleteBtn);
+      wrapper.prepend(leftActions, actions);
+      wrapper.dataset.actionsReady = '1';
+      return wrapper;
+    }
+
+    const GROUP_LABELS = { 'list-41': 'Active', 'list-42': 'Done', 'list-group': 'This Group' };
+    function enhanceRow(row) {
+      if (row.dataset.enhanced === '1') return;
+      row.dataset.priority = row.dataset.priority || 'p2';
+      row.dataset.due = row.dataset.due || '';
+      row.dataset.notes = row.dataset.notes || '';
+      row.dataset.goal = row.dataset.goal || '';
+      row.dataset.comments = row.dataset.comments || '[]';
+      if (!row.dataset.group) {
+        const list = row.closest('.task-list');
+        row.dataset.group = list ? (GROUP_LABELS[list.id] || '') : '';
+      }
+      if (!row.dataset.assignee) {
+        const a = row.querySelector('.task-assignee');
+        row.dataset.assignee = a ? a.textContent : '';
+      }
+      const info = row.querySelector('.task-info');
+      if (!info.querySelector('.priority-dot')) {
+        const dot = document.createElement('span');
+        dot.className = 'priority-dot dot-' + row.dataset.priority;
+        info.insertBefore(dot, info.querySelector('.task-name'));
+      }
+      if (!info.querySelector('.due-chip')) {
+        const chip = document.createElement('span');
+        chip.className = 'due-chip';
+        chip.style.display = 'none';
+        info.appendChild(chip);
+      }
+      makeSwipeWrapper(row);
+      bindTaskRow(row);
+      refreshDueChip(row);
+      // Cycle kanban state on badge tap
+      const _badge = row.querySelector('.badge');
+      if (_badge && !_badge.dataset.cycleBound) {
+        _badge.dataset.cycleBound = '1';
+        _badge.addEventListener('click', async function(event) {
+          event.stopPropagation();
+          if (_badge.dataset.saving) return;
+          const _cycle = { stuck: 'progress', progress: 'done', done: 'stuck' };
+          const _next = _cycle[row.dataset.status] || 'progress';
+          const _taskId = row.dataset.taskId;
+          const errorMessage = document.getElementById('task-save-error');
+          errorMessage.hidden = true;
+          if (!_taskId) {
+            updateRowStatus(row, _next, true);
+            return;
+          }
+          _badge.dataset.saving = '1';
+          try {
+            const _smap = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+            const response = await taskApiFetch('/api/tasks/' + _taskId + '/state', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: _smap[_next] })
+            });
+            if (!response.ok) throw new Error('Task update HTTP ' + response.status);
+            updateRowStatus(row, _next, true);
+          } catch (error) {
+            errorMessage.textContent = 'Could not save the task status. Your previous status is unchanged.';
+            errorMessage.hidden = false;
+            console.warn('State update failed:', error);
+          } finally {
+            delete _badge.dataset.saving;
+          }
+        });
+      }
+      row.dataset.enhanced = '1';
+    }
+
+    function assignTaskNumbers() {
+      document.querySelectorAll('.task-number').forEach(number => number.remove());
+    }
+
+    function createTaskWrapper(name, status, listId) {
+      const list = document.createElement('div');
+      const meta = statusMeta[status];
+      const group = GROUP_LABELS[listId] || '';
+      const tagClass = listId === 'list-42' ? 'tag-42' : listId === 'list-group' ? 'tag-grp' : '';
+      const tagLabel = listId === 'list-41' ? 'W41' : listId === 'list-42' ? 'W42' : 'Group';
+      list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><span class="drag-handle" aria-hidden="true" style="color:#999;font-size:14px;padding:0 2px 0 10px;cursor:grab;order:0;flex-shrink:0;touch-action:auto;user-select:none;">⠣</span><div class="accent ${meta[0]}"></div><span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><svg width="36" height="36" viewBox="0 0 36 36" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui,sans-serif" font-weight="600">A</text></svg></span><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span><button class="task-delete-btn" type="button" aria-label="Delete task" style="border:none;background:transparent;color:#999;font-size:16px;padding:0 8px 0 4px;cursor:pointer;flex-shrink:0;order:5;-webkit-tap-highlight-color:transparent;">🗑</button></div>`;
+      const row = list.firstElementChild;
+      row.querySelector('.task-name').textContent = name;
+      document.getElementById(listId).appendChild(row);
+      enhanceRow(row);
+      return row.closest('.swipe-wrapper');
+    }
+
+    function addTask() {
+      const input = document.getElementById('new-task-name');
+      const name = input.value.trim();
+      if (!name) return;
+      const status = document.getElementById('new-task-status').value;
+      if (createMode === 'goal') {
+        rocstarGoals.push({ id: String(Date.now()), name, status });
+        localStorage.setItem(ROCSTAR_GOALS_KEY, JSON.stringify(rocstarGoals));
+        input.value = '';
+        document.getElementById('modal-overlay').classList.remove('open');
+        buildBoard();
+        return;
+      }
+      const week = document.getElementById('new-task-week').value;
+      const listId = 'list-' + week;
+      const _newWrapper = createTaskWrapper(name, status, listId);
+      const _newRow = _newWrapper ? (_newWrapper.querySelector ? _newWrapper.querySelector('.task-row') : null) : null;
+      assignTaskNumbers();
+      input.value = '';
+      document.getElementById('modal-overlay').classList.remove('open');
+      applyAllFilters();
+      const _smap3 = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+      const _postBody = { task: name, status: _smap3[status] || 'In Progress', assignee_username: (telegramUser && telegramUser.username) || 'dro238' };
+      if (userId) _postBody.user_id = parseInt(userId);
+      taskApiFetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(_postBody) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { if (data.id && _newRow) _newRow.dataset.taskId = String(data.id); })
+        .catch(function(err) { console.warn('Task create failed:', err); });
+    }
+
+    const tabBoard = document.getElementById('tab-board');
+    const boardView = document.getElementById('board-view');
+    const todayView = document.getElementById('today-view');
+    let boardActive = false;
+    let todayActive = false;
+    const ROCSTAR_GOALS_KEY = 'alfred-rocstar-goals';
+    let rocstarGoals = [];
+    try {
+      const storedGoals = JSON.parse(localStorage.getItem(ROCSTAR_GOALS_KEY) || '[]');
+      rocstarGoals = Array.isArray(storedGoals) ? storedGoals : [];
+    } catch (_) {
+      rocstarGoals = [];
+    }
+
+    function isAssignedToCurrentUser(row) {
+      const normalize = value => String(value || '').trim().replace(/^@/, '').toLowerCase();
+      const assignee = normalize(row.dataset.assignee);
+      const userId = String(telegramUser?.id || '');
+      if (userId && row.dataset.assigneeId) return row.dataset.assigneeId === userId;
+      if (assignee === 'me') return true;
+      if (!telegramUser) return false;
+      const aliases = [telegramUser.username, telegramUser.first_name, displayName, userId].map(normalize).filter(Boolean);
+      return aliases.includes(assignee);
+    }
+
+    function buildTodayView() {
+      todayView.replaceChildren();
+      const statusOrder = { stuck: 0, progress: 1 };
+      syncAllTasks()
+        .filter(row => Object.hasOwn(statusOrder, row.dataset.status) && !row.classList.contains('hidden'))
+        .sort((a, b) => statusOrder[a.dataset.status] - statusOrder[b.dataset.status])
+        .forEach(row => {
+          const item = document.createElement('div');
+          item.className = 'today-task-row';
+          [row.querySelector('.accent'), row.querySelector('.task-info'), row.querySelector('.badge'), row.querySelector('.avatar')]
+            .filter(Boolean).forEach(part => item.appendChild(part.cloneNode(true)));
+          item.querySelectorAll('[onclick]').forEach(node => node.removeAttribute('onclick'));
+          item._sourceRow = row;
+          item.addEventListener('click', event => {
+            enhanceRow(row);
+            const name = event.target.closest('.task-name');
+            if (name) {
+              event.stopPropagation();
+              startInlineTaskEdit(row, name, item);
+              return;
+            }
+            openDetail(row);
+          });
+          todayView.appendChild(item);
+        });
+      updateTaskFeedStatus();
+    }
+
+    function setTodayMode(active) {
+      todayActive = active;
+      todayView.classList.toggle('open', active);
+      const focus = document.querySelector('.focus-banner');
+      if (focus) focus.style.display = active ? 'none' : (boardActive ? 'none' : '');
+      ['section-41','section-42','section-group'].forEach(id => {
+        document.getElementById(id).style.display = active || boardActive ? 'none' : '';
+      });
+      if (active) {
+        boardView.style.display = 'none';
+        buildTodayView();
+      }
+      updateTaskFeedStatus();
+    }
+
+    function buildBoard() {
+      const columns = boardView.querySelector('.board-columns');
+      let empty = boardView.querySelector('.board-empty');
+      if (!rocstarGoals.length) {
+        columns.style.display = 'none';
+        if (!empty) {
+          empty = document.createElement('div');
+          empty.className = 'board-empty';
+          empty.innerHTML = '<div class="board-empty-icon" aria-hidden="true">◎</div><div class="board-empty-text">No goals yet</div><button class="board-empty-add" type="button" aria-label="Create first goal">+</button>';
+          empty.querySelector('button').addEventListener('click', openCreateFlow);
+          boardView.appendChild(empty);
+        }
+        empty.style.display = 'grid';
+        return;
+      }
+      columns.style.display = 'flex';
+      if (empty) empty.style.display = 'none';
+      const laneColors = { stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
+      ['stuck','progress','done'].forEach(status => {
+        const body = document.getElementById('col-body-' + status);
+        body.innerHTML = '';
+        let count = 0;
+        rocstarGoals.forEach(goal => {
+          if (goal.status !== status) return;
+          const card = document.createElement('div');
+          card.className = 'board-card';
+          card.style.setProperty('--lane-color', laneColors[status]);
+          card.innerHTML = '<span class="board-card-name"></span>';
+          card.querySelector('.board-card-name').textContent = goal.name;
+          body.appendChild(card);
+          count += 1;
+        });
+        document.getElementById('count-' + status).textContent = count;
+      });
+    }
+    document.querySelectorAll('.board-col-header').forEach(header => {
+      const toggleLane = () => {
+        const lane = header.closest('.board-col');
+        const collapsed = lane.classList.toggle('collapsed');
+        header.setAttribute('aria-expanded', String(!collapsed));
+      };
+      header.addEventListener('click', toggleLane);
+      header.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        toggleLane();
+      });
+    });
+    tabBoard.addEventListener('click', () => {
+      closeAllPanels();
+      boardActive = !boardActive;
+      if (boardActive) {
+        setTodayMode(false);
+        activeStatus = null;
+        activePersonId = null;
+        weekFilter = 'all';
+        groupVisible = true;
+        document.querySelectorAll('.nav-tab[data-status], .sheet-extra-nav .nav-tab').forEach(tab => tab.classList.remove('active'));
+        document.getElementById('tab-people').classList.remove('active');
+        document.getElementById('tab-group').classList.remove('active');
+        tabWeek.textContent = 'Week';
+        panelWeek.querySelectorAll('.expand-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.week === 'all'));
+        panelPeople.querySelectorAll('.expand-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.person === 'all'));
+        document.querySelectorAll('.task-row .avatar').forEach(avatar => avatar.classList.remove('active-filter'));
+      }
+      tabBoard.classList.toggle('active', boardActive);
+      boardView.style.display = boardActive ? 'block' : 'none';
+      const focus = document.querySelector('.focus-banner');
+      if (focus) focus.style.display = boardActive ? 'none' : '';
+      ['section-41','section-42','section-group'].forEach(id => {
+        document.getElementById(id).style.display = boardActive || todayActive ? 'none' : '';
+      });
+      if (boardActive) {
+        applyAllFilters();
+        boardView.scrollTop = 0;
+      }
+    });
+
+    document.querySelectorAll('.task-row').forEach(enhanceRow);
+    loadTasks();
+    assignTaskNumbers();
+    applyAllFilters();
+
+    // Date + week bar
+    (function() {
+      const d = new Date();
+      const month = d.toLocaleDateString('en-US', { month: 'short' });
+      const day = d.getDate();
+      const jan4 = new Date(d.getFullYear(), 0, 4);
+      const w = Math.ceil(((d - new Date(jan4.getFullYear(), 0, 1)) / 86400000 + jan4.getDay() + 1) / 7);
+      document.getElementById('date-week-bar').textContent = month + ' ' + day + ' | W' + w;
+    })();
+
+    // Default to Today view on load
+    activeStatus = 'pending';
+    document.getElementById('tab-pending').classList.add('active');
+    applyAllFilters();
+    setTodayMode(true);
+
+    // Share signed Telegram identity only with the exact Banking frame and origin.
+    const bankingFrame = document.getElementById('banking-frame');
+    function sendBankingIdentity() {
+      if (tg && tg.initData && bankingFrame && bankingFrame.contentWindow) {
+        bankingFrame.contentWindow.postMessage({type:'alfred:telegram:init', initData:tg.initData}, 'https://alfred.ai');
+      }
+    }
+    bankingFrame.addEventListener('load', sendBankingIdentity);
+    window.addEventListener('message', event => {
+      if (event.origin === 'https://alfred.ai' && event.source === bankingFrame.contentWindow && event.data && event.data.type === 'alfred:telegram:ready') sendBankingIdentity();
+    });
+
+    function openCOB() {
+      const url = 'https://alfred.ai/banking/users/sign_in';
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
+        Telegram.WebApp.openLink(url);
+      } else {
+        window.open(url, '_blank', 'noopener');
+      }
+    }
+
+    // ── Section switcher: tap the Alfred title ──
+    let activeSection = 'planning';
+    function updateBankingTop() {
+      const headerBottom = document.querySelector('.app-header').getBoundingClientRect().bottom;
+      document.documentElement.style.setProperty('--banking-top', Math.ceil(headerBottom) + 'px');
+    }
+    // Telegram updates its inset CSS variables asynchronously and on rotation.
+    new ResizeObserver(updateBankingTop).observe(document.querySelector('.app-header'), { box: 'border-box' });
+    window.addEventListener('resize', updateBankingTop);
+    function switchSection(section) {
+      activeSection = section;
+      const titleToggle = document.getElementById('app-title-toggle');
+      const navPlanning = document.getElementById('nav-planning');
+      const contextTabs = document.getElementById('context-tabs');
+      const dateWeekBar = document.getElementById('date-week-bar');
+      const sheet = document.getElementById('bottom-sheet');
+      if (section === 'banking') {
+        titleToggle.childNodes[0].textContent = 'Alfred Bank ';
+        navPlanning.style.display = 'none';
+        contextTabs.style.display = 'none';
+        dateWeekBar.style.display = 'none';
+        document.getElementById('view-planning').style.display = 'none';
+        document.getElementById('view-banking').style.display = '';
+        sheet.style.display = 'none';
+        requestAnimationFrame(updateBankingTop);
+      } else {
+        titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
+        dateWeekBar.style.display = '';
+        contextTabs.style.display = '';
+        navPlanning.style.display = 'flex';
+        document.getElementById('view-planning').style.display = '';
+        document.getElementById('view-banking').style.display = 'none';
+        sheet.style.display = '';
+      }
+    }
+    const appTitleToggle = document.getElementById('app-title-toggle');
+    appTitleToggle.addEventListener('click', () => switchSection(activeSection === 'planning' ? 'banking' : 'planning'));
+    appTitleToggle.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        switchSection(activeSection === 'planning' ? 'banking' : 'planning');
+      }
+    });
+
+    // ── Top nav quick-filters (Planning nav) ──
+    function exitBoardView() {
+      if (!boardActive) return;
+      boardActive = false;
+      tabBoard.classList.remove('active');
+      boardView.style.display = 'none';
+      const focus = document.querySelector('.focus-banner');
+      if (focus) focus.style.display = '';
+      ['section-41','section-42','section-group'].forEach(id => {
+        document.getElementById(id).style.display = '';
+      });
+    }
+    document.querySelectorAll('[data-qf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qf = btn.dataset.qf;
+        document.querySelectorAll('#nav-planning .section-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (qf === 'pending') {
+          exitBoardView();
+          activeStatus = 'pending';
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+          document.getElementById('tab-pending').classList.add('active');
+          applyAllFilters();
+          setTodayMode(true);
+        } else if (qf === 'week') {
+          exitBoardView();
+          setTodayMode(false);
+          activeStatus = null;
+          activePersonId = null;
+          weekFilter = 'all';
+          groupVisible = true;
+          document.getElementById('tab-pending').classList.remove('active');
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+          applyAllFilters();
+          if (taskFeedState === 'error') loadTasks();
+        } else if (qf === 'people') {
+          exitBoardView();
+          setTodayMode(false);
+          activeStatus = null;
+          activePersonId = null;
+          weekFilter = 'all';
+          groupVisible = true;
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+          applyAllFilters();
+          if (taskFeedState === 'error') loadTasks();
+        } else if (qf === 'board') {
+          setTodayMode(false);
+          if (boardActive) {
+            buildBoard();
+            return;
+          }
+          tabBoard.click();
+        }
+      });
+    });
+
+    // ── Bottom status tray ──
+    const bottomSheet = document.getElementById('bottom-sheet');
+    const sheetHandle = document.getElementById('sheet-handle');
+    const trayActions = document.getElementById('tray-actions');
+    let trayTouchStart = null;
+
+    function updateTraySpace() {
+      document.documentElement.style.setProperty('--task-tray-height', bottomSheet.getBoundingClientRect().height + 'px');
+    }
+    function setTrayExpanded(expanded) {
+      bottomSheet.classList.toggle('expanded', expanded);
+      trayActions.hidden = !expanded;
+      sheetHandle.setAttribute('aria-expanded', String(expanded));
+      sheetHandle.setAttribute('aria-label', expanded ? 'Collapse task tray' : 'Expand task tray');
+      updateTraySpace();
+    }
+    sheetHandle.addEventListener('click', () => setTrayExpanded(trayActions.hidden));
+    bottomSheet.addEventListener('touchstart', event => {
+      trayTouchStart = null;
+      if (event.touches.length !== 1) return;
+      const control = event.target.closest('button, input, .nav-tab, .nav-center-avatar');
+      if (control && control !== sheetHandle) return;
+      trayTouchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    }, { passive: true });
+    bottomSheet.addEventListener('touchend', event => {
+      if (!trayTouchStart || !event.changedTouches.length) return;
+      const dx = event.changedTouches[0].clientX - trayTouchStart.x;
+      const dy = event.changedTouches[0].clientY - trayTouchStart.y;
+      trayTouchStart = null;
+      if (Math.abs(dy) < 20 || Math.abs(dy) <= Math.abs(dx)) return;
+      event.preventDefault();
+      setTrayExpanded(dy < 0);
+    }, { passive: false });
+    bottomSheet.addEventListener('touchcancel', () => { trayTouchStart = null; });
+    new ResizeObserver(updateTraySpace).observe(bottomSheet);
+    updateTraySpace();
+
+    document.getElementById('tray-search-trigger').addEventListener('click', openSearchMode);
+    document.getElementById('search-bubble').addEventListener('click', openSearchMode);
+    document.getElementById('profile-trigger').addEventListener('click', openProfile);
+
+    // ── Asana-style inline task creation ──
+    function showInlineAdd(btn, listId, group) {
+      const wrap = btn.nextElementSibling;
+      btn.style.display = 'none';
+      wrap.classList.add('active');
+      const inp = wrap.querySelector('input');
+      inp.value = '';
+      inp.focus();
+      inp.dataset.listId = listId;
+      inp.dataset.group = group;
+      inp.onkeydown = function(e) { handleInlineKey(e); };
+      inp.onblur = function() {
+        setTimeout(() => {
+          if (document.activeElement !== inp) cancelInlineAdd(wrap);
+        }, 150);
+      };
+    }
+
+    function handleInlineKey(e) {
+      if (e.key === 'Escape') {
+        cancelInlineAdd(e.target.closest('.inline-task-wrap'));
+        return;
+      }
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const name = e.target.value.trim();
+      const wrap = e.target.closest('.inline-task-wrap');
+      if (!name) { cancelInlineAdd(wrap); return; }
+      const listId = e.target.dataset.listId;
+      const group = e.target.dataset.group;
+      const list = document.getElementById(listId);
+      const tagClass = listId === 'list-42' ? 'tag-42' : listId === 'list-group' ? 'tag-grp' : '';
+      const tagLabel = listId === 'list-41' ? 'W41' : listId === 'list-42' ? 'W42' : 'Group';
+      const row = document.createElement('div');
+      row.className = 'task-row';
+      row.dataset.status = 'progress';
+      row.dataset.person = 'au';
+      row.dataset.priority = 'p2';
+      row.dataset.group = group;
+      row.dataset.assignee = 'Me';
+      row.dataset.created = new Date().toISOString().split('T')[0];
+      row.dataset.comments = '[]';
+      row.dataset.notes = '';
+      row.dataset.goal = '';
+      row.dataset.due = '';
+      const safeName = name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      row.innerHTML = `<div class="accent accent-progress"></div><img class="avatar current-user-photo" src="" alt="" style="display:none"><div class="task-info"><span class="priority-dot dot-p2"></span><span class="task-name">${safeName}</span><div class="task-meta-row"><span class="task-assignee">Me</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div><span class="due-chip" style="display:none"></span></div><span class="badge badge-progress">In Progress</span>`;
+      const addBtn = wrap.previousElementSibling;
+      list.insertBefore(row, addBtn);
+      enhanceRow(row);
+      assignTaskNumbers();
+      applyAllFilters();
+      // Stay in input for next task
+      e.target.value = '';
+    }
+
+    function cancelInlineAdd(wrap) {
+      wrap.classList.remove('active');
+      const addBtn = wrap.previousElementSibling;
+      if (addBtn) addBtn.style.display = '';
+    }
+
+    // Ensure inline-add rows stay below task rows during Sortable drag
+    document.querySelectorAll('.inline-add-row, .inline-task-wrap').forEach(el => {
+      el.addEventListener('mousedown', e => e.stopPropagation());
+    });
+
+    // ClickUp-style Group Sidebar
+    var SIDEBAR_GROUPS = [
+      { name: 'All Groups',      dot: '#7AAB6A' },
+      { name: 'ALF AI',          dot: '#B85248' },
+      { name: 'DRC Daily',       dot: '#C07840' },
+      { name: 'Darren & Alfred', dot: '#6E9E5E' },
+      { name: 'Rocstars',        dot: '#7AC0C8' },
+      { name: 'Alfred Tasks',    dot: '#9D7AC8' },
+      { name: 'Fio & Alfred',    dot: '#E07AB0' },
+      { name: 'ALF Code',        dot: '#5A9ED1' },
+      { name: 'LHE Wallet',      dot: '#C5D4A8' },
+      { name: 'LHE Miguel',      dot: '#F0B34E' }
+    ];
+    var sidebarPanelEl    = document.getElementById('sidebar-panel');
+    var sidebarBackdropEl = document.getElementById('sidebar-backdrop');
+    var sidebarBodyEl     = document.getElementById('sidebar-body');
+    function getGroupTaskCounts() {
+      var counts = {};
+      allTasks.forEach(function(row) {
+        var g = (row.dataset.group || '').trim();
+        if (!g) return;
+        counts[g] = (counts[g] || 0) + 1;
+      });
+      return counts;
+    }
+    function renderSidebarGroups() {
+      var counts = getGroupTaskCounts();
+      var totalCount = allTasks.length;
+      var groups = [{ name: 'All Groups', dot: '#7AAB6A' }].concat(Object.keys(counts).sort().map(function(name) {
+        return SIDEBAR_GROUPS.find(function(group) { return group.name === name; }) || { name: name, dot: '#7AAB6A' };
+      }));
+      sidebarBodyEl.innerHTML = '';
+      groups.forEach(function(group) {
+        var isAll = group.name === 'All Groups';
+        var count = isAll ? totalCount : (counts[group.name] || 0);
+        var isActive = isAll ? !activeGroupFilter : activeGroupFilter === group.name;
+        var row = document.createElement('div');
+        row.className = 'sidebar-group-row' + (isActive ? ' active' : '');
+        row.innerHTML =
+          '<span class="sidebar-group-dot" style="background:' + group.dot + '"></span>' +
+          '<span class="sidebar-group-name"></span>' +
+          '<span class="sidebar-count-badge">' + count + '</span>';
+        row.querySelector('.sidebar-group-name').textContent = group.name;
+        (function(gname, all){ row.addEventListener('click', function(){ selectGroup(all ? null : gname); }); })(group.name, isAll);
+        sidebarBodyEl.appendChild(row);
+      });
+    }
+    function selectGroup(name) {
+      activeGroupFilter = name;
+      closeSidebar();
+      var titleEl = document.getElementById('app-title-toggle');
+      var subtitleEl = document.getElementById('sidebar-group-subtitle');
+      if (!subtitleEl) {
+        subtitleEl = document.createElement('span');
+        subtitleEl.id = 'sidebar-group-subtitle';
+        subtitleEl.className = 'sidebar-subtitle';
+        titleEl.appendChild(subtitleEl);
+      }
+      subtitleEl.textContent = name ? '· ' + name : '';
+      applyAllFilters();
+    }
+    function openSidebar() {
+      syncAllTasks();
+      renderSidebarGroups();
+      sidebarPanelEl.classList.add('open');
+      sidebarBackdropEl.classList.add('open');
+    }
+    function closeSidebar() {
+      sidebarPanelEl.classList.remove('open');
+      sidebarBackdropEl.classList.remove('open');
+    }
+    document.querySelectorAll('.assignee-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        activeAssigneeFilter = tab.dataset.assignee;
+        document.querySelectorAll('.assignee-tab').forEach(function(t) { t.classList.toggle('active', t === tab); });
+        applyAllFilters();
+        if (taskFeedScope !== activeAssigneeFilter) loadTasks();
+      });
+    });
+    document.getElementById('sidebar-trigger').addEventListener('click', openSidebar);
+    document.getElementById('sidebar-trigger').addEventListener('keydown', function(e){
+      if (e.key==='Enter'||e.key===' '){ e.preventDefault(); openSidebar(); }
+    });
+    document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
+    sidebarBackdropEl.addEventListener('click', closeSidebar);
+  </script>
+
+</body>
+</html>
