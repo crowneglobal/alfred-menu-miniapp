@@ -31,3 +31,12 @@ test('banking hides the old header without hiding the fullscreen switch', () => 
   assert.match(html, /body\.banking-mode \.app-header \{ display: none; \}/);
   assert.doesNotMatch(html, /body\.banking-mode \.module-switch \{ display: none; \}/);
 });
+
+test('task navigation moves into the second row and the date follows beneath it', () => {
+  const navigationPosition = html.indexOf('<div class="section-tabs" id="context-tabs"');
+  const datePosition = html.indexOf('<div id="date-week-bar"');
+  assert.ok(navigationPosition > -1);
+  assert.ok(datePosition > navigationPosition);
+  assert.match(html, /#context-tabs \{[^}]*margin-top: 0 !important;/);
+  assert.match(html, /#date-week-bar \{[^}]*margin-top: 6px !important;/);
+});
