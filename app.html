@@ -13,7 +13,9 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       /* Device cutouts and Telegram's own controls occupy separate areas. */
-      --app-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+      --app-fallback-device-top: 0px;
+      --app-device-safe-top: max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), var(--app-fallback-device-top));
+      --app-safe-top: calc(var(--app-device-safe-top) + var(--tg-content-safe-area-inset-top, 0px));
       --app-safe-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
       --app-safe-left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + var(--tg-content-safe-area-inset-left, 0px));
       --app-safe-right: calc(max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px)) + var(--tg-content-safe-area-inset-right, 0px));
@@ -67,6 +69,28 @@
     body.light .settings-row + .settings-row { border-top-color: rgba(0,0,0,0.08); }
     body.light .profile-subtitle, body.light .settings-row-note, body.light .profile-back { color: #6b6259; }
 
+    /* Fullscreen module switch: occupies the free slot between Telegram's controls. */
+    .module-switch {
+      display: none; position: fixed;
+      top: calc(var(--app-device-safe-top) + 8px); left: 50%;
+      width: clamp(132px, 42vw, 172px); height: 38px;
+      transform: translateX(-50%); z-index: 250;
+      padding: 3px; border: 1px solid rgba(255,255,255,0.72); border-radius: 999px;
+      background: #F28C28; box-shadow: 0 3px 14px rgba(68,43,34,0.2);
+      align-items: center; gap: 2px;
+    }
+    html.telegram-fullscreen .module-switch { display: flex; }
+    .module-switch-button {
+      flex: 1; height: 30px; border: 0; border-radius: 999px;
+      background: transparent; color: #fff; font: inherit;
+      font-size: 12px; font-weight: 750; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .module-switch-button.active {
+      background: #fff; color: #442B22; box-shadow: 0 1px 5px rgba(68,43,34,0.2);
+    }
+    html.telegram-fullscreen #app-title-row { display: none !important; }
+
     /* ── Section tabs (Planning / Banking) ── */
     .section-tabs {
       display: flex; gap: 2px; border-radius: 20px;
@@ -97,6 +121,9 @@
       position: fixed; left: var(--app-safe-left); right: var(--app-safe-right); bottom: var(--app-safe-bottom);
       top: var(--banking-top, 64px); margin: 0; overflow: hidden;
     }
+    body.banking-mode { padding: 0; }
+    body.banking-mode .app-header { display: none; }
+    body.banking-mode #view-banking { inset: 0; }
     .banking-frame {
       display: block; width: 100%; height: 100%;
       min-height: 0; border: 0; background: #fff;
@@ -902,8 +929,13 @@
 </head>
 <body class="light">
 
+  <nav class="module-switch" id="module-switch" aria-label="Switch between Tasks and Banking">
+    <button class="module-switch-button active" id="module-switch-tasks" type="button" data-section="planning" aria-pressed="true">Tasks</button>
+    <button class="module-switch-button" id="module-switch-bank" type="button" data-section="banking" aria-pressed="false">Bank</button>
+  </nav>
+
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
-    <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
+    <div id="app-title-row" style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
       <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
     </div>
     <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
@@ -2603,23 +2635,49 @@
       }
     }
 
-    // ── Section switcher: tap the Alfred title ──
+    // ── Persistent module switcher ──
+    const sectionStateKey = `alfred:last-section:${userId ? `telegram:${userId}` : 'browser'}`;
+    const explicitSection = (() => {
+      const value = (new URLSearchParams(window.location.search).get('section') || window.location.hash.slice(1)).toLowerCase();
+      if (value === 'bank' || value === 'banking') return 'banking';
+      if (value === 'task' || value === 'tasks' || value === 'planning') return 'planning';
+      return null;
+    })();
+    function rememberedSection() {
+      try {
+        const value = localStorage.getItem(sectionStateKey);
+        return value === 'banking' || value === 'planning' ? value : null;
+      } catch (_) {
+        return null;
+      }
+    }
     let activeSection = 'planning';
     function updateBankingTop() {
-      const headerBottom = document.querySelector('.app-header').getBoundingClientRect().bottom;
+      const header = document.querySelector('.app-header');
+      const headerBottom = document.body.classList.contains('banking-mode') ? 0 : header.getBoundingClientRect().bottom;
       document.documentElement.style.setProperty('--banking-top', Math.ceil(headerBottom) + 'px');
     }
     // Telegram updates its inset CSS variables asynchronously and on rotation.
     new ResizeObserver(updateBankingTop).observe(document.querySelector('.app-header'), { box: 'border-box' });
     window.addEventListener('resize', updateBankingTop);
-    function switchSection(section) {
-      activeSection = section;
+    function switchSection(section, { remember = true } = {}) {
+      activeSection = section === 'banking' ? 'banking' : 'planning';
+      if (remember) {
+        try { localStorage.setItem(sectionStateKey, activeSection); } catch (_) { /* storage can be unavailable */ }
+      }
       const titleToggle = document.getElementById('app-title-toggle');
       const navPlanning = document.getElementById('nav-planning');
       const contextTabs = document.getElementById('context-tabs');
       const dateWeekBar = document.getElementById('date-week-bar');
       const sheet = document.getElementById('bottom-sheet');
-      if (section === 'banking') {
+      const tasksButton = document.getElementById('module-switch-tasks');
+      const bankButton = document.getElementById('module-switch-bank');
+      tasksButton.classList.toggle('active', activeSection === 'planning');
+      tasksButton.setAttribute('aria-pressed', String(activeSection === 'planning'));
+      bankButton.classList.toggle('active', activeSection === 'banking');
+      bankButton.setAttribute('aria-pressed', String(activeSection === 'banking'));
+      if (activeSection === 'banking') {
+        document.body.classList.add('banking-mode');
         titleToggle.childNodes[0].textContent = 'Alfred Bank ';
         navPlanning.style.display = 'none';
         contextTabs.style.display = 'none';
@@ -2629,6 +2687,7 @@
         sheet.style.display = 'none';
         requestAnimationFrame(updateBankingTop);
       } else {
+        document.body.classList.remove('banking-mode');
         titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
         dateWeekBar.style.display = '';
         contextTabs.style.display = '';
@@ -2646,6 +2705,15 @@
         switchSection(activeSection === 'planning' ? 'banking' : 'planning');
       }
     });
+    document.querySelectorAll('.module-switch-button').forEach(button => {
+      button.addEventListener('click', () => switchSection(button.dataset.section));
+    });
+    window.addEventListener('message', event => {
+      if (event.origin === 'https://alfred.ai' && event.data && event.data.type === 'alfred:switch:tasks') {
+        switchSection('planning');
+      }
+    });
+    switchSection(explicitSection || rememberedSection() || 'planning', { remember: false });
 
     // ── Top nav quick-filters (Planning nav) ──
     function exitBoardView() {
