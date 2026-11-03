@@ -9,7 +9,15 @@ test('fullscreen switch occupies Telegram center slot and stays outside the app 
   assert.match(html, /<nav class="module-switch"[^>]*aria-label="Switch between Tasks and Banking"/);
   assert.match(html, /html\.telegram-fullscreen \.module-switch \{ display: flex; \}/);
   assert.match(html, /left: 50%;[\s\S]*transform: translateX\(-50%\)/);
+  assert.match(html, /top: var\(--app-device-safe-top\);/);
+  assert.match(html, /width: clamp\(154px, 48vw, 190px\);/);
   assert.ok(html.indexOf('<nav class="module-switch"') < html.indexOf('<header class="app-header"'));
+});
+
+test('switch uses the Alfred green, beige, and brown palette', () => {
+  assert.match(html, /background: #C5D4A8;/);
+  assert.match(html, /background: #442B22; color: #F5F2EA;/);
+  assert.doesNotMatch(html, /background: #F28C28;/);
 });
 
 test('both switch buttons update the shared section state', () => {
