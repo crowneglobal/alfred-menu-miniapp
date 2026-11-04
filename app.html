@@ -72,16 +72,16 @@
     /* Fullscreen module switch: occupies the free slot between Telegram's controls. */
     .module-switch {
       display: none; position: fixed;
-      top: var(--app-device-safe-top); left: 50%;
-      width: clamp(154px, 48vw, 190px); height: 38px;
+      top: calc(var(--app-device-safe-top) + 2px); left: 50%;
+      width: clamp(146px, 43vw, 172px); height: 34px;
       transform: translateX(-50%); z-index: 250;
-      padding: 3px; border: 1px solid #9DB885; border-radius: 999px;
+      padding: 2px; border: 1px solid #9DB885; border-radius: 999px;
       background: #C5D4A8; box-shadow: 0 3px 14px rgba(68,43,34,0.2);
       align-items: center; gap: 2px;
     }
     html.telegram-fullscreen .module-switch { display: flex; }
     .module-switch-button {
-      flex: 1; height: 30px; border: 0; border-radius: 999px;
+      flex: 1; height: 28px; border: 0; border-radius: 999px;
       background: transparent; color: #442B22; font: inherit;
       font-size: 12px; font-weight: 750; cursor: pointer;
       -webkit-tap-highlight-color: transparent;

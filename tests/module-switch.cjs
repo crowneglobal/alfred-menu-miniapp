@@ -9,9 +9,15 @@ test('fullscreen switch occupies Telegram center slot and stays outside the app 
   assert.match(html, /<nav class="module-switch"[^>]*aria-label="Switch between Tasks and Banking"/);
   assert.match(html, /html\.telegram-fullscreen \.module-switch \{ display: flex; \}/);
   assert.match(html, /left: 50%;[\s\S]*transform: translateX\(-50%\)/);
-  assert.match(html, /top: var\(--app-device-safe-top\);/);
-  assert.match(html, /width: clamp\(154px, 48vw, 190px\);/);
+  assert.match(html, /top: calc\(var\(--app-device-safe-top\) \+ 2px\);/);
+  assert.match(html, /width: clamp\(146px, 43vw, 172px\); height: 34px;/);
   assert.ok(html.indexOf('<nav class="module-switch"') < html.indexOf('<header class="app-header"'));
+});
+
+test('switch bubble tightens without shrinking its labels', () => {
+  assert.match(html, /padding: 2px; border: 1px solid #9DB885;/);
+  assert.match(html, /flex: 1; height: 28px;/);
+  assert.match(html, /font-size: 12px; font-weight: 750;/);
 });
 
 test('switch uses the Alfred green, beige, and brown palette', () => {
