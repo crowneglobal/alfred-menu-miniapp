@@ -27,6 +27,11 @@ test('switch uses coordinated sage and leaf green tones', () => {
   assert.doesNotMatch(html, /background: #F28C28;/);
 });
 
+test('selected Bank module uses the approved Fresh Lime treatment', () => {
+  assert.match(html, /#module-switch-bank\.active \{[\s\S]*background: #D7E88F; color: #283018;/);
+  assert.match(html, /\.module-switch-button\.active \{[\s\S]*background: #246B3F; color: #FFFFFF;/);
+});
+
 test('both switch buttons update the shared section state', () => {
   assert.match(html, /id="module-switch-tasks"[^>]*data-section="planning"/);
   assert.match(html, /id="module-switch-bank"[^>]*data-section="banking"/);
