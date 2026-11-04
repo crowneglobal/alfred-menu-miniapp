@@ -69,29 +69,27 @@
     body.light .settings-row + .settings-row { border-top-color: rgba(0,0,0,0.08); }
     body.light .profile-subtitle, body.light .settings-row-note, body.light .profile-back { color: #6b6259; }
 
-    /* Fullscreen module switch: occupies the free slot between Telegram's controls. */
+    /* One current module name, positioned below the device inset exactly once. */
     .module-switch {
       display: none; position: fixed;
-      top: calc(var(--app-device-safe-top) + 2px); left: 50%;
-      width: clamp(146px, 43vw, 172px); height: 34px;
+      top: calc(var(--app-device-safe-top) + 10px); left: 50%;
+      width: clamp(146px, 43vw, 172px); height: 44px;
       transform: translateX(-50%); z-index: 250;
-      padding: 2px; border: 1px solid #A8C7AD; border-radius: 999px;
-      background: #DDECDD; box-shadow: 0 3px 14px rgba(23,78,45,0.16);
-      align-items: center; gap: 2px;
+      align-items: center; flex-direction: column;
     }
     html.telegram-fullscreen .module-switch { display: flex; }
     .module-switch-button {
-      flex: 1; height: 28px; border: 0; border-radius: 999px;
-      background: transparent; color: #174E2D; font: inherit;
+      width: 100%; min-height: 34px; border: 1px solid #A8C7AD; border-radius: 999px;
+      background: #246B3F; color: #FFFFFF; font: inherit;
       font-size: 12px; font-weight: 750; cursor: pointer;
+      box-shadow: 0 1px 5px rgba(58,66,31,0.18);
       -webkit-tap-highlight-color: transparent;
     }
-    .module-switch-button.active {
-      background: #246B3F; color: #FFFFFF; box-shadow: 0 1px 5px rgba(23,78,45,0.22);
-    }
-    #module-switch-bank.active {
-      background: #D7E88F; color: #283018; box-shadow: 0 1px 5px rgba(58,66,31,0.18);
-    }
+    body.banking-mode .module-switch-button { background: #D7E88F; color: #283018; }
+    .module-switch-cues { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 8px; color: #58634b; }
+    .module-position { width: 5px; height: 5px; border: 1px solid #71805d; border-radius: 50%; }
+    .module-position.active { background: #586b38; }
+    #module-switch-hint[hidden] { display: none; }
     html.telegram-fullscreen #app-title-row { display: none !important; }
 
     /* ── Section tabs (Planning / Banking) ── */
@@ -936,8 +934,8 @@
 <body class="light">
 
   <nav class="module-switch" id="module-switch" aria-label="Switch between Tasks and Banking">
-    <button class="module-switch-button active" id="module-switch-tasks" type="button" data-section="planning" aria-pressed="true">Tasks</button>
-    <button class="module-switch-button" id="module-switch-bank" type="button" data-section="banking" aria-pressed="false">Bank</button>
+    <button class="module-switch-button" id="module-switch-toggle" type="button" aria-label="Alfred Tasks. Switch to Alfred Bank">Alfred Tasks ⇄</button>
+    <div class="module-switch-cues" aria-hidden="true"><span class="module-position active" id="module-position-tasks"></span><span class="module-position" id="module-position-bank"></span><span id="module-switch-hint">Tap to switch</span></div>
   </nav>
 
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
@@ -2676,12 +2674,12 @@
       const contextTabs = document.getElementById('context-tabs');
       const dateWeekBar = document.getElementById('date-week-bar');
       const sheet = document.getElementById('bottom-sheet');
-      const tasksButton = document.getElementById('module-switch-tasks');
-      const bankButton = document.getElementById('module-switch-bank');
-      tasksButton.classList.toggle('active', activeSection === 'planning');
-      tasksButton.setAttribute('aria-pressed', String(activeSection === 'planning'));
-      bankButton.classList.toggle('active', activeSection === 'banking');
-      bankButton.setAttribute('aria-pressed', String(activeSection === 'banking'));
+      const moduleButton = document.getElementById('module-switch-toggle');
+      const isBank = activeSection === 'banking';
+      moduleButton.textContent = isBank ? 'Alfred Bank ⇄' : 'Alfred Tasks ⇄';
+      moduleButton.setAttribute('aria-label', isBank ? 'Alfred Bank. Switch to Alfred Tasks' : 'Alfred Tasks. Switch to Alfred Bank');
+      document.getElementById('module-position-tasks').classList.toggle('active', !isBank);
+      document.getElementById('module-position-bank').classList.toggle('active', isBank);
       if (activeSection === 'banking') {
         document.body.classList.add('banking-mode');
         titleToggle.childNodes[0].textContent = 'Alfred Bank ';
@@ -2711,8 +2709,13 @@
         switchSection(activeSection === 'planning' ? 'banking' : 'planning');
       }
     });
-    document.querySelectorAll('.module-switch-button').forEach(button => {
-      button.addEventListener('click', () => switchSection(button.dataset.section));
+    const moduleHintKey = sectionStateKey + ':switch-discovered';
+    const moduleHint = document.getElementById('module-switch-hint');
+    try { moduleHint.hidden = localStorage.getItem(moduleHintKey) === '1'; } catch (_) {}
+    document.getElementById('module-switch-toggle').addEventListener('click', () => {
+      moduleHint.hidden = true;
+      try { localStorage.setItem(moduleHintKey, '1'); } catch (_) {}
+      switchSection(activeSection === 'planning' ? 'banking' : 'planning');
     });
     window.addEventListener('message', event => {
       if (event.origin === 'https://alfred.ai' && event.data && event.data.type === 'alfred:switch:tasks') {
