@@ -15,14 +15,15 @@ test('fullscreen switch occupies Telegram center slot and stays outside the app 
 });
 
 test('switch bubble tightens without shrinking its labels', () => {
-  assert.match(html, /padding: 2px; border: 1px solid #9DB885;/);
+  assert.match(html, /padding: 2px; border: 1px solid #A8C7AD;/);
   assert.match(html, /flex: 1; height: 28px;/);
   assert.match(html, /font-size: 12px; font-weight: 750;/);
 });
 
-test('switch uses the Alfred green, beige, and brown palette', () => {
-  assert.match(html, /background: #C5D4A8;/);
-  assert.match(html, /background: #442B22; color: #F5F2EA;/);
+test('switch uses coordinated sage and leaf green tones', () => {
+  assert.match(html, /background: #DDECDD;/);
+  assert.match(html, /background: #246B3F; color: #FFFFFF;/);
+  assert.doesNotMatch(html.match(/\.module-switch \{[\s\S]*?\.module-switch-button\.active \{[\s\S]*?\}/)[0], /#442B22|#2B1500/);
   assert.doesNotMatch(html, /background: #F28C28;/);
 });
 
@@ -36,6 +37,17 @@ test('both switch buttons update the shared section state', () => {
 test('banking hides the old header without hiding the fullscreen switch', () => {
   assert.match(html, /body\.banking-mode \.app-header \{ display: none; \}/);
   assert.doesNotMatch(html, /body\.banking-mode \.module-switch \{ display: none; \}/);
+});
+
+test('banking reserves Telegram safe areas instead of painting under native controls', () => {
+  assert.match(html, /body\.banking-mode #view-banking \{[\s\S]*top: var\(--app-safe-top\);[\s\S]*bottom: var\(--app-safe-bottom\);/);
+  assert.doesNotMatch(html, /body\.banking-mode #view-banking \{ inset: 0; \}/);
+});
+
+test('last-open module and deep links remain wired', () => {
+  assert.match(html, /const sectionStateKey = `alfred:last-section:/);
+  assert.match(html, /localStorage\.setItem\(sectionStateKey, activeSection\)/);
+  assert.match(html, /switchSection\(explicitSection \|\| rememberedSection\(\) \|\| 'planning'/);
 });
 
 test('task navigation moves into the second row and the date follows beneath it', () => {

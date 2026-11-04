@@ -409,23 +409,33 @@ async function main() {
     await assertFullscreenControls(page, { top: 59 }, { top: 46 }, ['.sidebar-group-row:first-child .sidebar-group-name']);
     await screenshot(page, 'sidebar', { top: 59 }, { top: 46 });
   });
-  await test('banking-reflows-after-inset-change', async page => {
+  await test('banking-stays-below-native-controls-and-remembers-both-directions', async page => {
     await insets(page, { top: 24 }, { top: 56 });
-    await page.locator('#app-title-toggle').click();
+    await page.locator('#module-switch-bank').click();
     await settle(page);
-    async function assertBankingTop() {
-      const header = await page.locator('.app-header').boundingBox();
+    async function assertBankingTop(expected) {
       const banking = await page.locator('#view-banking').boundingBox();
-      assert.ok(banking && header, 'Banking section and header are visible');
-      assert.ok(Math.abs(banking.y - (header.y + header.height)) <= 1, `Banking top ${banking.y}px differs from header bottom ${header.y + header.height}px`);
+      assert.ok(banking, 'Banking section is visible');
+      assert.ok(Math.abs(banking.y - expected) <= 1, `Banking top ${banking.y}px differs from safe top ${expected}px`);
       return banking.y;
     }
-    const before = await assertBankingTop();
+    const before = await assertBankingTop(80);
+    assert.equal(await page.evaluate(() => localStorage.getItem('alfred:last-section:telegram:999999')), 'banking');
+    await page.reload({ waitUntil: 'load' });
+    await settle(page);
+    assert.equal(await page.locator('body.banking-mode').count(), 1, 'Banking restores after reload');
+    await page.locator('#module-switch-tasks').click();
+    assert.equal(await page.evaluate(() => localStorage.getItem('alfred:last-section:telegram:999999')), 'planning');
+    await page.reload({ waitUntil: 'load' });
+    await settle(page);
+    assert.equal(await page.locator('body.banking-mode').count(), 0, 'Tasks restores after reload');
+    await page.locator('#module-switch-bank').click();
     await insets(page, { top: 90 }, { top: 90 });
-    const after = await assertBankingTop();
+    const after = await assertBankingTop(180);
     assert.ok(after > before + 30, 'Banking iframe follows increased reported native insets');
-    await assertFullscreenControls(page, { top: 90 }, { top: 90 }, ['#app-title-toggle']);
+    await assertFullscreenControls(page, { top: 90 }, { top: 90 }, ['#module-switch-bank']);
     assert.equal(await page.locator('#header-sidebar-button').isVisible(), false, 'Planning sidebar control is hidden in banking');
+    await screenshot(page, 'banking-safe-green-header', { top: 90 }, { top: 90 });
   });
 
   await browser.close();
