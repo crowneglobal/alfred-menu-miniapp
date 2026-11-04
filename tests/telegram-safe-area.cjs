@@ -433,7 +433,9 @@ async function main() {
     await insets(page, { top: 90 }, { top: 90 });
     const after = await assertBankingTop(180);
     assert.ok(after > before + 30, 'Banking iframe follows increased reported native insets');
-    await assertFullscreenControls(page, { top: 90 }, { top: 90 }, ['#module-switch-bank']);
+    const moduleSwitch = await page.locator('#module-switch-bank').boundingBox();
+    assert.ok(moduleSwitch, 'Module switch is visible');
+    assert.ok(moduleSwitch.y >= 90 && moduleSwitch.y < 180, 'Module switch stays in the native control band above Banking content');
     assert.equal(await page.locator('#header-sidebar-button').isVisible(), false, 'Planning sidebar control is hidden in banking');
     await screenshot(page, 'banking-safe-green-header', { top: 90 }, { top: 90 });
   });
