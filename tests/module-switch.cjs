@@ -11,7 +11,11 @@ test('one full-name switch replaces simultaneous module labels with additional e
   assert.match(nav, /Alfred Tasks ⇄/);
   assert.doesNotMatch(nav, />Bank<|>Tasks</);
   assert.match(html, /top: calc\(var\(--app-device-safe-top\) \+ 10px\);/);
-  assert.match(html, /body\.banking-mode \.module-switch-button \{ background: #D7E88F; color: #283018;/);
+  assert.match(html, /background: #F2F3EB; color: #293129;/);
+  assert.match(html, /font-size: 16px; line-height: 30px;/);
+  assert.match(html, /height: 30px; min-height: 30px; padding: 0 10px;/);
+  assert.match(html, /module-switch-button::before[^}]*inset: -7px 0/);
+  assert.doesNotMatch(html, /body\.banking-mode \.module-switch-button \{ background: #D7E88F/);
 });
 
 test('switch toggles both directions, preserves remembered state and dismisses hint once', () => {

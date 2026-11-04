@@ -73,19 +73,22 @@
     .module-switch {
       display: none; position: fixed;
       top: calc(var(--app-device-safe-top) + 10px); left: 50%;
-      width: clamp(146px, 43vw, 172px); height: 44px;
+      width: max-content; max-width: calc(100vw - 144px); height: 44px;
       transform: translateX(-50%); z-index: 250;
       align-items: center; flex-direction: column;
     }
     html.telegram-fullscreen .module-switch { display: flex; }
     .module-switch-button {
-      width: 100%; min-height: 34px; border: 1px solid #A8C7AD; border-radius: 999px;
-      background: #246B3F; color: #FFFFFF; font: inherit;
-      font-size: 12px; font-weight: 750; cursor: pointer;
-      box-shadow: 0 1px 5px rgba(58,66,31,0.18);
+      position: relative; isolation: isolate; flex-shrink: 0;
+      width: max-content; height: 30px; min-height: 30px; padding: 0 10px;
+      border: 0; border-radius: 999px; background: #F2F3EB; color: #293129; font: inherit;
+      font-size: 16px; line-height: 30px; font-weight: 750; white-space: nowrap; cursor: pointer;
+      box-shadow: none;
       -webkit-tap-highlight-color: transparent;
     }
-    body.banking-mode .module-switch-button { background: #D7E88F; color: #283018; }
+    /* Transparent extension keeps the compact visual pill a 44px touch target. */
+    .module-switch-button::before { content: ''; position: absolute; inset: -7px 0; border-radius: inherit; }
+    .module-switch-button:focus-visible { outline: 2px solid #58634B; outline-offset: 3px; }
     .module-switch-cues { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 8px; color: #58634b; }
     .module-position { width: 5px; height: 5px; border: 1px solid #71805d; border-radius: 50%; }
     .module-position.active { background: #586b38; }
