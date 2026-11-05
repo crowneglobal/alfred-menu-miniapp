@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('/opt/homebrew/lib/node_modules/openclaw/node_modules/playwright-core');
 
-const html = fs.readFileSync(__dirname + '/../app.html', 'utf8');
+const html = fs.readFileSync(process.env.MINIAPP_HTML || __dirname + '/../app.html', 'utf8');
 const groupName = 'Alfred Tasks Webapp Design & UI | ALF';
 const tasks = [
   { id: 1, task: 'Build selected group view', status: 'In Progress', assignee: 'dro238', assignee_id: 1078092674, group_name: groupName },
