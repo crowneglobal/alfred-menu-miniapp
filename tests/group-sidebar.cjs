@@ -68,6 +68,7 @@ test('full group names open a filtered summary view', { timeout: 20000 }, async 
     assert.equal(await page.locator('#group-overview-done').innerText(), '1');
     const visible = await page.locator('#today-view .today-task-row .task-name').allTextContents();
     assert.deepEqual(visible.sort(), ['Build selected group view', 'Repair missing group titles'].sort());
+    if (process.env.SCREENSHOT_PATH) await page.screenshot({ path: process.env.SCREENSHOT_PATH, fullPage: true });
     await context.close();
   } finally {
     await browser.close();
