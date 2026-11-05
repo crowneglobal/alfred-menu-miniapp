@@ -759,10 +759,7 @@
       border-radius: 18px; background: var(--ui-surface); box-shadow: var(--ui-shadow);
     }
     .group-overview[hidden] { display: none; }
-    .group-overview-kicker {
-      color: var(--ui-muted); font-size: 9px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase;
-    }
-    .group-overview-title { margin-top: 3px; color: var(--ui-ink); font-size: 17px; font-weight: 750; line-height: 1.25; }
+    .group-overview-title { color: var(--ui-ink); font-size: 17px; font-weight: 750; line-height: 1.25; }
     .group-overview-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
     .group-overview-stat { padding: 8px 5px; border-radius: 11px; background: var(--ui-soft); text-align: center; }
     .group-overview-value { display: block; color: var(--ui-ink); font-size: 15px; font-weight: 800; line-height: 1; }
@@ -800,7 +797,7 @@
       background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line); box-shadow: none;
     }
     .app-title { font-size: 26px; font-weight: 750; letter-spacing: -.9px; line-height: 1.2; }
-    #date-week-bar { color: var(--ui-muted); opacity: 1 !important; font-size: 11px !important; font-weight: 550 !important; margin-top: 6px !important; letter-spacing: .25px !important; }
+    #date-week-bar { display: block; color: var(--ui-muted); opacity: .9 !important; font-size: 11px !important; font-weight: 650 !important; letter-spacing: .35px !important; line-height: 1 !important; text-align: center; }
     #context-tabs { align-items: center; gap: 6px; margin-top: 0 !important; padding: 4px !important; border: 1px solid var(--ui-line); background: var(--ui-soft) !important; border-radius: 16px; }
     :is(body, body.light) .section-tab { min-height: 44px; border-radius: 12px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; line-height: 1.2; }
     :is(body, body.light) .section-tab.active { background: var(--ui-accent); color: var(--ui-accent-ink); box-shadow: 0 2px 5px rgba(20, 40, 24, .07); }
@@ -844,7 +841,7 @@
       background: var(--ui-glass); border: 1px solid var(--ui-line); border-bottom: 0; border-radius: 24px 24px 0 0;
       box-shadow: 0 -8px 32px rgba(23, 42, 27, .06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     }
-    .sheet-handle-bar { height: 28px; border-radius: 24px 24px 0 0; }
+    .sheet-handle-bar { height: 38px; flex-direction: column; gap: 6px; border-radius: 24px 24px 0 0; }
     :is(body, body.light) .sheet-handle-pill { width: 32px; height: 4px; background: var(--ui-muted); opacity: .38; }
     .sheet-pinned { height: 60px; gap: 4px; padding: 0 14px 8px; }
     :is(body, body.light) .sheet-pinned .nav-tab {
@@ -967,7 +964,6 @@
         <button class="section-tab active" id="topnav-pending" data-qf="pending">Today</button>
       </div>
     </div>
-    <div id="date-week-bar" style="font-size:11px; font-weight:600; letter-spacing:0.4px; opacity:0.5; text-align:center; width:100%; margin-bottom:1px; margin-top:1px;"></div>
   </header>
 
   <section class="profile-view" id="profile-view" aria-hidden="true">
@@ -1005,9 +1001,8 @@
 
   <div id="view-planning">
   <section id="group-overview" class="group-overview" aria-live="polite" hidden>
-    <div class="group-overview-kicker">Selected group</div>
     <div id="group-overview-title" class="group-overview-title"></div>
-    <div class="group-overview-stats" aria-label="Selected group task summary">
+    <div class="group-overview-stats" aria-label="Group task summary">
       <div class="group-overview-stat"><span id="group-overview-total" class="group-overview-value">0</span><span class="group-overview-label">Tasks</span></div>
       <div class="group-overview-stat"><span id="group-overview-stuck" class="group-overview-value">0</span><span class="group-overview-label">Stuck</span></div>
       <div class="group-overview-stat"><span id="group-overview-progress" class="group-overview-value">0</span><span class="group-overview-label">In progress</span></div>
@@ -1083,6 +1078,7 @@
   <div class="bottom-sheet" id="bottom-sheet">
     <button class="sheet-handle-bar" id="sheet-handle" type="button" aria-label="Expand task tray" aria-expanded="false" aria-controls="tray-actions">
       <span class="sheet-handle-pill" aria-hidden="true"></span>
+      <span id="date-week-bar"></span>
     </button>
     <div class="sheet-pinned">
       <button class="nav-tab chip-stuck" type="button" data-status="stuck" aria-pressed="false">Stuck</button>

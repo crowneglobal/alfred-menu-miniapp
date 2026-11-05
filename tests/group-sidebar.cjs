@@ -61,11 +61,17 @@ test('full group names open a filtered summary view', { timeout: 20000 }, async 
 
     await page.locator('#sidebar-body .sidebar-group-name').filter({ hasText: groupName }).click();
     assert.equal(await page.locator('#group-overview').isVisible(), true);
+    assert.equal(await page.locator('#group-overview').getByText('Selected group', { exact: true }).count(), 0);
     assert.equal(await page.locator('#group-overview-title').innerText(), groupName);
     assert.equal(await page.locator('#group-overview-total').innerText(), '3');
     assert.equal(await page.locator('#group-overview-stuck').innerText(), '1');
     assert.equal(await page.locator('#group-overview-progress').innerText(), '1');
     assert.equal(await page.locator('#group-overview-done').innerText(), '1');
+    assert.match(await page.locator('#date-week-bar').innerText(), /^[A-Z][a-z]{2} \d{1,2} \| W\d{1,2}$/);
+    const trayBox = await page.locator('#bottom-sheet').boundingBox();
+    const dateBox = await page.locator('#date-week-bar').boundingBox();
+    assert.ok(dateBox.y < trayBox.y + 38, 'Month and week sit in the top row of the tray');
+    assert.ok(Math.abs((dateBox.x + dateBox.width / 2) - (trayBox.x + trayBox.width / 2)) < 1, 'Month and week are horizontally centered in the tray');
     const visible = await page.locator('#today-view .today-task-row .task-name').allTextContents();
     assert.deepEqual(visible.sort(), ['Build selected group view', 'Repair missing group titles'].sort());
     if (process.env.SCREENSHOT_PATH) {

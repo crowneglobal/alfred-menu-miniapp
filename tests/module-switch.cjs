@@ -64,11 +64,16 @@ test('last-open module and deep links remain wired', () => {
   assert.match(html, /switchSection\(explicitSection \|\| rememberedSection\(\) \|\| 'planning'/);
 });
 
-test('task navigation moves into the second row and the date follows beneath it', () => {
-  const navigationPosition = html.indexOf('<div class="section-tabs" id="context-tabs"');
+test('task navigation stays in the header and the date sits at the top center of the bottom tray', () => {
+  const headerClosePosition = html.indexOf('</header>');
+  const trayPosition = html.indexOf('<div class="bottom-sheet" id="bottom-sheet">');
   const datePosition = html.indexOf('<div id="date-week-bar"');
-  assert.ok(navigationPosition > -1);
-  assert.ok(datePosition > navigationPosition);
+  const dateSpanPosition = html.indexOf('<span id="date-week-bar"');
+  assert.ok(headerClosePosition > -1);
+  assert.ok(trayPosition > headerClosePosition);
+  assert.equal(datePosition, -1);
+  assert.ok(dateSpanPosition > trayPosition);
   assert.match(html, /#context-tabs \{[^}]*margin-top: 0 !important;/);
-  assert.match(html, /#date-week-bar \{[^}]*margin-top: 6px !important;/);
+  assert.match(html, /\.sheet-handle-bar \{ height: 38px; flex-direction: column; gap: 6px;/);
+  assert.match(html, /#date-week-bar \{[^}]*text-align: center;/);
 });
