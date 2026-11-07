@@ -11,8 +11,8 @@ const bankLayout = fs.readFileSync(path.join(bankingRoot, 'app/views/layouts/app
 const bankTray = fs.readFileSync(path.join(bankingRoot, 'app/javascript/layout/modules/BankingCompanyTray.vue'), 'utf8');
 
 test('Tasks and Banking consume one canonical tray skin and skeleton class contract', () => {
-  assert.match(tasks, /href="tray\/alfred-tray\.css"/);
-  assert.match(bankLayout, /href="\/app\/tray\/alfred-tray\.css"/);
+  assert.match(tasks, /href="tray\/alfred-tray\.css\?v=962-[a-f0-9]+"/);
+  assert.match(bankLayout, /href="\/app\/tray\/alfred-tray\.css\?v=962-[a-f0-9]+"/);
   for (const name of ['atray-handle', 'atray-date', 'atray-pinned', 'atray-create', 'atray-chips', 'atray-chip', 'atray-search', 'atray-menu', 'atray-row2', 'atray-org', 'atray-avatar']) {
     assert.ok(tasks.includes(name), `Tasks has ${name}`);
     assert.ok(bankTray.includes(name), `Banking has ${name}`);
