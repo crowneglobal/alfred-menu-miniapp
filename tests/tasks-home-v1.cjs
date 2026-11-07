@@ -40,7 +40,11 @@ test('Tasks V1 home uses live task data without removed headings', { timeout: 20
     assert.equal(await page.locator('#tray-actions').isVisible(), true);
     assert.equal(await page.locator('#tray-sort-trigger').innerText(), '⇅ Newest first⌄');
     assert.equal(await page.locator('#tray-new-task').innerText(), 'Add task');
-    assert.match(await page.locator('#home-date-week-bar').innerText(), /^[A-Z][a-z]{2} \d{1,2} \| W\d{1,2}$/);
+    assert.equal(await page.locator('#home-date-week-bar').count(), 0);
+    assert.match(await page.locator('#date-week-bar').innerText(), /^[A-Z][a-z]{2} \d{1,2} \| W\d{1,2}$/);
+    const tabsBox = await page.locator('#context-tabs').boundingBox();
+    const summaryBox = await page.locator('.home-summary').boundingBox();
+    assert.ok(summaryBox.y - (tabsBox.y + tabsBox.height) < 28, 'Summary cards close the removed date block');
 
     if (process.env.SCREENSHOT_PATH) await page.screenshot({ path: process.env.SCREENSHOT_PATH, fullPage: true });
     await context.close();

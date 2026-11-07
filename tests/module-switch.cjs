@@ -64,7 +64,7 @@ test('last-open module and deep links remain wired', () => {
   assert.match(html, /switchSection\(explicitSection \|\| rememberedSection\(\) \|\| 'planning'/);
 });
 
-test('task home navigation and date stay in the header while the date remains centered in the tray', () => {
+test('task home navigation stays in the header while the date appears only in the tray', () => {
   const headerClosePosition = html.indexOf('</header>');
   const trayPosition = html.indexOf('<div class="bottom-sheet" id="bottom-sheet">');
   const datePosition = html.indexOf('<div id="date-week-bar"');
@@ -73,7 +73,8 @@ test('task home navigation and date stay in the header while the date remains ce
   assert.ok(trayPosition > headerClosePosition);
   assert.equal(datePosition, -1);
   assert.ok(dateSpanPosition > trayPosition);
-  assert.ok(html.indexOf('id="home-date-week-bar"') < headerClosePosition);
+  assert.equal(html.indexOf('id="home-date-week-bar"'), -1);
+  assert.equal(html.indexOf('.home-date-week'), -1);
   assert.match(html, /data-qf="home">Home<\/button>/);
   assert.match(html, /data-qf="departments">Departments<\/button>/);
   assert.match(html, /#context-tabs \{[^}]*margin-top: 0 !important;/);

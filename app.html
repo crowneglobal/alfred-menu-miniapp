@@ -764,7 +764,6 @@
     .group-overview-stat { padding: 8px 5px; border-radius: 11px; background: var(--ui-soft); text-align: center; }
     .group-overview-value { display: block; color: var(--ui-ink); font-size: 15px; font-weight: 800; line-height: 1; }
     .group-overview-label { display: block; margin-top: 4px; color: var(--ui-muted); font-size: 8px; font-weight: 700; line-height: 1.1; }
-    .home-date-week { margin: 9px 0 16px; color: var(--ui-muted); font-size: 12px; font-weight: 650; letter-spacing: .2px; text-align: center; }
     .home-dashboard { display: grid; gap: 14px; padding-bottom: 12px; }
     .home-dashboard[hidden] { display: none; }
     .home-summary {
@@ -1004,7 +1003,6 @@
         <button class="section-tab" id="topnav-pending" data-qf="pending">Today</button>
       </div>
     </div>
-    <div class="home-date-week" id="home-date-week-bar"></div>
   </header>
 
   <section class="profile-view" id="profile-view" aria-hidden="true">
@@ -2860,7 +2858,6 @@
       const w = Math.ceil(((d - new Date(jan4.getFullYear(), 0, 1)) / 86400000 + jan4.getDay() + 1) / 7);
       const label = month + ' ' + day + ' | W' + w;
       document.getElementById('date-week-bar').textContent = label;
-      document.getElementById('home-date-week-bar').textContent = label;
     })();
 
     // Default to the Tasks home dashboard.
