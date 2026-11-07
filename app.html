@@ -89,7 +89,7 @@
     /* Transparent extension keeps the compact visual pill a 44px touch target. */
     .module-switch-button::before { content: ''; position: absolute; inset: -7px 0; border-radius: inherit; }
     .module-switch-button:focus-visible { outline: 2px solid #58634B; outline-offset: 3px; }
-    .module-switch-cues { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 8px; color: #58634b; }
+    .module-switch-cues { display: none; }
     .module-position { width: 5px; height: 5px; border: 1px solid #71805d; border-radius: 50%; }
     .module-position.active { background: #586b38; }
     #module-switch-hint[hidden] { display: none; }
@@ -764,6 +764,43 @@
     .group-overview-stat { padding: 8px 5px; border-radius: 11px; background: var(--ui-soft); text-align: center; }
     .group-overview-value { display: block; color: var(--ui-ink); font-size: 15px; font-weight: 800; line-height: 1; }
     .group-overview-label { display: block; margin-top: 4px; color: var(--ui-muted); font-size: 8px; font-weight: 700; line-height: 1.1; }
+    .home-date-week { margin: 9px 0 16px; color: var(--ui-muted); font-size: 12px; font-weight: 650; letter-spacing: .2px; text-align: center; }
+    .home-dashboard { display: grid; gap: 14px; padding-bottom: 12px; }
+    .home-dashboard[hidden] { display: none; }
+    .home-summary {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+      padding: 12px; border: 1px solid var(--ui-line); border-radius: 17px;
+      background: var(--ui-surface); box-shadow: 0 2px 3px rgba(20, 40, 24, .025);
+    }
+    .home-summary-card { min-width: 0; padding: 10px 5px; border-radius: 13px; background: var(--ui-soft); text-align: center; }
+    .home-summary-value { display: block; color: var(--ui-ink); font-size: 19px; font-weight: 800; line-height: 1; }
+    .home-summary-label { display: block; margin-top: 6px; color: var(--ui-muted); font-size: 10px; font-weight: 650; line-height: 1.1; }
+    .home-departments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .home-department {
+      position: relative; min-width: 0; padding: 13px 10px 12px; overflow: hidden;
+      border: 1px solid var(--ui-line); border-radius: 15px; background: var(--ui-surface);
+      color: var(--ui-ink); text-align: left; font: inherit; cursor: pointer;
+    }
+    .home-department::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--department-color, #6E9E5E); }
+    .home-department-name { display: block; overflow: hidden; color: var(--ui-ink); font-size: 13px; font-weight: 750; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+    .home-department-meta { display: flex; justify-content: space-between; gap: 4px; margin-top: 8px; color: var(--ui-muted); font-size: 9px; font-weight: 600; }
+    .home-department-progress { display: block; height: 5px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: var(--ui-soft); }
+    .home-department-progress > span { display: block; height: 100%; border-radius: inherit; background: #5E8952; }
+    .home-task-list { display: grid; gap: 8px; }
+    .home-task-card {
+      position: relative; display: flex; align-items: center; min-width: 0; min-height: 74px;
+      padding: 0 12px 0 0; overflow: hidden; border: 1px solid var(--ui-line); border-radius: 16px;
+      background: var(--ui-surface); color: var(--ui-ink); text-align: left; font: inherit; cursor: pointer;
+    }
+    .home-task-accent { align-self: stretch; width: 4px; flex: 0 0 4px; background: var(--task-color, #C07840); }
+    .home-task-avatar { display: grid; place-items: center; width: 36px; height: 36px; margin: 0 10px; flex: 0 0 36px; overflow: hidden; border-radius: 50%; }
+    .home-task-avatar svg { display: block; width: 36px; height: 36px; }
+    .home-task-copy { min-width: 0; flex: 1; }
+    .home-task-name { display: block; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+    .home-task-meta { display: flex; align-items: center; gap: 5px; min-width: 0; margin-top: 5px; color: var(--ui-muted); font-size: 10px; }
+    .home-task-group { display: inline-block; max-width: 120px; padding: 2px 6px; overflow: hidden; border-radius: 5px; background: rgba(110,158,94,.15); color: #527747; text-overflow: ellipsis; white-space: nowrap; }
+    .home-task-badge { flex: 0 0 auto; margin-left: 8px; padding: 5px 8px; border-radius: 999px; color: #fff; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .home-empty { padding: 18px; border: 1px solid var(--ui-line); border-radius: 16px; background: var(--ui-surface); color: var(--ui-muted); font-size: 12px; text-align: center; }
     /* Alfred interface: shared surfaces, type, contrast and interaction states. */
     body {
       --ui-bg: #EEF4E8; --ui-surface: #F5F2EA; --ui-soft: #E5EDD8;
@@ -838,7 +875,7 @@
     :is(body, body.light) .bottom-sheet {
       --ui-surface: #2A2A25; --ui-soft: #424239; --ui-ink: #F5F2EA; --ui-muted: #C1C3B2; --ui-line: #55564A;
       --ui-accent: #C5D4A8; --ui-accent-ink: #2A2400; --ui-tint: #C5D4A8; --ui-glass: rgba(42,42,37,.98);
-      background: var(--ui-glass); border: 1px solid var(--ui-line); border-bottom: 0; border-radius: 24px 24px 0 0;
+      background: #596A53; border: 1px solid #596A53; border-bottom: 0; border-radius: 24px 24px 0 0;
       box-shadow: 0 -8px 32px rgba(23, 42, 27, .06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     }
     .sheet-handle-bar { height: 38px; flex-direction: column; gap: 6px; border-radius: 24px 24px 0 0; }
@@ -855,12 +892,13 @@
     .nav-center-avatar { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border: 3px solid var(--ui-surface); background: var(--ui-tint); color: var(--ui-accent-ink); box-shadow: 0 0 0 1px var(--ui-line); font-size: 12px; }
     .tray-search-bubble { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin-left: 5px; padding: 0; border: 0; border-radius: 50%; background: var(--ui-accent); color: var(--ui-accent-ink); cursor: pointer; }
     .tray-actions { padding: 6px 16px 16px; gap: 12px; }
+    .tray-actions[hidden] { display: none; }
+    .tray-scope-row[hidden] { display: none; }
     .tray-scope-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .tray-actions .assignee-tabs { flex: 1; min-width: 0; padding: 4px; gap: 4px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-soft); }
     :is(body, body.light) .assignee-tab { min-height: 36px; border-radius: 9px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; }
     :is(body, body.light) .assignee-tab.active { color: var(--ui-ink); background: var(--ui-surface); box-shadow: 0 1px 4px rgba(20,40,24,.07); }
-    .tray-search-trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; border-radius: 14px; border: 1px solid var(--ui-line); background: var(--ui-surface); color: var(--ui-muted); font-size: 13px; padding: 0 12px; }
-    .tray-search-trigger .ui-icon { width: 17px; height: 17px; }
+    .tray-sort-trigger { display: inline-flex; flex: 1; align-items: center; justify-content: flex-start; min-width: 0; min-height: 48px; border-radius: 14px; border: 1px solid rgba(245,242,234,.35); background: transparent; color: #F5F2EA; font-size: 13px; padding: 0 14px; }
     .tray-new-task { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 0 14px; border-radius: 14px; background: var(--ui-accent); color: var(--ui-accent-ink); font-size: 13px; font-weight: 650; }
     .tray-new-task .ui-icon { width: 16px; height: 16px; }
     .search-overlay-header { border: 1px solid var(--ui-line); border-radius: 20px; background: var(--ui-glass); padding: 8px; box-shadow: var(--ui-shadow); }
@@ -938,6 +976,8 @@
       .tray-actions { flex-direction: row; align-items: center; }
       .tray-scope-row { flex: 0 0 40%; }
       .tray-tools { flex: 1; }
+      .home-department-name { font-size: 11px; }
+      .home-task-name { font-size: 13px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -958,12 +998,13 @@
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
       <div id="nav-planning" style="display:flex; flex:1; min-width:0; gap:2px;">
-        <button class="section-tab" id="topnav-board" data-qf="board">Rocstars®</button>
-        <button class="section-tab" id="topnav-people" data-qf="people">Roctavos (45d)</button>
+        <button class="section-tab active" id="topnav-home" data-qf="home">Home</button>
+        <button class="section-tab" id="topnav-departments" data-qf="departments">Departments</button>
         <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
-        <button class="section-tab active" id="topnav-pending" data-qf="pending">Today</button>
+        <button class="section-tab" id="topnav-pending" data-qf="pending">Today</button>
       </div>
     </div>
+    <div class="home-date-week" id="home-date-week-bar"></div>
   </header>
 
   <section class="profile-view" id="profile-view" aria-hidden="true">
@@ -1000,6 +1041,15 @@
   </section>
 
   <div id="view-planning">
+  <section id="home-dashboard" class="home-dashboard" aria-label="Task home">
+    <div class="home-summary" aria-label="Task summary">
+      <div class="home-summary-card"><span id="home-due-count" class="home-summary-value">0</span><span class="home-summary-label">Due Today</span></div>
+      <div class="home-summary-card"><span id="home-stuck-count" class="home-summary-value">0</span><span class="home-summary-label">Stuck</span></div>
+      <div class="home-summary-card"><span id="home-done-count" class="home-summary-value">0</span><span class="home-summary-label">Done</span></div>
+    </div>
+    <div id="home-departments" class="home-departments" aria-label="Departments"></div>
+    <div id="home-task-list" class="home-task-list" aria-label="Priority tasks"></div>
+  </section>
   <section id="group-overview" class="group-overview" aria-live="polite" hidden>
     <div id="group-overview-title" class="group-overview-title"></div>
     <div class="group-overview-stats" aria-label="Group task summary">
@@ -1076,7 +1126,7 @@
 
   <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
   <div class="bottom-sheet" id="bottom-sheet">
-    <button class="sheet-handle-bar" id="sheet-handle" type="button" aria-label="Expand task tray" aria-expanded="false" aria-controls="tray-actions">
+    <button class="sheet-handle-bar" id="sheet-handle" type="button" aria-label="Collapse task tray" aria-expanded="true" aria-controls="tray-actions">
       <span class="sheet-handle-pill" aria-hidden="true"></span>
       <span id="date-week-bar"></span>
     </button>
@@ -1087,8 +1137,8 @@
       <button class="tray-search-bubble" id="search-bubble" type="button" aria-label="Search tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg></button>
     </div>
 
-    <div class="tray-actions" id="tray-actions" hidden>
-      <div class="tray-scope-row">
+    <div class="tray-actions" id="tray-actions">
+      <div class="tray-scope-row" hidden>
         <div class="assignee-tabs" id="assignee-tabs">
           <button class="assignee-tab active" id="assignee-tab-me" type="button" data-assignee="me">Me</button>
           <button class="assignee-tab" id="assignee-tab-all" type="button" data-assignee="all">All</button>
@@ -1099,8 +1149,8 @@
         </button>
       </div>
       <div class="tray-tools">
-        <button class="tray-search-trigger" id="tray-search-trigger" type="button" aria-label="Search tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>Search tasks</button>
-        <button class="tray-new-task" id="tray-new-task" type="button" aria-label="Create new task"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New task</button>
+        <button class="tray-sort-trigger" id="tray-sort-trigger" type="button" aria-label="Sort tasks">⇅ Newest first⌄</button>
+        <button class="tray-new-task" id="tray-new-task" type="button" aria-label="Create new task"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</button>
       </div>
     </div>
 
@@ -1446,7 +1496,8 @@
       row.dataset.status = statusKey;
       row.dataset.person = String(avatarSeed);
       row.dataset.priority = t.is_priority ? 'p1' : 'p2';
-      row.dataset.due = '';
+      row.dataset.due = String(t.due_date || t.due || '').slice(0, 10);
+      row.dataset.created = String(t.created_at || t.created || '').slice(0, 10);
       row.dataset.notes = '';
       row.dataset.goal = '';
       row.dataset.group = groupLabel;
@@ -1615,6 +1666,7 @@
       if (boardActive) buildBoard();
       if (todayActive) buildTodayView();
       updateGroupOverview();
+      renderHomeDashboard();
       updateTaskFeedStatus();
     }
 
@@ -1638,6 +1690,132 @@
       document.getElementById('group-overview-progress').textContent = counts.progress;
       document.getElementById('group-overview-done').textContent = counts.done;
       overview.hidden = false;
+    }
+
+    function renderHomeDashboard() {
+      var dashboard = document.getElementById('home-dashboard');
+      if (!dashboard || !homeActive) return;
+      var scopedRows = allTasks.filter(function(row) {
+        return activeAssigneeFilter === 'all' || isAssignedToCurrentUser(row);
+      });
+      var today = new Date();
+      var todayKey = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+      document.getElementById('home-due-count').textContent = scopedRows.filter(function(row) {
+        return row.dataset.status !== 'done' && row.dataset.due === todayKey;
+      }).length;
+      document.getElementById('home-stuck-count').textContent = scopedRows.filter(function(row) { return row.dataset.status === 'stuck'; }).length;
+      document.getElementById('home-done-count').textContent = scopedRows.filter(function(row) { return row.dataset.status === 'done'; }).length;
+
+      var departments = {};
+      scopedRows.forEach(function(row) {
+        var name = (row.dataset.group || 'Ungrouped').trim() || 'Ungrouped';
+        if (!departments[name]) departments[name] = { name: name, total: 0, done: 0 };
+        departments[name].total += 1;
+        if (row.dataset.status === 'done') departments[name].done += 1;
+      });
+      var departmentList = Object.values(departments).sort(function(a, b) {
+        return b.total - a.total || a.name.localeCompare(b.name);
+      }).slice(0, 3);
+      var departmentHost = document.getElementById('home-departments');
+      departmentHost.replaceChildren();
+      var departmentColors = ['#6E9E5E', '#C07840', '#78A95F'];
+      departmentList.forEach(function(department, index) {
+        var completion = department.total ? Math.round(department.done / department.total * 100) : 0;
+        var open = department.total - department.done;
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'home-department';
+        button.style.setProperty('--department-color', departmentColors[index % departmentColors.length]);
+        button.setAttribute('aria-label', department.name + ', ' + open + ' open, ' + completion + '% done');
+        var name = document.createElement('span');
+        name.className = 'home-department-name';
+        name.textContent = department.name;
+        var meta = document.createElement('span');
+        meta.className = 'home-department-meta';
+        var openLabel = document.createElement('span');
+        openLabel.textContent = open + ' open';
+        var completionLabel = document.createElement('span');
+        completionLabel.textContent = completion + '%';
+        meta.append(openLabel, completionLabel);
+        var progress = document.createElement('span');
+        progress.className = 'home-department-progress';
+        var fill = document.createElement('span');
+        fill.style.width = completion + '%';
+        progress.appendChild(fill);
+        button.append(name, meta, progress);
+        button.addEventListener('click', function() {
+          selectGroup(department.name);
+        });
+        departmentHost.appendChild(button);
+      });
+      if (!departmentList.length) {
+        var noDepartments = document.createElement('div');
+        noDepartments.className = 'home-empty';
+        noDepartments.textContent = 'No departments yet';
+        departmentHost.appendChild(noDepartments);
+      }
+
+      var statusOrder = { stuck: 0, progress: 1, done: 2 };
+      var priorityOrder = { p1: 0, p2: 1, p3: 2 };
+      var homeRows = scopedRows.filter(function(row) { return row.dataset.status !== 'done'; }).sort(function(a, b) {
+        if (homeTaskSort === 'stuck') return statusOrder[a.dataset.status] - statusOrder[b.dataset.status];
+        var aid = Number(a.dataset.taskId || 0);
+        var bid = Number(b.dataset.taskId || 0);
+        if (homeTaskSort === 'oldest') return aid - bid;
+        return (priorityOrder[a.dataset.priority || 'p2'] - priorityOrder[b.dataset.priority || 'p2']) || bid - aid;
+      }).slice(0, 3);
+      var taskHost = document.getElementById('home-task-list');
+      taskHost.replaceChildren();
+      var statusColors = { stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
+      var statusLabels = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+      homeRows.forEach(function(row) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'home-task-card';
+        button.style.setProperty('--task-color', statusColors[row.dataset.status] || statusColors.progress);
+        var accent = document.createElement('span');
+        accent.className = 'home-task-accent';
+        var avatar = document.createElement('span');
+        avatar.className = 'home-task-avatar';
+        var sourceAvatar = row.querySelector('.avatar');
+        if (sourceAvatar) avatar.appendChild(sourceAvatar.cloneNode(true));
+        var copy = document.createElement('span');
+        copy.className = 'home-task-copy';
+        var taskName = document.createElement('span');
+        taskName.className = 'home-task-name';
+        taskName.textContent = row.querySelector('.task-name')?.textContent || 'Task';
+        var taskMeta = document.createElement('span');
+        taskMeta.className = 'home-task-meta';
+        var assignee = document.createElement('span');
+        assignee.textContent = row.dataset.assignee || 'Unassigned';
+        var separator = document.createElement('span');
+        separator.textContent = '·';
+        var group = document.createElement('span');
+        group.className = 'home-task-group';
+        group.textContent = row.dataset.group || 'Ungrouped';
+        taskMeta.append(assignee, separator, group);
+        if (row.dataset.due) {
+          var dueSeparator = document.createElement('span');
+          dueSeparator.textContent = '·';
+          var due = document.createElement('span');
+          due.textContent = row.dataset.due === todayKey ? 'Due Today' : 'Due ' + row.dataset.due.slice(5).replace('-', '/');
+          taskMeta.append(dueSeparator, due);
+        }
+        copy.append(taskName, taskMeta);
+        var badge = document.createElement('span');
+        badge.className = 'home-task-badge';
+        badge.style.background = statusColors[row.dataset.status] || statusColors.progress;
+        badge.textContent = statusLabels[row.dataset.status] || statusLabels.progress;
+        button.append(accent, avatar, copy, badge);
+        button.addEventListener('click', function() { enhanceRow(row); openDetail(row); });
+        taskHost.appendChild(button);
+      });
+      if (!homeRows.length) {
+        var empty = document.createElement('div');
+        empty.className = 'home-empty';
+        empty.textContent = 'No active tasks';
+        taskHost.appendChild(empty);
+      }
     }
 
     const searchOverlay = document.getElementById('search-overlay');
@@ -1770,6 +1948,7 @@
       tab.addEventListener('click', () => {
         closeAllPanels();
         exitBoardView();
+        setHomeMode(false);
         setTodayMode(false);
         document.querySelectorAll('#nav-planning .section-tab').forEach(item => item.classList.toggle('active', item.dataset.qf === 'week'));
         const s = tab.dataset.status;
@@ -1790,6 +1969,7 @@
     const tabPending = document.getElementById('tab-pending');
     tabPending.addEventListener('click', () => {
       closeAllPanels();
+      setHomeMode(false);
       if (activeStatus === 'pending') {
         activeStatus = null; tabPending.classList.remove('active');
       } else {
@@ -2500,6 +2680,8 @@
     const todayView = document.getElementById('today-view');
     let boardActive = false;
     let todayActive = false;
+    let homeActive = true;
+    let homeTaskSort = 'newest';
     const ROCSTAR_GOALS_KEY = 'alfred-rocstar-goals';
     let rocstarGoals = [];
     try {
@@ -2548,7 +2730,29 @@
       updateTaskFeedStatus();
     }
 
+    function setHomeMode(active) {
+      homeActive = active;
+      var dashboard = document.getElementById('home-dashboard');
+      dashboard.hidden = !active;
+      var focus = document.querySelector('.focus-banner');
+      if (focus) focus.style.display = active ? 'none' : (boardActive || todayActive ? 'none' : '');
+      if (active) {
+        activeGroupFilter = null;
+        boardActive = false;
+        todayActive = false;
+        boardView.style.display = 'none';
+        todayView.classList.remove('open');
+        document.getElementById('group-overview').hidden = true;
+      }
+      ['section-41','section-42','section-group'].forEach(function(id) {
+        document.getElementById(id).style.display = active || boardActive || todayActive ? 'none' : '';
+      });
+      if (active) renderHomeDashboard();
+      updateTaskFeedStatus();
+    }
+
     function setTodayMode(active) {
+      if (active) setHomeMode(false);
       todayActive = active;
       todayView.classList.toggle('open', active);
       const focus = document.querySelector('.focus-banner');
@@ -2615,6 +2819,7 @@
       closeAllPanels();
       boardActive = !boardActive;
       if (boardActive) {
+        setHomeMode(false);
         setTodayMode(false);
         activeStatus = null;
         activePersonId = null;
@@ -2653,14 +2858,15 @@
       const day = d.getDate();
       const jan4 = new Date(d.getFullYear(), 0, 4);
       const w = Math.ceil(((d - new Date(jan4.getFullYear(), 0, 1)) / 86400000 + jan4.getDay() + 1) / 7);
-      document.getElementById('date-week-bar').textContent = month + ' ' + day + ' | W' + w;
+      const label = month + ' ' + day + ' | W' + w;
+      document.getElementById('date-week-bar').textContent = label;
+      document.getElementById('home-date-week-bar').textContent = label;
     })();
 
-    // Default to Today view on load
-    activeStatus = 'pending';
-    document.getElementById('tab-pending').classList.add('active');
+    // Default to the Tasks home dashboard.
+    activeStatus = null;
     applyAllFilters();
-    setTodayMode(true);
+    setHomeMode(true);
 
     // Share signed Telegram identity only with the exact Banking frame and origin.
     const bankingFrame = document.getElementById('banking-frame');
@@ -2785,8 +2991,22 @@
         const qf = btn.dataset.qf;
         document.querySelectorAll('#nav-planning .section-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        if (qf === 'pending') {
+        if (qf === 'home') {
           exitBoardView();
+          setTodayMode(false);
+          activeStatus = null;
+          activePersonId = null;
+          activeGroupFilter = null;
+          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
+          setHomeMode(true);
+          setTrayExpanded(true);
+          applyAllFilters();
+        } else if (qf === 'departments') {
+          setHomeMode(true);
+          openSidebar();
+        } else if (qf === 'pending') {
+          exitBoardView();
+          setHomeMode(false);
           activeStatus = 'pending';
           document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
           document.getElementById('tab-pending').classList.add('active');
@@ -2794,22 +3014,13 @@
           setTodayMode(true);
         } else if (qf === 'week') {
           exitBoardView();
+          setHomeMode(false);
           setTodayMode(false);
           activeStatus = null;
           activePersonId = null;
           weekFilter = 'all';
           groupVisible = true;
           document.getElementById('tab-pending').classList.remove('active');
-          document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
-          applyAllFilters();
-          if (taskFeedState === 'error') loadTasks();
-        } else if (qf === 'people') {
-          exitBoardView();
-          setTodayMode(false);
-          activeStatus = null;
-          activePersonId = null;
-          weekFilter = 'all';
-          groupVisible = true;
           document.querySelectorAll('.nav-tab[data-status]').forEach(t => t.classList.remove('active'));
           applyAllFilters();
           if (taskFeedState === 'error') loadTasks();
@@ -2859,10 +3070,15 @@
     }, { passive: false });
     bottomSheet.addEventListener('touchcancel', () => { trayTouchStart = null; });
     new ResizeObserver(updateTraySpace).observe(bottomSheet);
-    updateTraySpace();
-
-    document.getElementById('tray-search-trigger').addEventListener('click', openSearchMode);
+    setTrayExpanded(true);
     document.getElementById('search-bubble').addEventListener('click', openSearchMode);
+    document.getElementById('tray-sort-trigger').addEventListener('click', function() {
+      var order = ['newest', 'stuck', 'oldest'];
+      var labels = { newest: '⇅ Newest first⌄', stuck: '⇅ Stuck first⌄', oldest: '⇅ Oldest first⌄' };
+      homeTaskSort = order[(order.indexOf(homeTaskSort) + 1) % order.length];
+      this.textContent = labels[homeTaskSort];
+      renderHomeDashboard();
+    });
     document.getElementById('profile-trigger').addEventListener('click', openProfile);
 
     // ── Asana-style inline task creation ──
@@ -2991,6 +3207,20 @@
         titleEl.appendChild(subtitleEl);
       }
       subtitleEl.textContent = name ? '· ' + name : '';
+      document.querySelectorAll('#nav-planning .section-tab').forEach(function(tab) {
+        tab.classList.toggle('active', tab.dataset.qf === (name ? 'pending' : 'home'));
+      });
+      if (name) {
+        setHomeMode(false);
+        activeStatus = 'pending';
+        document.querySelectorAll('.nav-tab[data-status]').forEach(function(tab) { tab.classList.remove('active'); });
+        document.getElementById('tab-pending').classList.add('active');
+        setTodayMode(true);
+      } else {
+        activeStatus = null;
+        setTodayMode(false);
+        setHomeMode(true);
+      }
       applyAllFilters();
     }
     function openSidebar() {
