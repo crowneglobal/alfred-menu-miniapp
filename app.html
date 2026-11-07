@@ -1031,7 +1031,7 @@
 
   <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
   <div class="bottom-sheet atray" id="bottom-sheet">
-    <button class="atray-handle" id="sheet-handle" type="button" aria-label="Collapse task tray" aria-expanded="true" aria-controls="tray-actions">
+    <button class="atray-handle" id="sheet-handle" type="button" aria-label="Open date and week" aria-expanded="false" aria-controls="tray-actions sheet-expanded">
       <span class="atray-pill" aria-hidden="true"></span>
       <span class="atray-date" id="date-week-bar"></span>
     </button>
@@ -2006,12 +2006,20 @@
       trigger.setAttribute('aria-expanded', String(open));
     }
     trayCreate.addEventListener('click', () => {
+      setTrayExpanded(true);
+      document.getElementById('sheet-expanded').hidden = true;
+      document.getElementById('sheet-expanded').setAttribute('aria-hidden', 'true');
       setTrayMenu(trayOrg, trayOrgMenu, false);
       setTrayMenu(trayCreate, trayCreateMenu, trayCreateMenu.hidden);
+      updateTraySpace();
     });
     trayOrg.addEventListener('click', () => {
+      setTrayExpanded(true);
+      document.getElementById('sheet-expanded').hidden = true;
+      document.getElementById('sheet-expanded').setAttribute('aria-hidden', 'true');
       setTrayMenu(trayCreate, trayCreateMenu, false);
       setTrayMenu(trayOrg, trayOrgMenu, trayOrgMenu.hidden);
+      updateTraySpace();
     });
     document.getElementById('create-option-task').addEventListener('click', () => {
       setTrayMenu(trayCreate, trayCreateMenu, false);
@@ -2982,16 +2990,34 @@
       bottomSheet.classList.toggle('expanded', expanded);
       trayActions.hidden = !expanded;
       if (!expanded) {
+        document.getElementById('sheet-expanded').hidden = true;
+        document.getElementById('sheet-expanded').setAttribute('aria-hidden', 'true');
+        closeAllPanels();
         document.getElementById('tray-create-menu').hidden = true;
         document.getElementById('tray-org-menu').hidden = true;
         document.getElementById('tray-create').setAttribute('aria-expanded', 'false');
         document.getElementById('tray-org').setAttribute('aria-expanded', 'false');
       }
       sheetHandle.setAttribute('aria-expanded', String(expanded));
-      sheetHandle.setAttribute('aria-label', expanded ? 'Collapse task tray' : 'Expand task tray');
+      sheetHandle.setAttribute('aria-label', expanded ? 'Close date and week' : 'Open date and week');
       updateTraySpace();
     }
-    sheetHandle.addEventListener('click', () => setTrayExpanded(trayActions.hidden));
+    function openDateWeek() {
+      const datePanel = document.getElementById('sheet-expanded');
+      if (!trayActions.hidden && !datePanel.hidden) {
+        setTrayExpanded(false);
+        return;
+      }
+      setTrayExpanded(true);
+      setTrayMenu(trayCreate, trayCreateMenu, false);
+      setTrayMenu(trayOrg, trayOrgMenu, false);
+      datePanel.hidden = false;
+      datePanel.setAttribute('aria-hidden', 'false');
+      panelWeek.classList.add('open');
+      tabWeek.classList.add('active');
+      updateTraySpace();
+    }
+    sheetHandle.addEventListener('click', openDateWeek);
     bottomSheet.addEventListener('touchstart', event => {
       trayTouchStart = null;
       if (event.touches.length !== 1) return;
@@ -3010,7 +3036,7 @@
     }, { passive: false });
     bottomSheet.addEventListener('touchcancel', () => { trayTouchStart = null; });
     new ResizeObserver(updateTraySpace).observe(bottomSheet);
-    setTrayExpanded(true);
+    setTrayExpanded(false);
     document.getElementById('search-bubble').addEventListener('click', openSearchMode);
     document.getElementById('tray-sort-trigger').addEventListener('click', function() {
       var order = ['newest', 'stuck', 'oldest'];

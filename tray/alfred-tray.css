@@ -26,15 +26,16 @@
 .atray .atray-icon, .atray .ui-icon { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Handle: pill + centered date line */
-.atray-handle { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; width: 100%; min-height: 38px; padding: 0; border-radius: 24px 24px 0 0; touch-action: none; }
+.atray-handle { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; width: 100%; min-height: 32px; padding: 0; border-radius: 24px 24px 0 0; touch-action: none; }
 .atray-pill { width: 32px; height: 4px; border-radius: 2px; background: var(--ui-muted); opacity: .38; }
 .atray-date { display: block; color: var(--ui-muted); opacity: .9; font-size: 11px; font-weight: 650; letter-spacing: .35px; line-height: 1; text-align: center; }
 
 /* Row 1 (pinned): [+] [chips…] [search bubble] */
-.atray-pinned { display: flex; flex-direction: row; align-items: center; min-height: 60px; gap: 4px; padding: 0 14px 8px; }
+.atray-pinned { display: flex; flex-direction: row; align-items: center; min-height: 56px; gap: 4px; padding: 0 14px 6px; }
 .atray-create { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin-right: 5px; padding: 0; border-radius: 50%; background: var(--ui-accent); color: var(--ui-accent-ink); font-size: 24px; font-weight: 650; line-height: 1; }
-.atray-chips { display: flex; flex: 1; min-width: 0; align-items: center; gap: 4px; }
-.atray-chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0; min-height: 44px; border: 0; border-radius: 12px; padding: 0 6px; background: transparent; color: var(--ui-muted); font-size: 11px; font-weight: 600; }
+.atray-chips { display: flex; flex: 1; min-width: 0; align-items: center; gap: 4px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; }
+.atray-chips::-webkit-scrollbar { display: none; }
+.atray-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 1 0 auto; min-width: max-content; min-height: 44px; border: 0; border-radius: 12px; padding: 0 6px; background: transparent; color: var(--ui-muted); font-size: 11px; font-weight: 600; }
 .atray-chip::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .7; flex-shrink: 0; }
 .atray-chip.active, .atray-chip[aria-pressed="true"] { background: rgba(38, 49, 28, .25); color: #F4F7E4; }
 .atray-chip.atray-chip-stuck.active { background: var(--ui-stuck-bg); color: var(--ui-stuck); }

@@ -14,7 +14,7 @@ const tasks = [
 test('Tasks V1 home uses live task data without removed headings', { timeout: 20000 }, async () => {
   const browser = await chromium.launch({ headless: true, executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
   try {
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({ viewport: { width: Number(process.env.TEST_WIDTH || 390), height: 844 } });
     await context.route('**/*', async route => {
       const request = route.request();
       const url = new URL(request.url());
@@ -38,7 +38,8 @@ test('Tasks V1 home uses live task data without removed headings', { timeout: 20
     assert.deepEqual(await page.locator('.home-department-name').allTextContents(), ['Operations', 'Legal', 'Revenue']);
     assert.deepEqual(await page.locator('.home-task-name').allTextContents(), ['Repair missing group titles', 'Build selected group view', 'Review banking launch']);
     for (const removed of ['Your Work', '42 open tasks', 'Priority Tasks']) assert.equal(await page.getByText(removed, { exact: true }).count(), 0);
-    assert.equal(await page.locator('#tray-actions').isVisible(), true);
+    assert.equal(await page.locator('#tray-actions').isHidden(), true);
+    assert.equal(await page.locator('.atray-pinned').isVisible(), true);
     // Shared tray (962): + creates, compact sort icon, no bottom text search or Add task button.
     assert.equal(await page.locator('#tray-sort-trigger').innerText(), '⇅');
     assert.equal(await page.locator('#tray-sort-trigger').getAttribute('title'), 'Newest first');
@@ -47,12 +48,19 @@ test('Tasks V1 home uses live task data without removed headings', { timeout: 20
     assert.equal(await page.locator('#tray-create').innerText(), '+');
     assert.equal(await page.locator('#tray-create-menu').isHidden(), true);
     await page.locator('#tray-create').click();
+    assert.equal(await page.locator('#tray-actions').isVisible(), true);
     assert.equal(await page.locator('#tray-create-menu').isVisible(), true);
     assert.deepEqual(await page.locator('#tray-create-menu button').allInnerTexts().then(items => items.map(item => item.split('\n')[0])), ['Task', 'Project', 'Goal']);
     await page.locator('#create-option-task').click();
     assert.equal(await page.locator('#modal-overlay').getAttribute('class').then(value => value.includes('open')), true);
     assert.equal(await page.locator('#create-modal-title').innerText(), 'New Task');
     await page.evaluate(() => closeModal());
+    await page.evaluate(() => setTrayExpanded(false));
+    await page.locator('#sheet-handle').click();
+    assert.equal(await page.locator('#sheet-expanded').isVisible(), true);
+    assert.equal(await page.locator('#panel-week').getAttribute('class').then(value => value.includes('open')), true);
+    await page.locator('#sheet-handle').click();
+    assert.equal(await page.locator('#tray-actions').isHidden(), true);
     await page.evaluate(() => setTrayExpanded(true));
     assert.equal(await page.locator('#tray-org').innerText().then(value => value.replace(/\s+/g, ' ').trim()), 'Alfred ▾');
     assert.equal(await page.locator('#assignee-tab-me').isVisible(), true);
