@@ -19,6 +19,7 @@ test('Tasks V1 home uses live task data without removed headings', { timeout: 20
       const request = route.request();
       const url = new URL(request.url());
       if (url.origin === 'https://miniapp.test' && url.pathname === '/') return route.fulfill({ contentType: 'text/html', body: html });
+      if (url.origin === 'https://miniapp.test' && url.pathname === '/tray/alfred-tray.css') return route.fulfill({ contentType: 'text/css', body: require('fs').readFileSync(require('path').join(__dirname, '..', 'tray', 'alfred-tray.css'), 'utf8') });
       if (url.hostname === 'telegram.org') return route.fulfill({ contentType: 'application/javascript', body: `window.Telegram={WebApp:{initData:'fixture',initDataUnsafe:{user:{id:1078092674,first_name:'Darren',username:'dro238'}},viewportHeight:844,viewportStableHeight:844,colorScheme:'light',themeParams:{},isFullscreen:false,safeAreaInset:{},contentSafeAreaInset:{},ready(){},expand(){},requestFullscreen(){},isVersionAtLeast(){return true},setHeaderColor(){},setBackgroundColor(){},onEvent(){},BackButton:{onClick(){},show(){},hide(){}}}};` });
       if (url.hostname === 'cdn.jsdelivr.net') return route.fulfill({ contentType: 'application/javascript', body: 'window.Sortable={create(){return {}}};' });
       if (url.origin === 'https://miniapp.test' && url.pathname === '/api/tasks') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ tasks, total: tasks.length, next_cursor: null, can_view_all: true }) });
@@ -38,8 +39,24 @@ test('Tasks V1 home uses live task data without removed headings', { timeout: 20
     assert.deepEqual(await page.locator('.home-task-name').allTextContents(), ['Repair missing group titles', 'Build selected group view', 'Review banking launch']);
     for (const removed of ['Your Work', '42 open tasks', 'Priority Tasks']) assert.equal(await page.getByText(removed, { exact: true }).count(), 0);
     assert.equal(await page.locator('#tray-actions').isVisible(), true);
-    assert.equal(await page.locator('#tray-sort-trigger').innerText(), '⇅ Newest first⌄');
-    assert.equal(await page.locator('#tray-new-task').innerText(), 'Add task');
+    // Shared tray (962): + creates, compact sort icon, no bottom text search or Add task button.
+    assert.equal(await page.locator('#tray-sort-trigger').innerText(), '⇅');
+    assert.equal(await page.locator('#tray-sort-trigger').getAttribute('title'), 'Newest first');
+    assert.equal(await page.locator('#tray-new-task').count(), 0);
+    assert.equal(await page.locator('#tray-search-trigger').count(), 0);
+    assert.equal(await page.locator('#tray-create').innerText(), '+');
+    assert.equal(await page.locator('#tray-create-menu').isHidden(), true);
+    await page.locator('#tray-create').click();
+    assert.equal(await page.locator('#tray-create-menu').isVisible(), true);
+    assert.deepEqual(await page.locator('#tray-create-menu button').allInnerTexts().then(items => items.map(item => item.split('\n')[0])), ['Task', 'Project', 'Goal']);
+    await page.locator('#create-option-task').click();
+    assert.equal(await page.locator('#modal-overlay').getAttribute('class').then(value => value.includes('open')), true);
+    assert.equal(await page.locator('#create-modal-title').innerText(), 'New Task');
+    await page.evaluate(() => closeModal());
+    await page.evaluate(() => setTrayExpanded(true));
+    assert.equal(await page.locator('#tray-org').innerText().then(value => value.replace(/\s+/g, ' ').trim()), 'Alfred ▾');
+    assert.equal(await page.locator('#assignee-tab-me').isVisible(), true);
+    assert.equal(await page.locator('#profile-trigger').isVisible(), true);
     assert.equal(await page.locator('#home-date-week-bar').count(), 0);
     assert.match(await page.locator('#date-week-bar').innerText(), /^[A-Z][a-z]{2} \d{1,2} \| W\d{1,2}$/);
     const tabsBox = await page.locator('#context-tabs').boundingBox();

@@ -25,6 +25,9 @@ test('full group names open a filtered summary view', { timeout: 20000 }, async 
       if (url.origin === 'https://miniapp.test' && url.pathname === '/') {
         return route.fulfill({ contentType: 'text/html', body: html });
       }
+      if (url.origin === 'https://miniapp.test' && url.pathname === '/tray/alfred-tray.css') {
+        return route.fulfill({ contentType: 'text/css', body: fs.readFileSync(__dirname + '/../tray/alfred-tray.css', 'utf8') });
+      }
       if (url.hostname === 'telegram.org' && url.pathname === '/js/telegram-web-app.js') {
         return route.fulfill({
           contentType: 'application/javascript',

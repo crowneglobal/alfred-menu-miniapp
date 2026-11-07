@@ -1,0 +1,83 @@
+/* Alfred shared bottom tray — one canonical format for Alfred Tasks and Alfred Banking (request 962/964).
+   Both apps load THIS file (Tasks: tray/alfred-tray.css relative, Banking: /app/tray/alfred-tray.css).
+   Edit here to change the skeleton and skin of BOTH trays. Only the words on the buttons and the
+   wired actions differ per app; each app owns its own tray instance and state (two trays, shared format). */
+
+.atray {
+  --ui-surface: #66705A; --ui-soft: #737D66; --ui-ink: #F5F2EA; --ui-muted: #F5F2EA; --ui-line: #7E8870;
+  --ui-accent: #C5D4A8; --ui-accent-ink: #2A2400; --ui-tint: #C5D4A8; --ui-glass: rgba(102, 112, 90, .98);
+  --ui-stuck: #FFFFFF; --ui-stuck-bg: #B85248;
+  --ui-progress: #FFFFFF; --ui-progress-bg: #C07840;
+  --ui-done: #FFFFFF; --ui-done-bg: #6E9E5E;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
+  background: var(--ui-glass); color: var(--ui-ink);
+  border: 1px solid var(--ui-line); border-bottom: 0; border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 32px rgba(23, 42, 27, .06);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  padding: 0 max(env(safe-area-inset-right, 0px), var(--app-safe-right, 0px)) max(env(safe-area-inset-bottom, 0px), var(--app-safe-bottom, 0px)) max(env(safe-area-inset-left, 0px), var(--app-safe-left, 0px));
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  font-size: 13px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+}
+.atray, .atray * { box-sizing: border-box; }
+.atray button { font-family: inherit; color: inherit; background: none; border: 0; margin: 0; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.atray button:focus-visible, .atray a:focus-visible { outline: 3px solid var(--ui-accent); outline-offset: 2px; }
+.atray button:disabled { opacity: .45; cursor: not-allowed; }
+.atray [hidden] { display: none !important; }
+.atray .atray-icon, .atray .ui-icon { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Handle: pill + centered date line */
+.atray-handle { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; width: 100%; min-height: 38px; padding: 0; border-radius: 24px 24px 0 0; touch-action: none; }
+.atray-pill { width: 32px; height: 4px; border-radius: 2px; background: var(--ui-muted); opacity: .38; }
+.atray-date { display: block; color: var(--ui-muted); opacity: .9; font-size: 11px; font-weight: 650; letter-spacing: .35px; line-height: 1; text-align: center; }
+
+/* Row 1 (pinned): [+] [chips…] [search bubble] */
+.atray-pinned { display: flex; flex-direction: row; align-items: center; min-height: 60px; gap: 4px; padding: 0 14px 8px; }
+.atray-create { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin-right: 5px; padding: 0; border-radius: 50%; background: var(--ui-accent); color: var(--ui-accent-ink); font-size: 24px; font-weight: 650; line-height: 1; }
+.atray-chips { display: flex; flex: 1; min-width: 0; align-items: center; gap: 4px; }
+.atray-chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0; min-height: 44px; border: 0; border-radius: 12px; padding: 0 6px; background: transparent; color: var(--ui-muted); font-size: 11px; font-weight: 600; }
+.atray-chip::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .7; flex-shrink: 0; }
+.atray-chip.active, .atray-chip[aria-pressed="true"] { background: rgba(38, 49, 28, .25); color: #F4F7E4; }
+.atray-chip.atray-chip-stuck.active { background: var(--ui-stuck-bg); color: var(--ui-stuck); }
+.atray-chip.atray-chip-progress.active { background: var(--ui-progress-bg); color: var(--ui-progress); }
+.atray-chip.atray-chip-done.active { background: var(--ui-done-bg); color: var(--ui-done); }
+.atray-search { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin-left: 5px; padding: 0; border-radius: 50%; background: var(--ui-accent); color: var(--ui-accent-ink); }
+
+/* Create menu: opens above the + button; entries are app-specific words */
+.atray-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 2px 16px 12px; }
+.atray-menu button { min-height: 48px; border: 1px solid var(--ui-line); border-radius: 14px; padding: 10px 12px; background: rgba(38, 49, 28, .28); color: var(--ui-ink); text-align: left; font-size: 13px; font-weight: 650; }
+.atray-menu button small { display: block; font-size: 10px; font-weight: 500; opacity: .8; }
+
+/* Row 2: [org switcher] [scope / extras] [sort] [avatar] */
+.atray-row2 { display: flex; flex-direction: row; align-items: center; gap: 10px; min-width: 0; padding: 6px 16px 16px; }
+.atray-org { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; max-width: 38%; min-width: 0; min-height: 44px; border: 1px solid var(--ui-line); border-radius: 13px; padding: 0 12px; background: rgba(38, 49, 28, .16); color: var(--ui-ink); font-size: 12px; font-weight: 650; }
+.atray-org > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atray-org-caret { flex: 0 0 auto; opacity: .7; font-size: 10px; }
+.atray-org-menu { display: grid; gap: 6px; padding: 2px 16px 12px; }
+.atray-org-menu button { min-height: 44px; border: 1px solid var(--ui-line); border-radius: 12px; padding: 8px 12px; background: rgba(38, 49, 28, .28); color: var(--ui-ink); text-align: left; font-size: 13px; }
+.atray-org-menu button[aria-current="true"] { background: var(--ui-accent); color: var(--ui-accent-ink); font-weight: 650; }
+.atray-scope { display: flex; flex: 1; min-width: 0; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-soft); }
+.atray-scope-tab { flex: 1; min-width: 0; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--ui-muted); font-size: 12px; font-weight: 650; }
+.atray-scope-tab.active { color: var(--ui-ink); background: var(--ui-surface); box-shadow: 0 1px 4px rgba(20, 40, 24, .07); }
+.atray-sort { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; padding: 0; border: 1px solid rgba(245, 242, 234, .35); border-radius: 14px; background: transparent; color: var(--ui-ink); font-size: 16px; }
+.atray-spacer { flex: 1; min-width: 0; }
+.atray-avatar { position: relative; display: grid; place-items: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex: 0 0 44px; padding: 0; border-radius: 50%; border: 3px solid var(--ui-surface); background: var(--ui-tint); color: var(--ui-accent-ink); box-shadow: 0 0 0 1px var(--ui-line); font-size: 12px; font-weight: 750; overflow: hidden; text-decoration: none; }
+.atray-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.atray-avatar img:not([src]), .atray-avatar img[src=""] { display: none; }
+.atray-avatar img[hidden] { display: none; }
+.atray-avatar small { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); background: var(--ui-accent); color: var(--ui-accent-ink); border-radius: 6px; font-size: 8px; padding: 0 3px; white-space: nowrap; }
+
+/* Short / narrow viewports */
+@media (max-width: 350px) {
+  .atray-pinned { padding-left: 8px; padding-right: 8px; gap: 0; }
+  .atray-chip { font-size: 10px; padding: 0 3px; gap: 4px; }
+  .atray-row2 { padding-left: 12px; padding-right: 12px; gap: 6px; }
+  .atray-org { padding: 0 8px; font-size: 11px; }
+}
+@media (max-height: 430px) {
+  .atray-handle { min-height: 26px; }
+  .atray-pinned { min-height: 52px; }
+  .atray-row2 { padding-bottom: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atray, .atray * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

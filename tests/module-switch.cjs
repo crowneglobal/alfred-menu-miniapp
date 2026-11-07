@@ -66,9 +66,9 @@ test('last-open module and deep links remain wired', () => {
 
 test('task home navigation stays in the header while the date appears only in the tray', () => {
   const headerClosePosition = html.indexOf('</header>');
-  const trayPosition = html.indexOf('<div class="bottom-sheet" id="bottom-sheet">');
+  const trayPosition = html.indexOf('<div class="bottom-sheet atray" id="bottom-sheet">');
   const datePosition = html.indexOf('<div id="date-week-bar"');
-  const dateSpanPosition = html.indexOf('<span id="date-week-bar"');
+  const dateSpanPosition = html.indexOf('<span class="atray-date" id="date-week-bar"');
   assert.ok(headerClosePosition > -1);
   assert.ok(trayPosition > headerClosePosition);
   assert.equal(datePosition, -1);
@@ -78,6 +78,9 @@ test('task home navigation stays in the header while the date appears only in th
   assert.match(html, /data-qf="home">Home<\/button>/);
   assert.match(html, /data-qf="departments">Departments<\/button>/);
   assert.match(html, /#context-tabs \{[^}]*margin-top: 0 !important;/);
-  assert.match(html, /\.sheet-handle-bar \{ height: 38px; flex-direction: column; gap: 6px;/);
-  assert.match(html, /#date-week-bar \{[^}]*text-align: center;/);
+  // Tray skeleton/skin moved to the canonical shared file (request 962/964).
+  assert.match(html, /<link rel="stylesheet" href="tray\/alfred-tray\.css">/);
+  const trayCss = require('fs').readFileSync(require('path').join(__dirname, '..', 'tray', 'alfred-tray.css'), 'utf8');
+  assert.match(trayCss, /\.atray-handle \{[^}]*flex-direction: column/);
+  assert.match(trayCss, /\.atray-date \{[^}]*text-align: center/);
 });
