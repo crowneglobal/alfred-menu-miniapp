@@ -70,30 +70,36 @@
     body.light .settings-row + .settings-row { border-top-color: rgba(0,0,0,0.08); }
     body.light .profile-subtitle, body.light .settings-row-note, body.light .profile-back { color: #6b6259; }
 
-    /* One current module name, positioned below the device inset exactly once. */
+    /* Approved two-module title: full wordmark with the two position bubbles below. */
     .module-switch {
       display: none; position: fixed;
-      top: calc(var(--app-device-safe-top) + 10px); left: 50%;
+      top: calc(var(--app-device-safe-top) + var(--app-fallback-content-top) / 2 - 22px); left: 50%;
       width: max-content; max-width: calc(100vw - 144px); height: 44px;
       transform: translateX(-50%); z-index: 250;
       align-items: center; flex-direction: column;
     }
     html.telegram-fullscreen .module-switch { display: flex; }
     .module-switch-button {
-      position: relative; isolation: isolate; flex-shrink: 0;
-      width: max-content; height: 30px; min-height: 30px; padding: 0 10px;
-      border: 0; border-radius: 999px; background: #F2F3EB; color: #293129; font: inherit;
-      font-size: 16px; line-height: 30px; font-weight: 750; white-space: nowrap; cursor: pointer;
-      box-shadow: none;
-      -webkit-tap-highlight-color: transparent;
+      --module-ink: #756349;
+      position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex-shrink: 0; width: max-content; min-width: 154px; height: 44px; min-height: 44px; padding: 0;
+      border: 0; background: transparent; color: #697162; font: inherit;
+      cursor: pointer; outline-offset: 3px; -webkit-tap-highlight-color: transparent;
     }
-    /* Transparent extension keeps the compact visual pill a 44px touch target. */
-    .module-switch-button::before { content: ''; position: absolute; inset: -7px 0; border-radius: inherit; }
-    .module-switch-button:focus-visible { outline: 2px solid #58634B; outline-offset: 3px; }
-    .module-switch-cues { display: none; }
-    .module-position { width: 5px; height: 5px; border: 1px solid #71805d; border-radius: 50%; }
-    .module-position.active { background: #586b38; }
-    #module-switch-hint[hidden] { display: none; }
+    .module-switch-button[data-state="bank"] { --module-ink: #344A2D; }
+    .module-switch-button:focus-visible { outline: 2px solid #58634B; }
+    .module-switch-surface { display: flex; align-items: center; justify-content: center; gap: 4px; height: 24px; padding: 0 4px; white-space: nowrap; transform: translateY(-.4725px); }
+    .module-switch-word { color: var(--module-ink); transition: color 220ms; font-size: 24px; font-weight: 750; line-height: 24px; letter-spacing: -.55px; }
+    .module-switch-arrow { font-size: 12px; font-weight: 500; opacity: .7; }
+    .module-switch-cues { position: absolute; top: 35.53px; display: flex; gap: 5px; height: 8.05px; margin-top: 0; color: #697162; }
+    .module-position { display: block; width: 8.05px; height: 8.05px; border: 1px solid currentColor; border-radius: 50%; opacity: .55; }
+    .module-position-active { position: absolute; left: 13.05px; top: 0; width: 8.05px; height: 8.05px; border-radius: 50%; background: currentColor; transition: transform 220ms; }
+    .module-switch-button[data-state="tasks"] .module-position-active { transform: translateX(-13.05px); }
+    .module-switch-button.changing .module-switch-word { animation: module-ink-glide 220ms ease; }
+    @keyframes module-ink-glide { 50% { opacity: .35; transform: translateX(2px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .module-switch-word, .module-position-active { animation: none !important; transition: none !important; }
+    }
     html.telegram-fullscreen #app-title-row { display: none !important; }
 
     /* ── Section tabs (Planning / Banking) ── */
@@ -894,8 +900,10 @@
 <body class="light">
 
   <nav class="module-switch" id="module-switch" aria-label="Switch between Tasks and Banking">
-    <button class="module-switch-button" id="module-switch-toggle" type="button" aria-label="Alfred Tasks. Switch to Alfred Bank">Alfred Tasks ⇄</button>
-    <div class="module-switch-cues" aria-hidden="true"><span class="module-position active" id="module-position-tasks"></span><span class="module-position" id="module-position-bank"></span><span id="module-switch-hint">Tap to switch</span></div>
+    <button class="module-switch-button" id="module-switch-toggle" data-state="tasks" type="button" aria-label="Alfred Tasks. Switch to Alfred Bank">
+      <span class="module-switch-surface"><span class="module-switch-word">Alfred Tasks</span><span class="module-switch-arrow" aria-hidden="true">⇄</span></span>
+      <span class="module-switch-cues" aria-hidden="true"><span class="module-position"></span><span class="module-position"></span><span class="module-position-active"></span></span>
+    </button>
   </nav>
 
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
@@ -2915,10 +2923,13 @@
       const sheet = document.getElementById('bottom-sheet');
       const moduleButton = document.getElementById('module-switch-toggle');
       const isBank = activeSection === 'banking';
-      moduleButton.textContent = isBank ? 'Alfred Bank ⇄' : 'Alfred Tasks ⇄';
-      moduleButton.setAttribute('aria-label', isBank ? 'Alfred Bank. Switch to Alfred Tasks' : 'Alfred Tasks. Switch to Alfred Bank');
-      document.getElementById('module-position-tasks').classList.toggle('active', !isBank);
-      document.getElementById('module-position-bank').classList.toggle('active', isBank);
+      const title = isBank ? 'Alfred Bank' : 'Alfred Tasks';
+      moduleButton.classList.remove('changing');
+      void moduleButton.offsetWidth;
+      moduleButton.dataset.state = isBank ? 'bank' : 'tasks';
+      moduleButton.querySelector('.module-switch-word').textContent = title;
+      moduleButton.setAttribute('aria-label', title + '. Switch to ' + (isBank ? 'Alfred Tasks' : 'Alfred Bank'));
+      if (remember) moduleButton.classList.add('changing');
       if (activeSection === 'banking') {
         document.body.classList.add('banking-mode');
         titleToggle.childNodes[0].textContent = 'Alfred Bank ';
@@ -2948,12 +2959,7 @@
         switchSection(activeSection === 'planning' ? 'banking' : 'planning');
       }
     });
-    const moduleHintKey = sectionStateKey + ':switch-discovered';
-    const moduleHint = document.getElementById('module-switch-hint');
-    try { moduleHint.hidden = localStorage.getItem(moduleHintKey) === '1'; } catch (_) {}
     document.getElementById('module-switch-toggle').addEventListener('click', () => {
-      moduleHint.hidden = true;
-      try { localStorage.setItem(moduleHintKey, '1'); } catch (_) {}
       switchSection(activeSection === 'planning' ? 'banking' : 'planning');
     });
     window.addEventListener('message', event => {
