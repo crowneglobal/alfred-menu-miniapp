@@ -7,6 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alfred</title>
+  <link rel="stylesheet" href="task-views.css?v=1a-1">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -906,7 +907,7 @@
       <div id="nav-planning" style="display:flex; flex:1; min-width:0; gap:2px;">
         <button class="section-tab active" id="topnav-home" data-qf="home">Home</button>
         <button class="section-tab" id="topnav-departments" data-qf="departments">Departments</button>
-        <button class="section-tab" id="topnav-week" data-qf="week">Week</button>
+        <button class="section-tab" id="topnav-week" data-qf="week">Tasks</button>
         <button class="section-tab" id="topnav-pending" data-qf="pending">Today</button>
       </div>
     </div>
@@ -946,6 +947,14 @@
   </section>
 
   <div id="view-planning">
+  <div id="task-layout-toolbar" class="task-layout-toolbar" hidden>
+    <div class="task-layout-tabs" role="group" aria-label="Task views">
+      <button type="button" data-task-layout="list" aria-pressed="true">List</button>
+      <button type="button" data-task-layout="board" aria-pressed="false">Kanban</button>
+      <button type="button" data-task-layout="calendar" aria-pressed="false">Calendar</button>
+    </div>
+    <span id="task-layout-count" class="task-layout-count" aria-live="polite"></span>
+  </div>
   <section id="home-dashboard" class="home-dashboard" aria-label="Task home">
     <div class="home-summary" aria-label="Task summary">
       <div class="home-summary-card"><span id="home-due-count" class="home-summary-value">0</span><span class="home-summary-label">Due Today</span></div>
@@ -970,6 +979,8 @@
     <button id="task-feed-clear" type="button" hidden>Show all active tasks</button>
   </div>
   <div id="task-save-error" class="task-feed-status" role="alert" hidden></div>
+  <section id="shared-task-board" class="shared-task-board" aria-label="Task Kanban" hidden></section>
+  <section id="shared-task-calendar" class="shared-task-calendar" aria-label="Task calendar" hidden></section>
   <!-- Per-user focus task -->
   <div class="focus-banner focus-hidden" id="focus-banner">
     <span class="focus-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></span>
@@ -1419,6 +1430,7 @@
       row.dataset.assigneeId = String(t.assignee_id || '');
       row.dataset.comments = '[]';
       row.dataset.taskId = String(t.id);
+      row.dataset.sourceUrl = String(t.source_url || '');
       row.innerHTML = [
         `<span class="drag-handle" aria-hidden="true" style="color:#999;font-size:14px;padding:0 2px 0 10px;cursor:grab;order:0;flex-shrink:0;touch-action:auto;user-select:none;">⠣</span>`,
         `<div class="accent ${meta[0]}"></div>`,
@@ -1582,6 +1594,7 @@
       updateGroupOverview();
       renderHomeDashboard();
       updateTaskFeedStatus();
+      window.AlfredTaskViews?.render();
     }
 
     function updateGroupOverview() {
@@ -2058,6 +2071,32 @@
       done: ['accent-done', 'badge-done', 'Done']
     };
 
+    async function saveTaskStatus(row, status) {
+      if (!Object.hasOwn(statusMeta, status) || row.dataset.statusSaving) return false;
+      if (row.dataset.status === status) return true;
+      const errorMessage = document.getElementById('task-save-error');
+      errorMessage.hidden = true;
+      row.dataset.statusSaving = '1';
+      window.AlfredTaskViews?.render();
+      try {
+        if (!row.dataset.taskId) throw new Error('Task has not been saved yet');
+        const response = await taskApiFetch('/api/tasks/' + encodeURIComponent(row.dataset.taskId) + '/state', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: statusMeta[status][2] })
+        });
+        if (!response.ok) throw new Error('Task update HTTP ' + response.status);
+        updateRowStatus(row, status, status === 'done');
+        return true;
+      } catch (error) {
+        errorMessage.textContent = 'Could not save the task status. Your previous status is unchanged.';
+        errorMessage.hidden = false;
+        return false;
+      } finally {
+        delete row.dataset.statusSaving;
+        window.AlfredTaskViews?.render();
+      }
+    }
+
     function updateRowStatus(row, status, flash) {
       row.dataset.status = status;
       const meta = statusMeta[status];
@@ -2065,6 +2104,11 @@
       const badge = row.querySelector('.badge');
       badge.className = 'badge ' + meta[1];
       badge.textContent = meta[2];
+      const sourceList = row.closest('.task-list');
+      if (row.dataset.taskId && sourceList && ['list-41', 'list-42'].includes(sourceList.id)) {
+        const targetList = document.getElementById(status === 'done' ? 'list-42' : 'list-41');
+        if (targetList !== sourceList) targetList.insertBefore(row.closest('.swipe-wrapper') || row, targetList.querySelector('.inline-add-row'));
+      }
       if (flash) {
         row.classList.remove('done-flash');
         void row.offsetWidth;
@@ -2394,7 +2438,28 @@
       selectedDetailStatus = row.dataset.status;
       selectedDetailPriority = row.dataset.priority || 'p2';
       document.getElementById('detail-title').textContent = row.querySelector('.task-name').textContent;
+      let sourceLink = document.getElementById('detail-source-link');
+      if (!sourceLink) {
+        sourceLink = document.createElement('a'); sourceLink.id = 'detail-source-link';
+        sourceLink.textContent = 'Open source request'; sourceLink.target = '_blank'; sourceLink.rel = 'noopener noreferrer';
+        sourceLink.style.cssText = 'font-size:12px;color:var(--ui-accent);display:block;margin:10px 0';
+        document.getElementById('detail-title').parentElement.after(sourceLink);
+      }
+      sourceLink.hidden = true; sourceLink.style.display = 'none'; sourceLink.removeAttribute('href');
+      try {
+        const source = new URL(row.dataset.sourceUrl);
+        if (source.protocol === 'https:' && source.hostname === 't.me') { sourceLink.href = source.href; sourceLink.hidden = false; sourceLink.style.display = 'block'; }
+      } catch (_) {}
       document.getElementById('detail-due').value = row.dataset.due || '';
+      document.getElementById('detail-due').disabled = !!row.dataset.taskId;
+      document.getElementById('detail-due').title = row.dataset.taskId ? 'Due dates are managed in Telegram.' : '';
+      let dueHint = document.getElementById('detail-due-source');
+      if (!dueHint) {
+        dueHint = document.createElement('p'); dueHint.id = 'detail-due-source';
+        dueHint.style.cssText = 'font-size:12px;color:var(--ui-muted);margin-top:6px';
+        document.getElementById('detail-due').after(dueHint);
+      }
+      dueHint.textContent = row.dataset.taskId ? 'Due dates are managed in Telegram.' : '';
       document.getElementById('detail-notes').value = row.dataset.notes || '';
       document.getElementById('detail-goal').value = row.dataset.goal || '';
       document.getElementById('detail-group-chip').textContent = row.dataset.group || '—';
@@ -2433,9 +2498,12 @@
       detailOverlay.classList.remove('open');
       setTimeout(() => { currentDetailRow = null; }, 300);
     }
-    document.querySelectorAll('#detail-status-pills .detail-pill').forEach(pill => pill.addEventListener('click', () => {
-      selectedDetailStatus = pill.dataset.s; setActivePill('detail-status-pills', 's', selectedDetailStatus);
-      if (currentDetailRow) updateRowStatus(currentDetailRow, selectedDetailStatus, selectedDetailStatus === 'done');
+    document.querySelectorAll('#detail-status-pills .detail-pill').forEach(pill => pill.addEventListener('click', async () => {
+      const row = currentDetailRow;
+      if (row && await saveTaskStatus(row, pill.dataset.s) && currentDetailRow === row) {
+        selectedDetailStatus = row.dataset.status;
+        setActivePill('detail-status-pills', 's', selectedDetailStatus);
+      }
     }));
     document.querySelectorAll('#detail-priority-pills .detail-pill').forEach(pill => pill.addEventListener('click', () => {
       selectedDetailPriority = pill.dataset.p; setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
@@ -2443,7 +2511,7 @@
     }));
     document.getElementById('detail-due').addEventListener('change', () => {
       updateDetailOverdue();
-      if (currentDetailRow) { currentDetailRow.dataset.due = document.getElementById('detail-due').value; refreshDueChip(currentDetailRow); }
+      if (currentDetailRow && !currentDetailRow.dataset.taskId) { currentDetailRow.dataset.due = document.getElementById('detail-due').value; refreshDueChip(currentDetailRow); window.AlfredTaskViews?.render(); }
     });
     document.getElementById('detail-notes').addEventListener('input', () => {
       if (currentDetailRow) currentDetailRow.dataset.notes = document.getElementById('detail-notes').value;
@@ -2541,30 +2609,7 @@
           if (_badge.dataset.saving) return;
           const _cycle = { stuck: 'progress', progress: 'done', done: 'stuck' };
           const _next = _cycle[row.dataset.status] || 'progress';
-          const _taskId = row.dataset.taskId;
-          const errorMessage = document.getElementById('task-save-error');
-          errorMessage.hidden = true;
-          if (!_taskId) {
-            updateRowStatus(row, _next, true);
-            return;
-          }
-          _badge.dataset.saving = '1';
-          try {
-            const _smap = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
-            const response = await taskApiFetch('/api/tasks/' + _taskId + '/state', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: _smap[_next] })
-            });
-            if (!response.ok) throw new Error('Task update HTTP ' + response.status);
-            updateRowStatus(row, _next, true);
-          } catch (error) {
-            errorMessage.textContent = 'Could not save the task status. Your previous status is unchanged.';
-            errorMessage.hidden = false;
-            console.warn('State update failed:', error);
-          } finally {
-            delete _badge.dataset.saving;
-          }
+          await saveTaskStatus(row, _next);
         });
       }
       row.dataset.enhanced = '1';
@@ -2692,6 +2737,7 @@
       });
       if (active) renderHomeDashboard();
       updateTaskFeedStatus();
+      window.AlfredTaskViews?.render();
     }
 
     function setTodayMode(active) {
@@ -2708,6 +2754,7 @@
         buildTodayView();
       }
       updateTaskFeedStatus();
+      window.AlfredTaskViews?.render();
     }
 
     function buildBoard() {
@@ -3215,6 +3262,6 @@
     document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
-
+  <script src="task-views.js?v=1a-1"></script>
 </body>
 </html>

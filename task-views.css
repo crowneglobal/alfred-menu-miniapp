@@ -1,0 +1,43 @@
+/* Shared task views reuse Alfred's existing palette and task records. */
+.task-layout-toolbar[hidden],.shared-task-board[hidden],.shared-task-calendar[hidden]{display:none}
+.task-layout-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 16px;border-bottom:1px solid var(--ui-line);padding-bottom:9px}
+.task-layout-tabs{display:flex;gap:5px}
+.task-layout-tabs button{font:inherit;font-size:12px;font-weight:600;color:var(--ui-muted);border:0;background:transparent;padding:10px 13px;border-radius:9px;cursor:pointer}
+.task-layout-tabs button[aria-pressed=true]{background:var(--ui-tint);color:var(--ui-accent)}
+.task-layout-count{font-size:11px;color:var(--ui-muted);white-space:nowrap}
+body[data-task-layout=board] .week-section,body[data-task-layout=calendar] .week-section{display:none!important}
+body[data-task-layout=board] .focus-banner,body[data-task-layout=calendar] .focus-banner{display:none!important}
+.shared-task-board{display:grid;grid-template-columns:repeat(3,minmax(240px,1fr));gap:14px;overflow-x:auto;align-items:start;padding-bottom:12px;scroll-snap-type:x proximity}
+.shared-task-lane{background:var(--ui-soft);border:1px solid var(--ui-line);border-radius:14px;padding:12px;scroll-snap-align:start;min-height:330px}
+.shared-task-lane-heading{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;padding:2px 2px 14px;color:var(--ui-ink)}
+.shared-task-lane-heading:before{content:'';width:8px;height:8px;border-radius:50%;background:var(--lane-color)}
+.shared-task-lane-heading small{margin-left:auto;color:var(--ui-muted);font-weight:500}
+.shared-task-lane-cards{display:grid;gap:9px;min-height:240px;align-content:start}
+.shared-task-card{background:var(--ui-surface);border:1px solid var(--ui-line);border-radius:11px;overflow:hidden;min-width:0}
+.shared-task-open{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--ui-ink);padding:13px;font:inherit;cursor:pointer}
+.shared-task-name{font-size:13px;font-weight:600;line-height:1.5;display:block;overflow-wrap:anywhere}
+.shared-task-group{font-size:10px;color:var(--ui-muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:8px}
+.shared-task-meta{display:flex;align-items:center;gap:7px;color:var(--ui-muted);font-size:10px;margin-top:11px;min-width:0}
+.shared-task-meta span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.shared-task-due.overdue{color:var(--ui-stuck)}
+.shared-task-status{border:0;border-top:1px solid var(--ui-line);padding:8px 10px;background:transparent;color:var(--ui-muted);width:100%;font:inherit;font-size:11px;cursor:pointer}
+.shared-task-status:disabled{opacity:.5;cursor:wait}
+.shared-task-empty{padding:22px 8px;color:var(--ui-muted);font-size:12px;line-height:1.5;text-align:center}
+.shared-task-calendar{background:var(--ui-surface);border:1px solid var(--ui-line);border-radius:14px;padding:14px;margin-bottom:12px}
+.task-calendar-header{display:flex;align-items:center;gap:7px;margin-bottom:17px}
+.task-calendar-header h2{font-size:16px;letter-spacing:-.4px;margin:0 auto 0 0;color:var(--ui-ink)}
+.task-calendar-header button{border:1px solid var(--ui-line);background:var(--ui-soft);color:var(--ui-ink);border-radius:7px;font:inherit;font-size:12px;padding:7px 10px;cursor:pointer;min-height:34px}
+.task-calendar-scroll{overflow-x:auto}
+.task-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(95px,1fr));min-width:665px;border-top:1px solid var(--ui-line);border-left:1px solid var(--ui-line)}
+.task-calendar-weekday{font-size:10px;font-weight:600;color:var(--ui-muted);padding:10px;border-right:1px solid var(--ui-line);border-bottom:1px solid var(--ui-line);background:var(--ui-soft)}
+.task-calendar-day{border-right:1px solid var(--ui-line);border-bottom:1px solid var(--ui-line);min-height:100px;padding:7px;min-width:0}
+.task-calendar-day.outside{background:var(--ui-soft)}
+.task-calendar-date{display:block;font-size:11px;color:var(--ui-muted);margin-bottom:7px}
+.task-calendar-day.today .task-calendar-date{color:var(--ui-accent);font-weight:800}
+.task-calendar-event{display:block;width:100%;margin-bottom:4px;border:0;border-left:3px solid var(--lane-color);border-radius:4px;background:var(--ui-tint);color:var(--ui-ink);font:inherit;font-size:10px;line-height:1.5;padding:5px 6px;text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.task-calendar-undated-title{font-size:12px;margin:20px 0 10px;color:var(--ui-ink)}
+.task-calendar-undated{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px}
+.task-calendar-undated .task-calendar-event{font-size:12px;padding:10px}
+.task-calendar-summary{font-size:11px;color:var(--ui-muted);margin-top:12px;line-height:1.5}
+.task-layout-tabs button:focus-visible,.shared-task-open:focus-visible,.shared-task-status:focus-visible,.task-calendar-header button:focus-visible,.task-calendar-event:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+@media(max-width:640px){.shared-task-board{grid-template-columns:repeat(3,minmax(260px,82vw));gap:10px}.task-layout-tabs button{padding:10px 11px}.shared-task-calendar{padding:11px}.task-calendar-header h2{font-size:14px}.task-calendar-header button{padding:7px 8px}.task-layout-count{font-size:10px}.task-calendar-grid{min-width:0;grid-template-columns:repeat(7,minmax(0,1fr))}.task-calendar-weekday{padding:8px 2px;text-align:center;font-size:9px}.task-calendar-day{padding:4px;min-height:85px}.task-calendar-grid .task-calendar-event{font-size:9px;padding:3px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.task-calendar-date{font-size:10px}}
