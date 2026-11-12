@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alfred</title>
-  <link rel="stylesheet" href="task-views.css?v=1a-1">
+  <link rel="stylesheet" href="task-views.css?v=1a-2">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -1142,6 +1142,7 @@
       <input class="modal-input" id="new-task-name" type="text" placeholder="What needs to get done?">
       <div class="modal-label">Status</div>
       <select class="modal-select" id="new-task-status">
+        <option value="todo">To do</option>
         <option value="progress">In Progress</option>
         <option value="stuck">Stuck</option>
         <option value="done">Done</option>
@@ -1177,7 +1178,7 @@
       <div class="detail-section-label">Goal</div>
       <input class="modal-input" type="text" id="detail-goal" placeholder="Link to a goal...">
       <div class="detail-section-label">Status</div>
-      <div class="detail-pills" id="detail-status-pills"><div class="detail-pill pill-stuck" data-s="stuck">Stuck</div><div class="detail-pill pill-progress" data-s="progress">In Progress</div><div class="detail-pill pill-done" data-s="done">Done</div></div>
+      <div class="detail-pills" id="detail-status-pills"><div class="detail-pill pill-todo" data-s="todo">To do</div><div class="detail-pill pill-progress" data-s="progress">In Progress</div><div class="detail-pill pill-stuck" data-s="stuck">Stuck</div><div class="detail-pill pill-done" data-s="done">Done</div></div>
       <div class="detail-section-label">Priority</div>
       <div class="detail-pills" id="detail-priority-pills"><div class="detail-pill pill-p1" data-p="p1">🔴 P1</div><div class="detail-pill pill-p2" data-p="p2">🟡 P2</div><div class="detail-pill pill-p3" data-p="p3">🔵 P3</div></div>
       <div class="detail-section-label">Due Date</div>
@@ -1380,9 +1381,8 @@
 
     // Map API status text → internal status key
     function apiStatusToKey(s) {
-      if (!s) return 'progress';
-      const m = { 'Stuck': 'stuck', 'In Progress': 'progress', 'Done': 'done' };
-      return m[s] || 'progress';
+      const m = { 'To do': 'todo', 'Stuck': 'stuck', 'In Progress': 'progress', 'Done': 'done' };
+      return m[s] || 'todo';
     }
 
     // Simple hash for avatar seed from string
@@ -1690,7 +1690,7 @@
         departmentHost.appendChild(noDepartments);
       }
 
-      var statusOrder = { stuck: 0, progress: 1, done: 2 };
+      var statusOrder = { stuck: 0, progress: 1, todo: 2, done: 3 };
       var priorityOrder = { p1: 0, p2: 1, p3: 2 };
       var homeRows = scopedRows.filter(function(row) { return row.dataset.status !== 'done'; }).sort(function(a, b) {
         if (homeTaskSort === 'stuck') return statusOrder[a.dataset.status] - statusOrder[b.dataset.status];
@@ -1701,8 +1701,8 @@
       }).slice(0, 3);
       var taskHost = document.getElementById('home-task-list');
       taskHost.replaceChildren();
-      var statusColors = { stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
-      var statusLabels = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+      var statusColors = { todo: '#8A9580', stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
+      var statusLabels = { todo: 'To do', stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
       homeRows.forEach(function(row) {
         var button = document.createElement('button');
         button.type = 'button';
@@ -2007,6 +2007,9 @@
       closeAllPanels();
       createMode = (typeof boardActive !== 'undefined' && boardActive) ? 'goal' : 'task';
       const isGoal = createMode === 'goal';
+      const todoOption = document.querySelector('#new-task-status option[value="todo"]');
+      todoOption.hidden = isGoal; todoOption.disabled = isGoal;
+      document.getElementById('new-task-status').value = isGoal ? 'progress' : 'todo';
       document.getElementById('create-modal-title').textContent = isGoal ? 'New Goal' : 'New Task';
       document.getElementById('create-name-label').textContent = isGoal ? 'Goal name' : 'Task name';
       document.getElementById('new-task-name').placeholder = isGoal ? 'What do you want to achieve?' : 'What needs to get done?';
@@ -2074,6 +2077,7 @@
 
     // Advanced task interactions
     const statusMeta = {
+      todo: ['accent-todo', 'badge-todo', 'To do'],
       stuck: ['accent-stuck', 'badge-stuck', 'Stuck'],
       progress: ['accent-progress', 'badge-progress', 'In Progress'],
       done: ['accent-done', 'badge-done', 'Done']
@@ -2231,7 +2235,7 @@
         const _wasNew = row.dataset.inlineNew === '1';
         delete row.dataset.inlineNew;
         if (_wasNew) {
-          const _smap2 = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+          const _smap2 = { todo: 'To do', stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
           taskApiFetch('/api/tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2615,7 +2619,7 @@
         _badge.addEventListener('click', async function(event) {
           event.stopPropagation();
           if (_badge.dataset.saving) return;
-          const _cycle = { stuck: 'progress', progress: 'done', done: 'stuck' };
+          const _cycle = { todo: 'progress', stuck: 'progress', progress: 'done', done: 'todo' };
           const _next = _cycle[row.dataset.status] || 'progress';
           await saveTaskStatus(row, _next);
         });
@@ -2662,7 +2666,7 @@
       input.value = '';
       document.getElementById('modal-overlay').classList.remove('open');
       applyAllFilters();
-      const _smap3 = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
+      const _smap3 = { todo: 'To do', stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
       const _postBody = { task: name, status: _smap3[status] || 'In Progress', assignee_username: (telegramUser && telegramUser.username) || 'dro238' };
       if (userId) _postBody.user_id = parseInt(userId);
       taskApiFetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(_postBody) })
@@ -2700,7 +2704,7 @@
 
     function buildTodayView() {
       todayView.replaceChildren();
-      const statusOrder = { stuck: 0, progress: 1 };
+      const statusOrder = { stuck: 0, progress: 1, todo: 2 };
       syncAllTasks()
         .filter(row => Object.hasOwn(statusOrder, row.dataset.status) && !row.classList.contains('hidden'))
         .sort((a, b) => statusOrder[a.dataset.status] - statusOrder[b.dataset.status])
@@ -3268,6 +3272,6 @@
     document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
-  <script src="task-views.js?v=1a-1"></script>
+  <script src="task-views.js?v=1a-2"></script>
 </body>
 </html>

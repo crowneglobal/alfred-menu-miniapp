@@ -13,7 +13,7 @@ async function fixture(width = 1200) {
   const now = new Date(); const later = new Date(now.getFullYear(), now.getMonth() + 2, 15);
   const tasks = [
     { id: 41, task: 'Repair WhatsApp edit sync', status: 'Stuck', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(now), source_url: 'https://t.me/c/2167535790/1/999' },
-    { id: 42, task: 'Sort conversations by recent activity', status: 'In Progress', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(later) },
+    { id: 42, task: 'Sort conversations by recent activity', status: 'To do', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(later) },
     { id: 43, task: 'Keep completed request history', status: 'Done', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf' },
     { id: 44, task: 'Review task views', status: 'In Progress', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Tasks', due_date: dateKey(now), source_url: 'javascript:alert(1)' },
     { id: 45, task: 'Another owner private task', status: 'Stuck', assignee: 'Fiorella', assignee_id: 6623841750, group_name: 'Alfred Walf' },
@@ -56,6 +56,8 @@ test('List, Kanban and Calendar share authenticated tasks and filters; state sav
     assert.deepEqual(originalIds, ['41', '42', '43', '44']);
     await page.locator('[data-task-layout="board"]').click();
     assert.deepEqual(await ids(page.locator('.shared-task-card')), originalIds);
+    assert.equal(await page.locator('.shared-task-lane[data-status="todo"] [data-task-id="42"]').count(), 1);
+    assert.equal(await page.evaluate(() => apiStatusToKey(null)), 'todo');
     assert.equal(await page.locator('#section-41').isVisible(), false);
     await page.evaluate(() => { searchQuery = 'edit sync'; applyAllFilters(); });
     assert.deepEqual(await ids(page.locator('.shared-task-card')), ['41']);
@@ -73,6 +75,9 @@ test('List, Kanban and Calendar share authenticated tasks and filters; state sav
     state.failPatch = false;
     await page.locator('.shared-task-card[data-task-id="41"] select').selectOption('progress');
     await page.locator('.shared-task-lane[data-status="progress"] [data-task-id="41"]').waitFor();
+    await page.locator('.shared-task-card[data-task-id="41"] select').selectOption('todo');
+    await page.locator('.shared-task-lane[data-status="todo"] [data-task-id="41"]').waitFor();
+    assert.equal(state.patches.at(-1).body.status, 'To do');
     await page.locator('.shared-task-card[data-task-id="41"] .shared-task-open').click();
     assert.equal(await page.locator('#detail-title').textContent(), 'Repair WhatsApp edit sync');
     assert.equal(await page.locator('#detail-source-link').getAttribute('href'), 'https://t.me/c/2167535790/1/999');
@@ -127,9 +132,15 @@ test('Shared task views fit phone layout and keep Today, Home and old goals sepa
     await page.locator('#topnav-home').click();
     assert.equal(await page.locator('#task-layout-toolbar').isHidden(), true);
     assert.equal(await page.locator('#home-dashboard').isVisible(), true);
+    await page.evaluate(() => { openCreateFlow(); });
+    assert.equal(await page.locator('#new-task-status').inputValue(), 'todo');
+    await page.evaluate(() => closeModal());
     await page.evaluate(() => document.getElementById('tab-board').click());
     assert.equal(await page.locator('#shared-task-board').isHidden(), true);
     assert.equal(await page.locator('#board-view .board-card-name').textContent(), 'Existing goal');
+    await page.evaluate(() => openCreateFlow());
+    assert.equal(await page.locator('#new-task-status').inputValue(), 'progress');
+    assert.equal(await page.locator('#new-task-status option[value="todo"]').isDisabled(), true);
     assert.deepEqual(state.errors, []);
   } finally { await browser.close(); }
 });

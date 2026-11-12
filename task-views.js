@@ -4,8 +4,8 @@
   const toolbar = document.getElementById('task-layout-toolbar');
   const board = document.getElementById('shared-task-board');
   const calendar = document.getElementById('shared-task-calendar');
-  const labels = { stuck: 'Stuck', progress: 'In Progress', done: 'Done' };
-  const colors = { stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
+  const labels = { todo: 'To do', progress: 'In Progress', stuck: 'Stuck', done: 'Done' };
+  const colors = { todo: '#8A9580', stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
   const month = new Date(); month.setDate(1); month.setHours(0, 0, 0, 0);
   let mode = 'list';
   let sortables = [];
