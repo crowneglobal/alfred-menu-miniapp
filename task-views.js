@@ -55,7 +55,7 @@
       const heading = node('h2', 'shared-task-lane-heading', label); heading.append(node('small', '', String(matching.length))); lane.append(heading);
       const cards = node('div', 'shared-task-lane-cards'); cards.dataset.status = status;
       matching.forEach(row => cards.append(card(row))); lane.append(cards);
-      if (!matching.length) cards.append(node('p', 'shared-task-empty', taskFeedState === 'loading' ? 'Loading tasks…' : taskFeedState === 'error' ? 'Task feed unavailable.' : 'Nothing here.'));
+      if (!matching.length && taskFeedState !== 'ready') cards.append(node('p', 'shared-task-empty', taskFeedState === 'loading' ? 'Loading tasks…' : 'Task feed unavailable.'));
       board.append(lane);
       sortables.push(Sortable.create(cards, {
         group: 'shared-task-states', draggable: '.shared-task-card', animation: 150,
@@ -233,7 +233,6 @@
       const stage = node('section', 'task-workflow-stage'); stage.dataset.status = status; stage.style.setProperty('--lane-color', colors[status]);
       stage.append(node('h3', '', labels[status] + ' · ' + matching.length));
       const list = node('div', 'task-workflow-tasks'); matching.forEach(row => list.append(card(row)));
-      if (!matching.length) empty('Nothing here.', list);
       stage.append(list); flow.append(stage);
     }
     insights.append(flow);

@@ -354,12 +354,19 @@ test('Minimal board and conversation remain usable on desktop and mobile', { tim
   const { browser, page, state } = await fixture(1400);
   try {
     const output = process.env.SIMPLIFY_EVIDENCE || '/Users/alfredo/.openclaw/workspace/evidence/tasks-3-simplify'; fs.mkdirSync(output, { recursive: true });
+    assert.equal(await page.locator('.module-switch-word').textContent(), 'Alfred');
+    await page.locator('#module-switch-toggle').click();
+    assert.equal(await page.locator('.module-switch-word').textContent(), 'Alfred Bank');
+    await page.locator('#module-switch-toggle').click();
+    assert.equal(await page.locator('.module-switch-word').textContent(), 'Alfred');
     await page.locator('#topnav-week').click(); await page.locator('#task-view-select').selectOption('board');
     await page.evaluate(() => { activeGroupFilter = 'Alfred Walf'; applyAllFilters(); });
     assert.equal(await page.locator('.shared-task-group').count(), 0);
+    assert.equal(await page.locator('.shared-task-empty').filter({ hasText: 'Nothing here.' }).count(), 0);
     await page.screenshot({ animations: 'disabled', path: path.join(output, 'kanban-desktop.png') });
     await page.locator('#shared-task-board [data-task-id="41"] .shared-task-open').click();
     await page.locator('.conversation-message').first().waitFor();
+    assert.equal(await page.locator('#detail-source-link').isVisible(), false);
     await page.screenshot({ animations: 'disabled', path: path.join(output, 'conversation-desktop.png') });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -368,6 +375,8 @@ test('Minimal board and conversation remain usable on desktop and mobile', { tim
     await page.screenshot({ animations: 'disabled', path: path.join(output, 'conversation-mobile.png') });
     await page.locator('#detail-close').click();
     await page.screenshot({ animations: 'disabled', path: path.join(output, 'kanban-mobile.png') });
+    await page.evaluate(() => { window.AlfredTaskConversation = undefined; openDetail(allTasks.find(row => row.dataset.taskId === '41')); });
+    assert.equal(await page.locator('#detail-source-link').isVisible(), true);
     assert.deepEqual(state.errors, []);
   } finally { await browser.close(); }
 });

@@ -902,14 +902,14 @@
 
   <nav class="module-switch" id="module-switch" aria-label="Switch between Tasks and Banking">
     <button class="module-switch-button" id="module-switch-toggle" data-state="tasks" type="button" aria-label="Alfred Tasks. Switch to Alfred Bank">
-      <span class="module-switch-surface"><span class="module-switch-word">Alfred Tasks</span><span class="module-switch-arrow" aria-hidden="true">⇄</span></span>
+      <span class="module-switch-surface"><span class="module-switch-word">Alfred</span><span class="module-switch-arrow" aria-hidden="true">⇄</span></span>
       <span class="module-switch-cues" aria-hidden="true"><span class="module-position"></span><span class="module-position"></span><span class="module-position-active"></span></span>
     </button>
   </nav>
 
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
     <div id="app-title-row" style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
-      <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred Tasks <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+      <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
     </div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
@@ -2432,7 +2432,10 @@
       sourceLink.hidden = true; sourceLink.style.display = 'none'; sourceLink.removeAttribute('href');
       try {
         const source = new URL(row.dataset.sourceUrl);
-        if (source.protocol === 'https:' && source.hostname === 't.me') { sourceLink.href = source.href; sourceLink.hidden = false; sourceLink.style.display = 'block'; }
+        if (source.protocol === 'https:' && source.hostname === 't.me') {
+          sourceLink.href = source.href;
+          if (!window.AlfredTaskConversation) { sourceLink.hidden = false; sourceLink.style.display = 'block'; }
+        }
       } catch (_) {}
       document.getElementById('detail-due').value = row.dataset.due || '';
       document.getElementById('detail-due').disabled = !!row.dataset.taskId;
@@ -2889,12 +2892,12 @@
       const sheet = document.getElementById('bottom-sheet');
       const moduleButton = document.getElementById('module-switch-toggle');
       const isBank = activeSection === 'banking';
-      const title = isBank ? 'Alfred Bank' : 'Alfred Tasks';
+      const title = isBank ? 'Alfred Bank' : 'Alfred';
       moduleButton.classList.remove('changing');
       void moduleButton.offsetWidth;
       moduleButton.dataset.state = isBank ? 'bank' : 'tasks';
       moduleButton.querySelector('.module-switch-word').textContent = title;
-      moduleButton.setAttribute('aria-label', title + '. Switch to ' + (isBank ? 'Alfred Tasks' : 'Alfred Bank'));
+      moduleButton.setAttribute('aria-label', (isBank ? 'Alfred Bank' : 'Alfred Tasks') + '. Switch to ' + (isBank ? 'Alfred Tasks' : 'Alfred Bank'));
       if (remember) moduleButton.classList.add('changing');
       if (activeSection === 'banking') {
         document.body.classList.add('banking-mode');
@@ -2908,7 +2911,7 @@
         requestAnimationFrame(updateBankingTop);
       } else {
         document.body.classList.remove('banking-mode');
-        titleToggle.childNodes[0].textContent = 'Alfred Tasks ';
+        titleToggle.childNodes[0].textContent = 'Alfred ';
         dateWeekBar.style.display = '';
         contextTabs.style.display = '';
         navPlanning.style.display = 'flex';
