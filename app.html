@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alfred</title>
-  <link rel="stylesheet" href="task-views.css?v=3-2">
+  <link rel="stylesheet" href="task-views.css?v=3-5">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -896,6 +896,7 @@
   </style>
   <!-- Canonical shared tray format (one file skins the Tasks and Banking trays). -->
   <link rel="stylesheet" href="tray/alfred-tray.css?v=962-2fc196c">
+  <link rel="stylesheet" href="task-conversation.css?v=3-5">
 </head>
 <body class="light">
 
@@ -915,7 +916,7 @@
       <div id="nav-planning" style="display:flex; flex:1; min-width:0; gap:2px;">
         <button class="section-tab active" id="topnav-home" data-qf="home">Home</button>
         <button class="section-tab" id="topnav-departments" data-qf="departments">Departments</button>
-        <button class="section-tab" id="topnav-week" data-qf="week">Tasks</button>
+        <button class="section-tab" id="topnav-week" data-qf="week">Browse</button>
         <button class="section-tab" id="topnav-pending" data-qf="pending">Today</button>
       </div>
     </div>
@@ -956,7 +957,18 @@
 
   <div id="view-planning">
   <div id="task-layout-toolbar" class="task-layout-toolbar" hidden>
-    <div class="task-layout-tabs" role="group" aria-label="Task views">
+    <select id="task-view-select" class="task-view-select" aria-label="View">
+      <option value="overview">Overview</option>
+      <option value="list">List</option>
+      <option value="gantt">Gantt</option>
+      <option value="board">Kanban</option>
+      <option value="timeline">Timeline</option>
+      <option value="calendar">Calendar</option>
+      <option value="workflow">Workflow</option>
+      <option value="dashboard">Dashboard</option>
+    </select>
+    <span id="task-view-scope" class="task-view-scope"></span>
+    <div class="task-layout-tabs" role="group" aria-label="Task views" hidden>
       <button type="button" data-task-layout="overview" aria-pressed="false">Overview</button>
       <button type="button" data-task-layout="list" aria-pressed="true">List</button>
       <button type="button" data-task-layout="gantt" aria-pressed="false">Gantt</button>
@@ -1165,7 +1177,7 @@
     </div>
   </div>
 
-  <div class="detail-overlay" id="detail-overlay">
+  <div class="detail-overlay" id="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="detail-title">
     <div class="detail-sheet" id="detail-sheet">
       <div class="detail-handle"></div>
       <div class="detail-header">
@@ -1175,15 +1187,18 @@
         <span class="detail-title-text" id="detail-title">Task name</span>
         <div class="detail-header-right">
           <div class="days-old-badge" id="days-old-badge">?</div>
-          <button class="detail-close" id="detail-close">✕</button>
+          <button class="detail-close" id="detail-close" type="button" aria-label="Close conversation">✕</button>
         </div>
       </div>
       <div class="detail-meta-row">
         <span class="detail-meta-chip" id="detail-group-chip">—</span>
       </div>
+      <div class="detail-quick-properties">
+        <select id="detail-status-select" aria-label="Status"><option value="todo">To do</option><option value="progress">In Progress</option><option value="stuck">Stuck</option><option value="done">Done</option></select>
+        <span id="detail-due-summary"></span>
+        <details id="detail-more"><summary>Details</summary><div class="detail-more-content">
       <div class="detail-section-label">Goal</div>
       <input class="modal-input" type="text" id="detail-goal" placeholder="Link to a goal...">
-      <div class="detail-section-label">Status</div>
       <div class="detail-pills" id="detail-status-pills"><div class="detail-pill pill-todo" data-s="todo">To do</div><div class="detail-pill pill-progress" data-s="progress">In Progress</div><div class="detail-pill pill-stuck" data-s="stuck">Stuck</div><div class="detail-pill pill-done" data-s="done">Done</div></div>
       <div class="detail-section-label">Priority</div>
       <div class="detail-pills" id="detail-priority-pills"><div class="detail-pill pill-p1" data-p="p1">🔴 P1</div><div class="detail-pill pill-p2" data-p="p2">🟡 P2</div><div class="detail-pill pill-p3" data-p="p3">🔵 P3</div></div>
@@ -1192,17 +1207,10 @@
       <div id="detail-overdue" class="detail-overdue" style="display:none">⚠️ Overdue</div>
       <div class="detail-section-label">Notes</div>
       <textarea class="modal-input detail-notes" id="detail-notes" rows="2" placeholder="Add notes..."></textarea>
-      <div id="detail-comments-section" style="display:none">
-        <div class="detail-section-label">Comments</div>
-        <div class="detail-comments-list" id="detail-comments-list"></div>
-        <div class="detail-comment-input-row">
-          <input class="detail-comment-input" id="detail-comment-input" type="text" placeholder="Add a comment...">
-          <button class="detail-comment-send" id="detail-comment-send">↑</button>
-        </div>
+        </div></details>
       </div>
-      <div class="modal-actions" style="margin-top:8px">
-        <button class="btn-topic" id="detail-topic-btn">🧵 Create Topic</button>
-      </div>
+      <p id="detail-status-error" class="conversation-notice" role="alert" hidden></p>
+      <section id="task-conversation" class="task-conversation" aria-label="Telegram conversation"></section>
     </div>
   </div>
 
@@ -2409,48 +2417,6 @@
       const value = document.getElementById('detail-due').value;
       document.getElementById('detail-overdue').style.display = value && new Date(value + 'T00:00:00') < TODAY ? 'block' : 'none';
     }
-    function escapeCommentHtml(value) {
-      return String(value).replace(/[&<>"']/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-      })[char]);
-    }
-    function formatCommentTime(value) {
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return '';
-      const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      return `${day} · ${time}`;
-    }
-    function getComments(row) {
-      try {
-        const comments = JSON.parse(row.dataset.comments || '[]');
-        return Array.isArray(comments) ? comments : [];
-      } catch (error) {
-        return [];
-      }
-    }
-    function renderComments(row) {
-      const list = document.getElementById('detail-comments-list');
-      list.innerHTML = getComments(row).map(comment => `
-        <div class="comment-item">
-          <div class="comment-author">${escapeCommentHtml(comment.author || 'DRO')}</div>
-          <div class="comment-text">${escapeCommentHtml(comment.text || '')}</div>
-          <div class="comment-time">${escapeCommentHtml(formatCommentTime(comment.time))}</div>
-        </div>`).join('');
-    }
-    function addDetailComment() {
-      if (!currentDetailRow) return;
-      const input = document.getElementById('detail-comment-input');
-      const text = input.value.trim();
-      if (!text) return;
-      const comments = getComments(currentDetailRow);
-      comments.push({ text, author: 'DRO', time: new Date().toISOString() });
-      currentDetailRow.dataset.comments = JSON.stringify(comments);
-      renderComments(currentDetailRow);
-      input.value = '';
-      const list = document.getElementById('detail-comments-list');
-      list.scrollTop = list.scrollHeight;
-    }
     function openDetail(row) {
       currentDetailRow = row;
       selectedDetailStatus = row.dataset.status;
@@ -2496,25 +2462,20 @@
           badgeEl.textContent = days <= 30 ? days + 'd' : Math.ceil(days / 7) + 'W';
         } else { badgeEl.textContent = '?'; }
       }
-      // Comments visibility — only if task has a topicId
-      const commentsSection = document.getElementById('detail-comments-section');
-      if (commentsSection) commentsSection.style.display = row.dataset.topicId ? '' : 'none';
-      const topicBtn = document.getElementById('detail-topic-btn');
-      if (row.dataset.topic === 'true') {
-        topicBtn.textContent = '✓ Topic Marked'; topicBtn.classList.add('topic-done');
-      } else {
-        topicBtn.textContent = '🧵 Create Topic'; topicBtn.classList.remove('topic-done');
-      }
-      document.getElementById('detail-comment-input').value = '';
-      renderComments(row);
       setActivePill('detail-status-pills', 's', selectedDetailStatus);
       setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
       updateDetailOverdue();
       detailOverlay.classList.add('open');
+      document.getElementById('detail-status-select').value = row.dataset.status;
+      document.getElementById('detail-due-summary').textContent = row.dataset.due ? 'Due ' + row.dataset.due : '';
+      document.getElementById('detail-more').open = false;
+      document.getElementById('detail-status-error').hidden = true;
+      window.AlfredTaskConversation?.open(row);
     }
     function closeDetail() {
       detailOverlay.classList.remove('open');
-      setTimeout(() => { currentDetailRow = null; }, 300);
+      currentDetailRow = null;
+      window.AlfredTaskConversation?.close();
     }
     document.querySelectorAll('#detail-status-pills .detail-pill').forEach(pill => pill.addEventListener('click', async () => {
       const row = currentDetailRow;
@@ -2534,24 +2495,19 @@
     document.getElementById('detail-notes').addEventListener('input', () => {
       if (currentDetailRow) currentDetailRow.dataset.notes = document.getElementById('detail-notes').value;
     });
-    document.getElementById('detail-comment-send').addEventListener('click', addDetailComment);
-    document.getElementById('detail-comment-input').addEventListener('keydown', event => {
-      if (event.key === 'Enter') { event.preventDefault(); addDetailComment(); }
-    });
     document.getElementById('detail-close').addEventListener('click', closeDetail);
     detailOverlay.addEventListener('click', event => { if (event.target === detailOverlay) closeDetail(); });
-    document.getElementById('detail-topic-btn').addEventListener('click', () => {
-      if (!currentDetailRow) return;
-      const hasTopic = currentDetailRow.dataset.topic === 'true';
-      if (hasTopic) return;
-      currentDetailRow.dataset.topic = 'true';
-      const topicId = 'tp' + Date.now();
-      currentDetailRow.dataset.topicId = topicId;
-      const btn = document.getElementById('detail-topic-btn');
-      btn.textContent = '✓ Topic Created';
-      btn.classList.add('topic-done');
-      const commentsSection = document.getElementById('detail-comments-section');
-      if (commentsSection) commentsSection.style.display = '';
+    document.getElementById('detail-status-select').addEventListener('change', async event => {
+      const row = currentDetailRow; const control = event.target;
+      if (!row) return;
+      control.disabled = true;
+      const saved = await saveTaskStatus(row, control.value);
+      if (currentDetailRow === row) {
+        control.value = row.dataset.status;
+        const error = document.getElementById('detail-status-error');
+        error.hidden = saved; error.textContent = saved ? '' : 'Could not save the status. Your previous status is unchanged.';
+      }
+      control.disabled = false;
     });
 
     function ensureSwipeWrapper(row) {
@@ -3278,6 +3234,7 @@
     document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
-  <script src="task-views.js?v=3-2"></script>
+  <script src="task-views.js?v=3-5"></script>
+  <script src="task-conversation.js?v=3-5"></script>
 </body>
 </html>

@@ -31,7 +31,8 @@
     const item = node('article', 'shared-task-card');
     item.dataset.taskId = row.dataset.taskId || '';
     const button = node('button', 'shared-task-open'); button.type = 'button';
-    button.append(node('span', 'shared-task-group', row.dataset.group || 'Ungrouped'), node('span', 'shared-task-name', row.querySelector('.task-name').textContent));
+    button.append(node('span', 'shared-task-name', row.querySelector('.task-name').textContent));
+    if (!activeGroupFilter) button.append(node('span', 'shared-task-group', row.dataset.group || 'Ungrouped'));
     const meta = node('span', 'shared-task-meta');
     meta.append(node('span', '', row.dataset.assignee || 'Unassigned'));
     if (validDue(row)) meta.append(node('span', 'shared-task-due' + (row.dataset.due < dayKey(new Date()) && row.dataset.status !== 'done' ? ' overdue' : ''), new Date(row.dataset.due + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })));
@@ -54,7 +55,7 @@
       const heading = node('h2', 'shared-task-lane-heading', label); heading.append(node('small', '', String(matching.length))); lane.append(heading);
       const cards = node('div', 'shared-task-lane-cards'); cards.dataset.status = status;
       matching.forEach(row => cards.append(card(row))); lane.append(cards);
-      if (!matching.length) cards.append(node('p', 'shared-task-empty', taskFeedState === 'loading' ? 'Loading tasks…' : taskFeedState === 'error' ? 'Task feed unavailable.' : 'No tasks in this stage.'));
+      if (!matching.length) cards.append(node('p', 'shared-task-empty', taskFeedState === 'loading' ? 'Loading tasks…' : taskFeedState === 'error' ? 'Task feed unavailable.' : 'Nothing here.'));
       board.append(lane);
       sortables.push(Sortable.create(cards, {
         group: 'shared-task-states', draggable: '.shared-task-card', animation: 150,
@@ -104,7 +105,7 @@
     }
     scroll.append(grid); calendar.append(scroll);
     const note = rows.length - undated.length - shown;
-    calendar.append(node('p', 'task-calendar-summary', shown + ' scheduled here' + (note > 0 ? ' · ' + note + ' in other months' : '') + ' · Same task filters as List and Kanban'));
+    calendar.append(node('p', 'task-calendar-summary', shown + ' scheduled here' + (note > 0 ? ' · ' + note + ' in other months' : '')));
     calendar.append(node('h3', 'task-calendar-undated-title', 'No due date · ' + undated.length));
     const unscheduled = node('div', 'task-calendar-undated'); undated.forEach(row => unscheduled.append(eventButton(row)));
     if (!undated.length) unscheduled.append(node('p', 'shared-task-empty', 'All matching tasks have a due date.'));
@@ -125,7 +126,7 @@
   }
   function metrics(rows) {
     const counts = summary(rows); const grid = node('div', 'task-view-metrics');
-    for (const [key, label] of [['total', 'Matching tasks'], ['done', 'Completed'], ['overdue', 'Overdue'], ['undated', 'No due date']]) {
+    for (const [key, label] of [['total', 'Total'], ['done', 'Completed'], ['overdue', 'Overdue'], ['undated', 'No due date']]) {
       const item = node('div', 'task-view-metric'); item.dataset.metric = key;
       item.append(node('strong', '', String(counts[key])), node('span', '', label)); grid.append(item);
     }
@@ -232,7 +233,7 @@
       const stage = node('section', 'task-workflow-stage'); stage.dataset.status = status; stage.style.setProperty('--lane-color', colors[status]);
       stage.append(node('h3', '', labels[status] + ' · ' + matching.length));
       const list = node('div', 'task-workflow-tasks'); matching.forEach(row => list.append(card(row)));
-      if (!matching.length) empty('No matching tasks in this stage.', list);
+      if (!matching.length) empty('Nothing here.', list);
       stage.append(list); flow.append(stage);
     }
     insights.append(flow);
@@ -253,9 +254,9 @@
     const counts = summary(rows); const percent = counts.total ? Math.round(counts.done / counts.total * 100) : 0;
     insights.append(node('p', 'task-dashboard-completion', percent + '% complete'));
     const columns = node('div', 'task-view-columns');
-    columns.append(bars('Tasks by status', Object.keys(labels).map(key => [key, rows.filter(row => row.dataset.status === key).length]), rows.length, true));
+    columns.append(bars('Status', Object.keys(labels).map(key => [key, rows.filter(row => row.dataset.status === key).length]), rows.length, true));
     const grouped = new Map(); rows.forEach(row => { const key = row.dataset.group || 'Ungrouped'; grouped.set(key, (grouped.get(key) || 0) + 1); });
-    columns.append(bars('Tasks by group', [...grouped].sort((a, b) => b[1] - a[1]), rows.length));
+    columns.append(bars('Groups', [...grouped].sort((a, b) => b[1] - a[1]), rows.length));
     insights.append(columns, node('p', 'task-view-note', 'All totals follow the current group, assignee, status and search filters.'));
   }
   function renderInsights(rows) {
@@ -263,7 +264,7 @@
     insights.setAttribute('aria-label', 'Task ' + mode);
     const heading = node('div', 'task-view-heading');
     heading.append(node('h2', '', mode.charAt(0).toUpperCase() + mode.slice(1)), node('span', '', typeof activeGroupFilter !== 'undefined' && activeGroupFilter ? activeGroupFilter : 'All matching tasks'));
-    insights.append(heading);
+    // View name and group are already in the single toolbar above.
     if (taskFeedState !== 'ready') { empty(taskFeedState === 'loading' ? 'Loading tasks…' : 'Task feed unavailable.'); return; }
     ({ overview: renderOverview, gantt: renderGantt, timeline: renderTimeline, workflow: renderWorkflow, dashboard: renderDashboard })[mode](rows);
   }
@@ -276,7 +277,11 @@
     document.body.dataset.taskLayout = active ? mode : '';
     toolbar.querySelectorAll('[data-task-layout]').forEach(button => button.setAttribute('aria-pressed', String(active && button.dataset.taskLayout === mode)));
     const rows = visibleRows();
-    document.getElementById('task-layout-count').textContent = rows.length + (rows.length === 1 ? ' task' : ' tasks');
+    document.getElementById('task-layout-count').textContent = String(rows.length);
+    document.getElementById('task-layout-count').setAttribute('aria-label', rows.length + ' matching tasks');
+    if (viewSelect) viewSelect.value = mode;
+    const scope = document.getElementById('task-view-scope');
+    if (scope) scope.textContent = activeGroupFilter || '';
     if (!board.hidden) renderBoard(rows);
     if (!calendar.hidden) renderCalendar(rows);
     if (!insights.hidden) renderInsights(rows);
@@ -289,6 +294,16 @@
     document.querySelectorAll('#nav-planning .section-tab').forEach(button => button.classList.toggle('active', button.dataset.qf === 'week'));
     applyAllFilters();
   }
+  let viewSelect = document.getElementById('task-view-select');
+  if (!viewSelect) {
+    viewSelect = node('select', 'task-view-select'); viewSelect.id = 'task-view-select'; viewSelect.setAttribute('aria-label', 'View');
+    for (const [key, label] of Object.entries({ overview: 'Overview', list: 'List', gantt: 'Gantt', board: 'Kanban', timeline: 'Timeline', calendar: 'Calendar', workflow: 'Workflow', dashboard: 'Dashboard' })) {
+      const option = node('option', '', label); option.value = key; viewSelect.append(option);
+    }
+    toolbar.prepend(viewSelect);
+  }
+  toolbar.querySelector('.task-layout-tabs')?.setAttribute('hidden', '');
+  viewSelect.addEventListener('change', () => select(viewSelect.value));
   toolbar.querySelectorAll('[data-task-layout]').forEach(button => button.addEventListener('click', () => select(button.dataset.taskLayout)));
   document.getElementById('topnav-week').addEventListener('click', () => select(mode));
   window.AlfredTaskViews = { render, select };
