@@ -107,3 +107,16 @@ body.conversation-open{overflow:hidden}
 .home-summary{padding:0;background:transparent}
 .home-summary-card{background:transparent}
 .task-view-metrics{border-bottom:0}
+
+/* Priority is a direct action while the conversation is open. */
+.detail-quick-properties{flex-wrap:wrap}
+.detail-priority{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.detail-priority button{width:30px;min-height:36px;padding:0;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--priority-color);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.detail-priority button[aria-pressed=true]{background:var(--ui-soft);border-color:var(--priority-color);color:var(--priority-color)}
+.detail-priority button:hover:not(:disabled){background:var(--ui-soft)}
+.detail-priority button:disabled{cursor:default;opacity:.55}
+.detail-priority button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+#detail-priority-error[hidden],.priority-dot.dot-p0{display:none}
+@media(max-width:720px){#detail-due-summary{order:4;flex-basis:100%}#detail-due-summary:empty{display:none}}
+
+.detail-priority [data-p=p1]{--priority-color:#b85248}.detail-priority [data-p=p2]{--priority-color:#94712e}.detail-priority [data-p=p3]{--priority-color:#527b9c}

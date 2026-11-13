@@ -12,13 +12,13 @@ async function fixture(width = 1200, legacyMarkup = false) {
   const context = await browser.newContext({ viewport: { width, height: 844 } });
   const now = new Date(); const later = new Date(now.getFullYear(), now.getMonth() + 2, 15);
   const tasks = [
-    { id: 41, task: '[WALF] Repair WhatsApp edit sync', status: 'Stuck', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(now), source_url: 'https://t.me/c/2167535790/1/999' },
-    { id: 42, task: 'Sort conversations by recent activity', status: 'To do', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(later) },
-    { id: 43, task: 'Keep completed request history', status: 'Done', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf' },
-    { id: 44, task: 'Review task views', status: 'In Progress', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Tasks', due_date: dateKey(now), source_url: 'javascript:alert(1)' },
+    { id: 41, priority: 2, is_priority: true, task: '[WALF] Repair WhatsApp edit sync', status: 'Stuck', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(now), source_url: 'https://t.me/c/2167535790/1/999' },
+    { id: 42, priority: 3, is_priority: true, task: 'Sort conversations by recent activity', status: 'To do', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(later) },
+    { id: 43, priority: 0, is_priority: false, task: 'Keep completed request history', status: 'Done', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf' },
+    { id: 44, priority: 1, is_priority: true, task: 'Review task views', status: 'In Progress', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Tasks', due_date: dateKey(now), source_url: 'javascript:alert(1)' },
     { id: 45, task: 'Another owner private task', status: 'Stuck', assignee: 'Fiorella', assignee_id: 6623841750, group_name: 'Alfred Walf' },
   ];
-  const state = { failPatch: false, patches: [], requests: [], errors: [], commentPosts: [], conversationReads: [], failComments: false, forbidConversation: false, sent: [] };
+  const state = { priorityPatches: [], failPriority: false, priorityWait: null, badPriorityReceipt: false, failPatch: false, patches: [], requests: [], errors: [], commentPosts: [], conversationReads: [], failComments: false, forbidConversation: false, sent: [] };
   await context.addInitScript(() => { localStorage.setItem('alfred-dark-mode', 'false'); localStorage.setItem('alfred-rocstar-goals', '[{"id":"saved-goal","name":"Existing goal","status":"progress"}]'); });
   await context.route('**/*', async route => {
     const request = route.request(); const url = new URL(request.url());
@@ -26,6 +26,15 @@ async function fixture(width = 1200, legacyMarkup = false) {
     if (url.hostname === 'cdn.jsdelivr.net') return route.fulfill({ contentType: 'application/javascript', body: 'window.Sortable={create(element,options){element._sortableOptions=options;return{destroy(){},option(){}}}};' });
     if (url.origin === 'https://miniapp.test') {
       if (url.pathname === '/api/tasks' && request.method() === 'GET') { state.requests.push(request.url()); return route.fulfill({ json: { tasks, total: tasks.length, next_cursor: null, can_view_all: true } }); }
+      if (/^\/api\/tasks\/\d+$/.test(url.pathname) && request.method() === 'PATCH') {
+        const body = request.postDataJSON(); state.priorityPatches.push({ path: url.pathname, body, headers: request.headers() });
+        if (state.priorityWait) await state.priorityWait;
+        if (state.failPriority) return route.fulfill({ status: 500, json: { detail: 'Fixture priority failure' } });
+        const id = Number(url.pathname.split('/')[3]);
+        if (state.badPriorityReceipt) return route.fulfill({ json: { ok: true, task_id: id, priority: 1 } });
+        tasks.find(task => task.id === id).priority = body.priority;
+        return route.fulfill({ json: { ok: true, task_id: id, priority: body.priority } });
+      }
       if (/^\/api\/tasks\/\d+\/state$/.test(url.pathname) && request.method() === 'PATCH') {
         const body = request.postDataJSON(); state.patches.push({ path: url.pathname, body, headers: request.headers() });
         if (state.failPatch) return route.fulfill({ status: 500, json: { detail: 'Fixture failure' } });
@@ -406,6 +415,48 @@ test('Group context replaces WALF prefixes in all views, details and search', { 
     assert.equal(await card.isVisible(), true);
     assert.equal(await card.locator('.shared-task-group').count(), 0);
     assert.deepEqual(state.patches, []);
+    assert.deepEqual(state.errors, []);
+  } finally { await browser.close(); }
+});
+
+
+test('Visible priority buttons persist numeric values, reject failures and serialize rapid taps', { timeout: 20000 }, async () => {
+  const { browser, page, state } = await fixture(390);
+  try {
+    assert.deepEqual(await page.evaluate(() => ['41', '42', '43', '44'].map(id => allTasks.find(row => row.dataset.taskId === id).dataset.priority)), ['p2', 'p3', 'p0', 'p1']);
+    await page.evaluate(() => openDetail(allTasks.find(row => row.dataset.taskId === '41')));
+    const button = priority => page.locator('#detail-priority-pills [data-p="p' + priority + '"]');
+    assert.equal(await page.locator('#detail-more').getAttribute('open'), null);
+    assert.equal(await button(2).getAttribute('aria-pressed'), 'true');
+    let release; state.priorityWait = new Promise(resolve => { release = resolve; });
+    const request = page.waitForRequest(req => req.method() === 'PATCH' && new URL(req.url()).pathname === '/api/tasks/41');
+    await page.evaluate(() => { document.querySelector('#detail-priority-pills [data-p=p3]').click(); document.querySelector('#detail-priority-pills [data-p=p1]').click(); });
+    await request;
+    assert.equal(await button(1).isDisabled(), true);
+    assert.equal(await button(2).getAttribute('aria-pressed'), 'true');
+    assert.equal(state.priorityPatches.length, 1);
+    release(); state.priorityWait = null;
+    await page.locator('#detail-priority-pills [data-p=p3][aria-pressed=true]:enabled').waitFor();
+    assert.deepEqual(state.priorityPatches[0].body, { priority: 3 });
+    assert.ok(state.priorityPatches[0].headers['x-telegram-init-data']);
+    await page.reload(); await page.waitForFunction(() => taskFeedState === 'ready');
+    await page.evaluate(() => openDetail(allTasks.find(row => row.dataset.taskId === '41')));
+    assert.equal(await button(3).getAttribute('aria-pressed'), 'true');
+    state.failPriority = true; await button(1).click(); await page.locator('#detail-priority-error:not([hidden])').waitFor();
+    assert.equal(await button(3).getAttribute('aria-pressed'), 'true');
+    assert.equal(await button(1).isDisabled(), false);
+    assert.equal(await page.evaluate(() => currentDetailRow.dataset.priority), 'p3');
+    state.failPriority = false; state.badPriorityReceipt = true; await button(2).click();
+    await page.locator('#detail-priority-error:not([hidden])').waitFor();
+    assert.equal(await button(3).getAttribute('aria-pressed'), 'true');
+    state.badPriorityReceipt = false; await button(1).focus(); await page.keyboard.press('Enter');
+    await page.locator('#detail-priority-pills [data-p=p1][aria-pressed=true]:enabled').waitFor();
+    for (const width of [320, 390, 1400]) {
+      await page.setViewportSize({ width, height: 844 });
+      assert.ok(await page.locator('.detail-quick-properties').evaluate(el => el.scrollWidth <= el.clientWidth));
+      for (const selector of ['#detail-status-select', '#detail-priority-pills', '#detail-more']) assert.ok(await page.locator(selector).evaluate(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }));
+      await page.screenshot({ path: '/Users/alfredo/.openclaw/workspace/evidence/tasks-3-simplify/priority-' + width + '.png', animations: 'disabled' });
+    }
     assert.deepEqual(state.errors, []);
   } finally { await browser.close(); }
 });

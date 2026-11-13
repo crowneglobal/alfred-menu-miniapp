@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alfred</title>
-  <link rel="stylesheet" href="task-views.css?v=3-7">
+  <link rel="stylesheet" href="task-views.css?v=3-8">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -896,7 +896,7 @@
   </style>
   <!-- Canonical shared tray format (one file skins the Tasks and Banking trays). -->
   <link rel="stylesheet" href="tray/alfred-tray.css?v=962-2fc196c">
-  <link rel="stylesheet" href="task-conversation.css?v=3-7">
+  <link rel="stylesheet" href="task-conversation.css?v=3-8">
 </head>
 <body class="light">
 
@@ -1195,13 +1195,12 @@
       </div>
       <div class="detail-quick-properties">
         <select id="detail-status-select" aria-label="Status"><option value="todo">To do</option><option value="progress">In Progress</option><option value="stuck">Stuck</option><option value="done">Done</option></select>
+        <div id="detail-priority-pills" class="detail-priority" role="group" aria-label="Priority"><button type="button" data-p="p1" aria-label="Priority 1, highest" aria-pressed="false">1</button><button type="button" data-p="p2" aria-label="Priority 2, medium" aria-pressed="false">2</button><button type="button" data-p="p3" aria-label="Priority 3, lowest" aria-pressed="false">3</button></div>
         <span id="detail-due-summary"></span>
         <details id="detail-more"><summary>Details</summary><div class="detail-more-content">
       <div class="detail-section-label">Goal</div>
       <input class="modal-input" type="text" id="detail-goal" placeholder="Link to a goal...">
       <div class="detail-pills" id="detail-status-pills"><div class="detail-pill pill-todo" data-s="todo">To do</div><div class="detail-pill pill-progress" data-s="progress">In Progress</div><div class="detail-pill pill-stuck" data-s="stuck">Stuck</div><div class="detail-pill pill-done" data-s="done">Done</div></div>
-      <div class="detail-section-label">Priority</div>
-      <div class="detail-pills" id="detail-priority-pills"><div class="detail-pill pill-p1" data-p="p1">🔴 P1</div><div class="detail-pill pill-p2" data-p="p2">🟡 P2</div><div class="detail-pill pill-p3" data-p="p3">🔵 P3</div></div>
       <div class="detail-section-label">Due Date</div>
       <input class="modal-input" type="date" id="detail-due">
       <div id="detail-overdue" class="detail-overdue" style="display:none">⚠️ Overdue</div>
@@ -1209,6 +1208,7 @@
       <textarea class="modal-input detail-notes" id="detail-notes" rows="2" placeholder="Add notes..."></textarea>
         </div></details>
       </div>
+      <p id="detail-priority-error" class="conversation-notice" role="alert" hidden></p>
       <p id="detail-status-error" class="conversation-notice" role="alert" hidden></p>
       <section id="task-conversation" class="task-conversation" aria-label="Telegram conversation"></section>
     </div>
@@ -1437,7 +1437,8 @@
     function renderApiTask(t) {
       const statusKey = apiStatusToKey(t.status);
       const meta = statusMeta[statusKey];
-      const priorityClass = t.is_priority ? 'dot-p1' : 'dot-p2';
+      const priority = Number.isInteger(t.priority) && t.priority >= 0 && t.priority <= 3 ? t.priority : (t.is_priority ? 1 : 0);
+      const priorityClass = 'dot-p' + priority;
       const avatarSeed = (hashStr(t.assignee || '') % 70) + 1;
       const assigneeLabel = t.assignee_name || t.assignee || (t.assignee_id ? String(t.assignee_id) : 'Unassigned');
       const groupLabel = t.group_name || 'Ungrouped';
@@ -1447,7 +1448,7 @@
       row.className = 'task-row';
       row.dataset.status = statusKey;
       row.dataset.person = String(avatarSeed);
-      row.dataset.priority = t.is_priority ? 'p1' : 'p2';
+      row.dataset.priority = 'p' + priority;
       row.dataset.due = String(t.due_date || t.due || '').slice(0, 10);
       row.dataset.created = String(t.created_at || t.created || '').slice(0, 10);
       row.dataset.notes = '';
@@ -1712,7 +1713,7 @@
       }
 
       var statusOrder = { stuck: 0, progress: 1, todo: 2, done: 3 };
-      var priorityOrder = { p1: 0, p2: 1, p3: 2 };
+      var priorityOrder = { p1: 0, p2: 1, p3: 2, p0: 3 };
       var homeRows = scopedRows.filter(function(row) { return row.dataset.status !== 'done'; }).sort(function(a, b) {
         if (homeTaskSort === 'stuck') return statusOrder[a.dataset.status] - statusOrder[b.dataset.status];
         var aid = Number(a.dataset.taskId || 0);
@@ -2412,7 +2413,6 @@
 
     let currentDetailRow = null;
     let selectedDetailStatus = 'progress';
-    let selectedDetailPriority = 'p2';
     const detailOverlay = document.getElementById('detail-overlay');
 
     function setActivePill(containerId, key, value) {
@@ -2427,7 +2427,6 @@
     function openDetail(row) {
       currentDetailRow = row;
       selectedDetailStatus = row.dataset.status;
-      selectedDetailPriority = row.dataset.priority || 'p2';
       document.getElementById('detail-title').textContent = row.querySelector('.task-name').textContent;
       let sourceLink = document.getElementById('detail-source-link');
       if (!sourceLink) {
@@ -2473,7 +2472,8 @@
         } else { badgeEl.textContent = '?'; }
       }
       setActivePill('detail-status-pills', 's', selectedDetailStatus);
-      setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
+      refreshPriorityControls(row);
+      document.getElementById('detail-priority-error').hidden = true;
       updateDetailOverdue();
       detailOverlay.classList.add('open');
       document.getElementById('detail-status-select').value = row.dataset.status;
@@ -2494,9 +2494,47 @@
         setActivePill('detail-status-pills', 's', selectedDetailStatus);
       }
     }));
-    document.querySelectorAll('#detail-priority-pills .detail-pill').forEach(pill => pill.addEventListener('click', () => {
-      selectedDetailPriority = pill.dataset.p; setActivePill('detail-priority-pills', 'p', selectedDetailPriority);
-      if (currentDetailRow) { currentDetailRow.dataset.priority = selectedDetailPriority; currentDetailRow.querySelector('.priority-dot').className = 'priority-dot dot-' + selectedDetailPriority; }
+    const pendingPriorities = new Set();
+    function refreshPriorityControls(row) {
+      const pending = pendingPriorities.has(row.dataset.taskId);
+      const group = document.getElementById('detail-priority-pills');
+      group.setAttribute('aria-busy', String(pending));
+      group.querySelectorAll('button').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.p === row.dataset.priority));
+        button.disabled = pending || !row.dataset.taskId || taskFeedState !== 'ready';
+      });
+    }
+    async function saveTaskPriority(row, priority) {
+      const id = row.dataset.taskId;
+      if (!id || pendingPriorities.has(id) || ![1, 2, 3].includes(priority) || taskFeedState !== 'ready') return false;
+      if (row.dataset.priority === 'p' + priority) return true;
+      pendingPriorities.add(id);
+      const error = document.getElementById('detail-priority-error');
+      if (currentDetailRow === row) { error.hidden = true; refreshPriorityControls(row); }
+      try {
+        const response = await taskApiFetch('/api/tasks/' + encodeURIComponent(id), {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priority })
+        });
+        const result = await response.json();
+        if (!response.ok || result.ok !== true || String(result.task_id) !== id || result.priority !== priority) throw new Error('Priority was not saved. Try again.');
+        const rows = new Set([row, ...allTasks.filter(item => item.dataset.taskId === id)]);
+        for (const item of rows) {
+          item.dataset.priority = 'p' + result.priority;
+          const dot = item.querySelector('.priority-dot');
+          if (dot) dot.className = 'priority-dot dot-p' + result.priority;
+        }
+        applyAllFilters();
+        return true;
+      } catch (_) {
+        if (currentDetailRow?.dataset.taskId === id) { error.textContent = 'Priority was not saved. Try again.'; error.hidden = false; }
+        return false;
+      } finally {
+        pendingPriorities.delete(id);
+        if (currentDetailRow?.dataset.taskId === id) refreshPriorityControls(currentDetailRow);
+      }
+    }
+    document.querySelectorAll('#detail-priority-pills button').forEach(button => button.addEventListener('click', () => {
+      if (currentDetailRow) saveTaskPriority(currentDetailRow, Number(button.dataset.p.slice(1)));
     }));
     document.getElementById('detail-due').addEventListener('change', () => {
       updateDetailOverdue();
@@ -3244,7 +3282,7 @@
     document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
-  <script src="task-views.js?v=3-7"></script>
-  <script src="task-conversation.js?v=3-7"></script>
+  <script src="task-views.js?v=3-8"></script>
+  <script src="task-conversation.js?v=3-8"></script>
 </body>
 </html>
