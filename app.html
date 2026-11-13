@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alfred</title>
-  <link rel="stylesheet" href="task-views.css?v=3-5">
+  <link rel="stylesheet" href="task-views.css?v=3-6">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -896,7 +896,7 @@
   </style>
   <!-- Canonical shared tray format (one file skins the Tasks and Banking trays). -->
   <link rel="stylesheet" href="tray/alfred-tray.css?v=962-2fc196c">
-  <link rel="stylesheet" href="task-conversation.css?v=3-5">
+  <link rel="stylesheet" href="task-conversation.css?v=3-6">
 </head>
 <body class="light">
 
@@ -915,7 +915,7 @@
       <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
       <div id="nav-planning" style="display:flex; flex:1; min-width:0; gap:2px;">
         <button class="section-tab active" id="topnav-home" data-qf="home">Home</button>
-        <button class="section-tab" id="topnav-departments" data-qf="departments">Departments</button>
+        <button class="section-tab" id="topnav-departments" data-qf="departments">Groups</button>
         <button class="section-tab" id="topnav-week" data-qf="week">Browse</button>
         <button class="section-tab" id="topnav-pending" data-qf="pending">Today</button>
       </div>
@@ -3237,7 +3237,7 @@
     document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
-  <script src="task-views.js?v=3-5"></script>
-  <script src="task-conversation.js?v=3-5"></script>
+  <script src="task-views.js?v=3-6"></script>
+  <script src="task-conversation.js?v=3-6"></script>
 </body>
 </html>

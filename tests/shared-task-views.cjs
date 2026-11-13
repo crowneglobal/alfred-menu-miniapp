@@ -380,3 +380,30 @@ test('Minimal board and conversation remain usable on desktop and mobile', { tim
     assert.deepEqual(state.errors, []);
   } finally { await browser.close(); }
 });
+
+
+test('Groups fits mobile and scoped WALF cards keep complete source titles', { timeout: 20000 }, async () => {
+  const { browser, page } = await fixture(390);
+  try {
+    assert.equal(await page.locator('#topnav-departments').textContent(), 'Groups');
+    assert.ok(await page.locator('#topnav-departments').evaluate(el => el.scrollWidth <= el.clientWidth));
+    await page.locator('#topnav-departments').click();
+    assert.equal(await page.locator('#sidebar-panel').isVisible(), true);
+    await page.evaluate(() => closeSidebar());
+    await page.locator('#topnav-week').click(); await page.locator('#task-view-select').selectOption('board');
+    await page.evaluate(() => {
+      for (const id of ['41', '44']) allTasks.find(row => row.dataset.taskId === id).querySelector('.task-name').textContent = '[WALF] Full stored title';
+      applyAllFilters();
+    });
+    const card = page.locator('#shared-task-board [data-task-id="41"] .shared-task-open');
+    assert.equal(await card.locator('.shared-task-name').textContent(), '[WALF] Full stored title');
+    await page.evaluate(() => { activeGroupFilter = 'Alfred Walf'; applyAllFilters(); });
+    assert.equal(await card.locator('.shared-task-name').textContent(), 'Full stored title');
+    assert.equal(await card.getAttribute('aria-label'), '[WALF] Full stored title');
+    await card.click(); assert.equal(await page.locator('#detail-title').textContent(), '[WALF] Full stored title');
+    await page.locator('#detail-close').click();
+    await page.evaluate(() => { activeGroupFilter = 'Alfred Tasks'; applyAllFilters(); });
+    assert.equal(await page.locator('#shared-task-board [data-task-id="44"] .shared-task-name').textContent(), '[WALF] Full stored title');
+    assert.equal(await page.evaluate(() => allTasks.find(row => row.dataset.taskId === '41').querySelector('.task-name').textContent), '[WALF] Full stored title');
+  } finally { await browser.close(); }
+});

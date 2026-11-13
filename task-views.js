@@ -31,7 +31,11 @@
     const item = node('article', 'shared-task-card');
     item.dataset.taskId = row.dataset.taskId || '';
     const button = node('button', 'shared-task-open'); button.type = 'button';
-    button.append(node('span', 'shared-task-name', row.querySelector('.task-name').textContent));
+    const fullTitle = row.querySelector('.task-name').textContent;
+    const scopedWalf = activeGroupFilter && /\bWALF\b/i.test(activeGroupFilter) && row.dataset.group === activeGroupFilter;
+    const displayTitle = scopedWalf ? fullTitle.replace(/^\[WALF\]\s+(?=\S)/, '') : fullTitle;
+    button.setAttribute('aria-label', fullTitle);
+    button.append(node('span', 'shared-task-name', displayTitle));
     if (!activeGroupFilter) button.append(node('span', 'shared-task-group', row.dataset.group || 'Ungrouped'));
     const meta = node('span', 'shared-task-meta');
     meta.append(node('span', '', row.dataset.assignee || 'Unassigned'));
