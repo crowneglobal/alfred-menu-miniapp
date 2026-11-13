@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..');
 const evidence = process.env.EVIDENCE_DIR || '/Users/alfredo/.openclaw/workspace/evidence/overnight-1A/tasks-shared-views';
 const sdk = `window.Telegram={WebApp:{initData:'fixture',initDataUnsafe:{user:{id:1078092674,first_name:'Darren',username:'dro238'}},viewportHeight:844,viewportStableHeight:844,colorScheme:'light',themeParams:{},isFullscreen:false,safeAreaInset:{},contentSafeAreaInset:{},ready(){},expand(){},requestFullscreen(){},isVersionAtLeast(){return true},setHeaderColor(){},setBackgroundColor(){},onEvent(){},BackButton:{onClick(){},show(){},hide(){}}}};`;
 const dateKey = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
-async function fixture(width = 1200) {
+async function fixture(width = 1200, legacyMarkup = false) {
   const browser = await chromium.launch({ headless: true, executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
   const context = await browser.newContext({ viewport: { width, height: 844 } });
   const now = new Date(); const later = new Date(now.getFullYear(), now.getMonth() + 2, 15);
@@ -33,7 +33,7 @@ async function fixture(width = 1200) {
         return route.fulfill({ json: { ok: true } });
       }
       const file = url.pathname === '/' ? 'app.html' : url.pathname.slice(1);
-      if (['app.html', 'task-views.css', 'task-views.js', 'tray/alfred-tray.css'].includes(file)) return route.fulfill({ contentType: file.endsWith('.js') ? 'application/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html', body: fs.readFileSync(path.join(root, file), 'utf8') });
+      if (['app.html', 'task-views.css', 'task-views.js', 'tray/alfred-tray.css'].includes(file)) return route.fulfill({ contentType: file.endsWith('.js') ? 'application/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html', body: legacyMarkup && file === 'app.html' ? fs.readFileSync(path.join(root, file), 'utf8').replace(/<section id="shared-task-insights"[^>]*><\/section>/, '').replace(/<button[^>]*data-task-layout="(?:overview|gantt|timeline|workflow|dashboard)"[^>]*>[^<]*<\/button>/g, '') : fs.readFileSync(path.join(root, file), 'utf8') });
     }
     if (url.hostname === 'alfred.ai') return route.fulfill({ contentType: 'text/html', body: '<!doctype html>' });
     return route.abort();
@@ -231,6 +231,18 @@ test('Shared task views fit phone layout and keep Today, Home and old goals sepa
     await page.evaluate(() => openCreateFlow());
     assert.equal(await page.locator('#new-task-status').inputValue(), 'progress');
     assert.equal(await page.locator('#new-task-status option[value="todo"]').isDisabled(), true);
+    assert.deepEqual(state.errors, []);
+  } finally { await browser.close(); }
+});
+
+ test('Refreshed assets remain compatible with cached three-view mini app HTML', { timeout: 20000 }, async () => {
+  const { browser, page, state } = await fixture(390, true);
+  try {
+    await page.locator('#topnav-week').click();
+    await page.locator('button[data-task-layout="board"]').click();
+    assert.equal(await page.locator('.shared-task-card').count(), 4);
+    await page.locator('button[data-task-layout="calendar"]').click();
+    assert.equal(await page.locator('#shared-task-calendar').isVisible(), true);
     assert.deepEqual(state.errors, []);
   } finally { await browser.close(); }
 });

@@ -4,7 +4,13 @@
   const toolbar = document.getElementById('task-layout-toolbar');
   const board = document.getElementById('shared-task-board');
   const calendar = document.getElementById('shared-task-calendar');
-  const insights = document.getElementById('shared-task-insights');
+  // Older cached app HTML can load a refreshed script before the mini app is reopened.
+  let insights = document.getElementById('shared-task-insights');
+  if (!insights) {
+    insights = document.createElement('section'); insights.id = 'shared-task-insights';
+    insights.className = 'shared-task-insights'; insights.hidden = true;
+    calendar.after(insights);
+  }
   const extraModes = ['overview', 'gantt', 'timeline', 'workflow', 'dashboard'];
   const labels = { todo: 'To do', progress: 'In Progress', stuck: 'Stuck', done: 'Done' };
   const colors = { todo: '#8A9580', stuck: '#B85248', progress: '#C07840', done: '#6E9E5E' };
