@@ -18,7 +18,7 @@ async function fixture(width = 1200, legacyMarkup = false) {
     { id: 44, priority: 1, is_priority: true, task: 'Review task views', status: 'In Progress', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Tasks', due_date: dateKey(now), source_url: 'javascript:alert(1)' },
     { id: 45, task: 'Another owner private task', status: 'Stuck', assignee: 'Fiorella', assignee_id: 6623841750, group_name: 'Alfred Walf' },
   ];
-  const state = { priorityPatches: [], failPriority: false, priorityWait: null, badPriorityReceipt: false, failPatch: false, patches: [], requests: [], errors: [], commentPosts: [], conversationReads: [], failComments: false, forbidConversation: false, sent: [] };
+  const state = { creates: [], createPriority: 0, createWait: null, priorityPatches: [], failPriority: false, priorityWait: null, badPriorityReceipt: false, failPatch: false, patches: [], requests: [], errors: [], commentPosts: [], conversationReads: [], failComments: false, forbidConversation: false, sent: [] };
   await context.addInitScript(() => { localStorage.setItem('alfred-dark-mode', 'false'); localStorage.setItem('alfred-rocstar-goals', '[{"id":"saved-goal","name":"Existing goal","status":"progress"}]'); });
   await context.route('**/*', async route => {
     const request = route.request(); const url = new URL(request.url());
@@ -26,6 +26,12 @@ async function fixture(width = 1200, legacyMarkup = false) {
     if (url.hostname === 'cdn.jsdelivr.net') return route.fulfill({ contentType: 'application/javascript', body: 'window.Sortable={create(element,options){element._sortableOptions=options;return{destroy(){},option(){}}}};' });
     if (url.origin === 'https://miniapp.test') {
       if (url.pathname === '/api/tasks' && request.method() === 'GET') { state.requests.push(request.url()); return route.fulfill({ json: { tasks, total: tasks.length, next_cursor: null, can_view_all: true } }); }
+      if (url.pathname === '/api/tasks' && request.method() === 'POST') {
+        const body = request.postDataJSON(); state.creates.push(body);
+        if (state.createWait) await state.createWait;
+        const task = { id: 100 + state.creates.length, task: body.task, status: body.status, priority: state.createPriority, assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf' };
+        tasks.push(task); return route.fulfill({ json: task });
+      }
       if (/^\/api\/tasks\/\d+$/.test(url.pathname) && request.method() === 'PATCH') {
         const body = request.postDataJSON(); state.priorityPatches.push({ path: url.pathname, body, headers: request.headers() });
         if (state.priorityWait) await state.priorityWait;
@@ -457,6 +463,44 @@ test('Visible priority buttons persist numeric values, reject failures and seria
       for (const selector of ['#detail-status-select', '#detail-priority-pills', '#detail-more']) assert.ok(await page.locator(selector).evaluate(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }));
       await page.screenshot({ path: '/Users/alfredo/.openclaw/workspace/evidence/tasks-3-simplify/priority-' + width + '.png', animations: 'disabled' });
     }
+    assert.deepEqual(state.errors, []);
+  } finally { await browser.close(); }
+});
+
+
+test('New tasks begin without priority and the first priority 2 tap persists', { timeout: 20000 }, async () => {
+  const { browser, page, state } = await fixture(390);
+  try {
+    let release; state.createWait = new Promise(resolve => { release = resolve; });
+    await page.evaluate(() => {
+      openCreateFlow(); document.getElementById('new-task-name').value = 'Brand new task'; addTask();
+      openDetail(allTasks.find(row => row.querySelector('.task-name').textContent === 'Brand new task'));
+    });
+    assert.equal(await page.evaluate(() => currentDetailRow.dataset.priority), 'p0');
+    assert.equal(await page.locator('#detail-priority-pills [aria-pressed=true]').count(), 0);
+    assert.equal(await page.locator('#detail-priority-pills [data-p=p2]').isDisabled(), true);
+    release(); state.createWait = null;
+    await page.locator('#detail-priority-pills [data-p=p2]:enabled').waitFor();
+    await page.locator('#detail-priority-pills [data-p=p2]').click();
+    await page.locator('#detail-priority-pills [data-p=p2][aria-pressed=true]:enabled').waitFor();
+    assert.deepEqual(state.priorityPatches[0].body, { priority: 2 });
+    assert.equal(state.priorityPatches[0].path, '/api/tasks/101');
+    await page.reload(); await page.waitForFunction(() => taskFeedState === 'ready');
+    assert.equal(await page.evaluate(() => allTasks.find(row => row.dataset.taskId === '101').dataset.priority), 'p2');
+    // The inline editor uses a second creation callback; honor its returned numeric priority too.
+    state.createPriority = 3; state.createWait = new Promise(resolve => { release = resolve; });
+    await page.evaluate(() => {
+      const row = createInlineTaskBelow(allTasks.find(row => row.dataset.taskId === '41'));
+      startInlineTaskEdit(row, row.querySelector('.task-name')); activeTaskEditor.input.value = 'Inline new task';
+      finishInlineTaskEdit(); openDetail(row);
+    });
+    assert.equal(await page.evaluate(() => currentDetailRow.dataset.priority), 'p0');
+    release(); state.createWait = null;
+    await page.locator('#detail-priority-pills [data-p=p3][aria-pressed=true]:enabled').waitFor();
+    assert.equal(await page.evaluate(() => currentDetailRow.querySelector('.priority-dot').className), 'priority-dot dot-p3');
+    await page.locator('#detail-priority-pills [data-p=p2]').click();
+    await page.locator('#detail-priority-pills [data-p=p2][aria-pressed=true]:enabled').waitFor();
+    assert.equal(state.priorityPatches[1].path, '/api/tasks/102');
     assert.deepEqual(state.errors, []);
   } finally { await browser.close(); }
 });
