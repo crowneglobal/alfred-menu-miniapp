@@ -46,6 +46,94 @@ async function fixture(width = 1200) {
 }
 const ids = async locator => (await locator.evaluateAll(items => items.map(item => item.dataset.taskId))).sort();
 
+test('All eight task views share filters, real due dates, guarded status saves and existing task details', { timeout: 20000 }, async () => {
+  const { browser, page, state } = await fixture();
+  try {
+    await page.locator('#topnav-week').click();
+    assert.equal(await page.locator('button[data-task-layout]').count(), 8);
+    await page.locator('button[data-task-layout="overview"]').click();
+    assert.equal(await page.locator('[data-metric="total"] strong').textContent(), '4');
+    assert.equal(await page.locator('[data-metric="done"] strong').textContent(), '1');
+    assert.equal(await page.locator('.week-section').first().isVisible(), false);
+    await page.locator('button[data-task-layout="dashboard"]').click();
+    assert.equal(await page.locator('.task-dashboard-completion').textContent(), '25% complete');
+    assert.equal(await page.locator('[data-metric="undated"] strong').textContent(), '1');
+    await page.evaluate(() => { activeGroupFilter = 'Alfred Walf'; searchQuery = 'edit sync'; applyAllFilters(); });
+    assert.equal(await page.locator('[data-metric="total"] strong').textContent(), '1');
+    assert.equal(await page.locator('[data-metric="done"] strong').textContent(), '0');
+    await page.locator('button[data-task-layout="gantt"]').click();
+    assert.deepEqual(await ids(page.locator('.task-gantt-row[data-task-id]')), ['41']);
+    assert.equal(await page.locator('.task-gantt-milestone').getAttribute('aria-label').then(x => x.includes('Repair WhatsApp edit sync')), true);
+    await page.locator('.task-gantt-milestone').click();
+    assert.equal(await page.locator('#detail-title').textContent(), 'Repair WhatsApp edit sync');
+    await page.locator('#detail-close').click();
+    await page.locator('button[data-task-layout="timeline"]').click();
+    assert.deepEqual(await ids(page.locator('.task-timeline-day [data-task-id]')), ['41']);
+    await page.evaluate(() => { activeGroupFilter = ''; searchQuery = ''; applyAllFilters(); });
+    assert.deepEqual(await ids(page.locator('.task-timeline-day [data-task-id]')), ['41', '44']);
+    assert.deepEqual(await ids(page.locator('.task-view-undated [data-task-id]')), ['43']);
+    await page.getByRole('button', { name: 'Next month', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Next month');
+    await page.keyboard.press('Enter');
+    assert.deepEqual(await ids(page.locator('.task-timeline-day [data-task-id]')), ['42']);
+    await page.locator('button[data-task-layout="gantt"]').click();
+    assert.deepEqual(await ids(page.locator('.task-gantt-row[data-task-id]')), ['42']);
+    await page.getByRole('button', { name: 'Current month', exact: true }).click();
+    assert.deepEqual(await ids(page.locator('.task-gantt-row[data-task-id]')), ['41', '44']);
+    await page.locator('button[data-task-layout="workflow"]').click();
+    assert.deepEqual(await ids(page.locator('#shared-task-insights .shared-task-card')), ['41', '42', '43', '44']);
+    state.failPatch = true;
+    await page.locator('#shared-task-insights [data-task-id="42"] select').selectOption('done');
+    await page.getByText('Could not save the task status. Your previous status is unchanged.').waitFor();
+    assert.equal(await page.locator('.task-workflow-stage[data-status="todo"] [data-task-id="42"]').count(), 1);
+    state.failPatch = false;
+    await page.locator('#shared-task-insights [data-task-id="42"] select').selectOption('done');
+    await page.locator('.task-workflow-stage[data-status="done"] [data-task-id="42"]').waitFor();
+    assert.equal(state.patches.at(-1).headers['x-telegram-init-data'], 'fixture');
+    await page.locator('button[data-task-layout="dashboard"]').click();
+    assert.equal(await page.locator('.task-dashboard-completion').textContent(), '50% complete');
+    await page.locator('button[data-task-layout="list"]').click();
+    assert.equal(await page.locator('#list-42 .task-row[data-task-id="42"]').count(), 1);
+    await page.locator('button[data-task-layout="dashboard"]').click();
+    await page.evaluate(() => { searchQuery = 'zero matching tasks'; applyAllFilters(); });
+    assert.equal(await page.locator('[data-metric="total"] strong').textContent(), '0');
+    assert.equal(await page.locator('.task-dashboard-completion').textContent(), '0% complete');
+    await page.evaluate(() => { taskFeedState = 'error'; AlfredTaskViews.render(); });
+    assert.equal(await page.locator('#shared-task-insights').innerText().then(x => x.includes('Task feed unavailable.')), true);
+    assert.equal(await page.locator('[data-metric]').count(), 0);
+    assert.deepEqual(state.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('New task views fit phones and leave Home and Today intact', { timeout: 20000 }, async () => {
+  const { browser, page, state } = await fixture(390);
+  try {
+    await page.locator('#topnav-week').click();
+    const output = path.join(evidence, 'eight-views'); fs.mkdirSync(output, { recursive: true });
+    for (const view of ['overview', 'gantt', 'timeline', 'workflow', 'dashboard']) {
+      await page.locator('button[data-task-layout="' + view + '"]').click();
+      assert.equal(await page.locator('#shared-task-insights').getAttribute('data-view'), view);
+      assert.equal(await page.locator('button[data-task-layout="' + view + '"]').getAttribute('aria-pressed'), 'true');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, view + ' overflows phone');
+      assert.equal(await page.locator('#task-layout-count').textContent(), '4 tasks');
+      await page.screenshot({ path: path.join(output, view + '-mobile.png'), fullPage: false });
+    }
+    await page.setViewportSize({ width: 1400, height: 950 });
+    for (const view of ['gantt', 'dashboard']) {
+      await page.locator('button[data-task-layout="' + view + '"]').click();
+      await page.screenshot({ path: path.join(output, view + '-desktop.png'), fullPage: false });
+    }
+    await page.locator('#topnav-home').click();
+    assert.equal(await page.locator('#shared-task-insights').isHidden(), true);
+    assert.equal(await page.locator('#home-dashboard').isVisible(), true);
+    await page.locator('#topnav-pending').click();
+    assert.equal(await page.locator('#shared-task-insights').isHidden(), true);
+    assert.equal(await page.locator('#today-view').isVisible(), true);
+    assert.deepEqual(state.errors, []);
+  } finally { await browser.close(); }
+});
+
 test('List, Kanban and Calendar share authenticated tasks and filters; state saves persist or stay unchanged', { timeout: 20000 }, async () => {
   const { browser, page, state } = await fixture();
   try {
@@ -54,19 +142,19 @@ test('List, Kanban and Calendar share authenticated tasks and filters; state sav
     await page.locator('#topnav-week').click();
     const originalIds = await ids(page.locator('.week-section .task-row:not(.hidden)'));
     assert.deepEqual(originalIds, ['41', '42', '43', '44']);
-    await page.locator('[data-task-layout="board"]').click();
+    await page.locator('button[data-task-layout="board"]').click();
     assert.deepEqual(await ids(page.locator('.shared-task-card')), originalIds);
     assert.equal(await page.locator('.shared-task-lane[data-status="todo"] [data-task-id="42"]').count(), 1);
     assert.equal(await page.evaluate(() => apiStatusToKey(null)), 'todo');
     assert.equal(await page.locator('#section-41').isVisible(), false);
     await page.evaluate(() => { searchQuery = 'edit sync'; applyAllFilters(); });
     assert.deepEqual(await ids(page.locator('.shared-task-card')), ['41']);
-    await page.locator('[data-task-layout="calendar"]').click();
+    await page.locator('button[data-task-layout="calendar"]').click();
     assert.deepEqual(await ids(page.locator('.task-calendar-event')), ['41']);
-    await page.locator('[data-task-layout="list"]').click();
+    await page.locator('button[data-task-layout="list"]').click();
     assert.deepEqual(await ids(page.locator('.week-section .task-row:not(.hidden)')), ['41']);
     await page.evaluate(() => { searchQuery = ''; activeGroupFilter = 'Alfred Walf'; applyAllFilters(); });
-    await page.locator('[data-task-layout="board"]').click();
+    await page.locator('button[data-task-layout="board"]').click();
     assert.deepEqual(await ids(page.locator('.shared-task-card')), ['41', '42', '43']);
     state.failPatch = true;
     await page.locator('.shared-task-card[data-task-id="41"] select').selectOption('done');
@@ -88,7 +176,7 @@ test('List, Kanban and Calendar share authenticated tasks and filters; state sav
     await page.locator('#detail-close').click();
     assert.equal(state.patches.at(-1).headers['x-telegram-init-data'], 'fixture');
     await page.reload(); await page.waitForFunction(() => taskFeedState === 'ready');
-    await page.locator('#topnav-week').click(); await page.locator('[data-task-layout="board"]').click();
+    await page.locator('#topnav-week').click(); await page.locator('button[data-task-layout="board"]').click();
     assert.equal(await page.locator('.shared-task-lane[data-status="done"] [data-task-id="41"]').count(), 1);
     // Drag uses exactly the same persisted status route, never mutates a local goal.
     await page.evaluate(async () => {
@@ -100,11 +188,13 @@ test('List, Kanban and Calendar share authenticated tasks and filters; state sav
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('alfred-rocstar-goals'))[0].name), 'Existing goal');
     fs.mkdirSync(evidence, { recursive: true });
     await page.screenshot({ path: path.join(evidence, 'kanban-desktop.png'), fullPage: true });
-    await page.locator('[data-task-layout="calendar"]').click();
+    await page.locator('button[data-task-layout="calendar"]').click();
     assert.equal(await page.locator('.task-calendar-undated [data-task-id="43"]').count(), 1);
     assert.equal(await page.locator('.task-calendar-event[data-task-id="42"]').count(), 0);
-    await page.getByRole('button', { name: 'Next month', exact: true }).click();
-    await page.getByRole('button', { name: 'Next month', exact: true }).click();
+    await page.getByRole('button', { name: 'Next month', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Next month');
+    await page.keyboard.press('Enter');
     assert.equal(await page.locator('.task-calendar-event[data-task-id="42"]').count(), 1);
     await page.getByRole('button', { name: 'Current month', exact: true }).click();
     await page.screenshot({ path: path.join(evidence, 'calendar-desktop.png'), fullPage: true });
@@ -119,11 +209,11 @@ test('Shared task views fit phone layout and keep Today, Home and old goals sepa
   const { browser, page, state } = await fixture(390);
   try {
     await page.locator('#topnav-week').click();
-    await page.locator('[data-task-layout="board"]').click();
+    await page.locator('button[data-task-layout="board"]').click();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     fs.mkdirSync(evidence, { recursive: true });
     await page.screenshot({ path: path.join(evidence, 'kanban-mobile.png'), fullPage: true });
-    await page.locator('[data-task-layout="calendar"]').click();
+    await page.locator('button[data-task-layout="calendar"]').click();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: path.join(evidence, 'calendar-mobile.png'), fullPage: true });
     await page.locator('#topnav-pending').click();

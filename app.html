@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alfred</title>
-  <link rel="stylesheet" href="task-views.css?v=1a-2">
+  <link rel="stylesheet" href="task-views.css?v=3-1">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -957,9 +957,14 @@
   <div id="view-planning">
   <div id="task-layout-toolbar" class="task-layout-toolbar" hidden>
     <div class="task-layout-tabs" role="group" aria-label="Task views">
+      <button type="button" data-task-layout="overview" aria-pressed="false">Overview</button>
       <button type="button" data-task-layout="list" aria-pressed="true">List</button>
+      <button type="button" data-task-layout="gantt" aria-pressed="false">Gantt</button>
       <button type="button" data-task-layout="board" aria-pressed="false">Kanban</button>
+      <button type="button" data-task-layout="timeline" aria-pressed="false">Timeline</button>
       <button type="button" data-task-layout="calendar" aria-pressed="false">Calendar</button>
+      <button type="button" data-task-layout="workflow" aria-pressed="false">Workflow</button>
+      <button type="button" data-task-layout="dashboard" aria-pressed="false">Dashboard</button>
     </div>
     <span id="task-layout-count" class="task-layout-count" aria-live="polite"></span>
   </div>
@@ -989,6 +994,7 @@
   <div id="task-save-error" class="task-feed-status" role="alert" hidden></div>
   <section id="shared-task-board" class="shared-task-board" aria-label="Task Kanban" hidden></section>
   <section id="shared-task-calendar" class="shared-task-calendar" aria-label="Task calendar" hidden></section>
+  <section id="shared-task-insights" class="shared-task-insights" aria-label="Task views" hidden></section>
   <!-- Per-user focus task -->
   <div class="focus-banner focus-hidden" id="focus-banner">
     <span class="focus-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></span>
@@ -3272,6 +3278,6 @@
     document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
-  <script src="task-views.js?v=1a-2"></script>
+  <script src="task-views.js?v=3-1"></script>
 </body>
 </html>
