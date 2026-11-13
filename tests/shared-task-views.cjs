@@ -60,6 +60,7 @@ test('All eight task views share filters, real due dates, guarded status saves a
     assert.equal(await page.locator('[data-metric="undated"] strong').textContent(), '1');
     await page.evaluate(() => { activeGroupFilter = 'Alfred Walf'; searchQuery = 'edit sync'; applyAllFilters(); });
     assert.equal(await page.locator('[data-metric="total"] strong').textContent(), '1');
+    assert.equal(await page.locator('#group-overview').isHidden(), true);
     assert.equal(await page.locator('[data-metric="done"] strong').textContent(), '0');
     await page.locator('button[data-task-layout="gantt"]').click();
     assert.deepEqual(await ids(page.locator('.task-gantt-row[data-task-id]')), ['41']);
