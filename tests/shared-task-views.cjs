@@ -12,7 +12,7 @@ async function fixture(width = 1200, legacyMarkup = false) {
   const context = await browser.newContext({ viewport: { width, height: 844 } });
   const now = new Date(); const later = new Date(now.getFullYear(), now.getMonth() + 2, 15);
   const tasks = [
-    { id: 41, task: 'Repair WhatsApp edit sync', status: 'Stuck', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(now), source_url: 'https://t.me/c/2167535790/1/999' },
+    { id: 41, task: '[WALF] Repair WhatsApp edit sync', status: 'Stuck', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(now), source_url: 'https://t.me/c/2167535790/1/999' },
     { id: 42, task: 'Sort conversations by recent activity', status: 'To do', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf', due_date: dateKey(later) },
     { id: 43, task: 'Keep completed request history', status: 'Done', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Walf' },
     { id: 44, task: 'Review task views', status: 'In Progress', assignee: 'dro238', assignee_id: 1078092674, group_name: 'Alfred Tasks', due_date: dateKey(now), source_url: 'javascript:alert(1)' },
@@ -382,28 +382,30 @@ test('Minimal board and conversation remain usable on desktop and mobile', { tim
 });
 
 
-test('Groups fits mobile and scoped WALF cards keep complete source titles', { timeout: 20000 }, async () => {
-  const { browser, page } = await fixture(390);
+test('Group context replaces WALF prefixes in all views, details and search', { timeout: 20000 }, async () => {
+  const { browser, page, state } = await fixture(390);
   try {
     assert.equal(await page.locator('#topnav-departments').textContent(), 'Groups');
     assert.ok(await page.locator('#topnav-departments').evaluate(el => el.scrollWidth <= el.clientWidth));
     await page.locator('#topnav-departments').click();
     assert.equal(await page.locator('#sidebar-panel').isVisible(), true);
     await page.evaluate(() => closeSidebar());
-    await page.locator('#topnav-week').click(); await page.locator('#task-view-select').selectOption('board');
-    await page.evaluate(() => {
-      for (const id of ['41', '44']) allTasks.find(row => row.dataset.taskId === id).querySelector('.task-name').textContent = '[WALF] Full stored title';
-      applyAllFilters();
-    });
+    await page.locator('#topnav-week').click();
+    for (const view of ['overview', 'list', 'gantt', 'board', 'timeline', 'calendar', 'workflow', 'dashboard']) {
+      await page.locator('#task-view-select').selectOption(view);
+      assert.equal((await page.locator('body').innerText()).includes('[WALF]'), false, view);
+    }
+    await page.locator('#task-view-select').selectOption('board');
     const card = page.locator('#shared-task-board [data-task-id="41"] .shared-task-open');
-    assert.equal(await card.locator('.shared-task-name').textContent(), '[WALF] Full stored title');
-    await page.evaluate(() => { activeGroupFilter = 'Alfred Walf'; applyAllFilters(); });
-    assert.equal(await card.locator('.shared-task-name').textContent(), 'Full stored title');
-    assert.equal(await card.getAttribute('aria-label'), '[WALF] Full stored title');
-    await card.click(); assert.equal(await page.locator('#detail-title').textContent(), '[WALF] Full stored title');
+    assert.equal(await card.locator('.shared-task-name').textContent(), 'Repair WhatsApp edit sync');
+    assert.equal(await card.locator('.shared-task-group').textContent(), 'Alfred Walf');
+    assert.equal(await card.getAttribute('aria-label'), 'Repair WhatsApp edit sync');
+    await card.click(); assert.equal(await page.locator('#detail-title').textContent(), 'Repair WhatsApp edit sync');
     await page.locator('#detail-close').click();
-    await page.evaluate(() => { activeGroupFilter = 'Alfred Tasks'; applyAllFilters(); });
-    assert.equal(await page.locator('#shared-task-board [data-task-id="44"] .shared-task-name').textContent(), '[WALF] Full stored title');
-    assert.equal(await page.evaluate(() => allTasks.find(row => row.dataset.taskId === '41').querySelector('.task-name').textContent), '[WALF] Full stored title');
+    await page.evaluate(() => { activeGroupFilter = 'Alfred Walf'; searchQuery = '[WALF]'; applyAllFilters(); });
+    assert.equal(await card.isVisible(), true);
+    assert.equal(await card.locator('.shared-task-group').count(), 0);
+    assert.deepEqual(state.patches, []);
+    assert.deepEqual(state.errors, []);
   } finally { await browser.close(); }
 });

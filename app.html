@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alfred</title>
-  <link rel="stylesheet" href="task-views.css?v=3-6">
+  <link rel="stylesheet" href="task-views.css?v=3-7">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <style>
@@ -896,7 +896,7 @@
   </style>
   <!-- Canonical shared tray format (one file skins the Tasks and Banking trays). -->
   <link rel="stylesheet" href="tray/alfred-tray.css?v=962-2fc196c">
-  <link rel="stylesheet" href="task-conversation.css?v=3-6">
+  <link rel="stylesheet" href="task-conversation.css?v=3-7">
 </head>
 <body class="light">
 
@@ -1429,6 +1429,11 @@
       return h;
     }
 
+    function taskTitleForGroup(title, group) {
+      const value = String(title || '');
+      return /\bWALF\b/i.test(group || '') ? value.replace(/^\s*\[WALF\]\s*(?=\S)/i, '') : value;
+    }
+
     function renderApiTask(t) {
       const statusKey = apiStatusToKey(t.status);
       const meta = statusMeta[statusKey];
@@ -1459,7 +1464,7 @@
         `<span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden" onclick="filterPersonAvatar(event,'${avatarSeed}')">${getInitialsAvatar(t.assignee, 36)}</span>`,
         `<div class="task-info">`,
         `  <span class="priority-dot ${priorityClass}"></span>`,
-        `  <span class="task-name">${escapeText(t.task)}</span>`,
+        `  <span class="task-name">${escapeText(taskTitleForGroup(t.task, groupLabel))}</span>`,
         `  <div class="task-meta-row">`,
         `    <span class="task-assignee">${escapeText(assigneeLabel)}</span>`,
         `    <span class="task-group-tag ${tagClass}">${escapeText(groupLabel)}</span>`,
@@ -1602,7 +1607,9 @@
         const statusOk = !activeStatus
           || (activeStatus === 'pending' ? row.dataset.status !== 'done' : row.dataset.status === activeStatus);
         const personOk = !activePersonId || row.dataset.person === activePersonId;
-        const searchOk = !searchQuery || row.querySelector('.task-name').textContent.toLowerCase().includes(searchQuery.toLowerCase());
+        const projectTag = /\bWALF\b/i.test(row.dataset.group || '') ? '[WALF] ' : '';
+        const searchText = projectTag + row.querySelector('.task-name').textContent + ' ' + (row.dataset.group || '');
+        const searchOk = !searchQuery || searchText.toLowerCase().includes(searchQuery.toLowerCase());
         const groupOk = !activeGroupFilter || (row.dataset.group || '') === activeGroupFilter;
         const assigneeOk = activeAssigneeFilter === 'all' || isAssignedToCurrentUser(row);
         const hidden = !(statusOk && personOk && searchOk && groupOk && assigneeOk);
@@ -2233,7 +2240,7 @@
       activeTaskEditor = null;
       const { input, row, original, displayNode, todayItem } = editor;
       const value = input.value.trim();
-      const name = cancel ? original : (value || original);
+      const name = taskTitleForGroup(cancel ? original : (value || original), row.dataset.group);
       const replacement = document.createElement('span');
       replacement.className = 'task-name';
       replacement.textContent = name;
@@ -2604,7 +2611,7 @@
       const tagLabel = listId === 'list-41' ? 'W41' : listId === 'list-42' ? 'W42' : 'Group';
       list.innerHTML = `<div class="task-row" data-status="${status}" data-person="4" data-priority="p2" data-due="" data-notes="" data-goal="" data-group="${group}" data-assignee="Alfred" data-comments="[]"><span class="drag-handle" aria-hidden="true" style="color:#999;font-size:14px;padding:0 2px 0 10px;cursor:grab;order:0;flex-shrink:0;touch-action:auto;user-select:none;">⠣</span><div class="accent ${meta[0]}"></div><span class="avatar" style="display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><svg width="36" height="36" viewBox="0 0 36 36" style="border-radius:50%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#4a7c59"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui,sans-serif" font-weight="600">A</text></svg></span><div class="task-info"><span class="task-name"></span><div class="task-meta-row"><span class="task-assignee">Alfred</span><span class="task-group-tag ${tagClass}">${tagLabel}</span></div></div><span class="badge ${meta[1]}">${meta[2]}</span><button class="task-delete-btn" type="button" aria-label="Delete task" style="border:none;background:transparent;color:#999;font-size:16px;padding:0 8px 0 4px;cursor:pointer;flex-shrink:0;order:5;-webkit-tap-highlight-color:transparent;">🗑</button></div>`;
       const row = list.firstElementChild;
-      row.querySelector('.task-name').textContent = name;
+      row.querySelector('.task-name').textContent = taskTitleForGroup(name, group);
       document.getElementById(listId).appendChild(row);
       enhanceRow(row);
       return row.closest('.swipe-wrapper');
@@ -3237,7 +3244,7 @@
     document.getElementById('header-sidebar-button').addEventListener('click', openSidebar);
     sidebarBackdropEl.addEventListener('click', closeSidebar);
   </script>
-  <script src="task-views.js?v=3-6"></script>
-  <script src="task-conversation.js?v=3-6"></script>
+  <script src="task-views.js?v=3-7"></script>
+  <script src="task-conversation.js?v=3-7"></script>
 </body>
 </html>
