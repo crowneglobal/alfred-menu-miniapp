@@ -369,7 +369,7 @@ async function main() {
   await test('authenticated-scope-request-contract', async ({ page, apiRequests, apiHeaders }) => {
     const parsed = new URL(apiRequests[0]);
     assert.equal(parsed.searchParams.get('scope'), 'me');
-    assert.equal(parsed.searchParams.get('limit'), '200');
+    assert.equal(parsed.searchParams.get('limit'), '500');
     const initData = await page.evaluate(() => Telegram.WebApp.initData);
     assert.ok(initData, 'Official SDK exposes fixture launch data');
     assert.equal(apiHeaders[0]['x-telegram-init-data'], initData, 'Feed request carries launch data for backend validation');

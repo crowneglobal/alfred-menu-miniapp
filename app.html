@@ -1063,7 +1063,7 @@
 
   <!-- COB banking test: trusted iframe parent is restricted server-side. -->
   <div id="view-banking" style="display:none">
-    <iframe class="banking-frame" id="banking-frame" title="COB Banking" src="https://alfred.ai/banking/users/sign_in" allow="clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    <iframe class="banking-frame" id="banking-frame" title="COB Banking" data-src="https://alfred.ai/banking/users/sign_in" allow="clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </div>
 
   <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
@@ -1485,7 +1485,7 @@
       const visible = todayActive
         ? todayView.children.length
         : allTasks.filter(row => !row.classList.contains('hidden') && !row.closest('.week-hidden')).length;
-      status.hidden = boardActive || (taskFeedState === 'ready' && visible > 0);
+      status.hidden = boardActive || (visible > 0 && (taskFeedState === 'ready' || (taskFeedState === 'loading' && taskFeedShowingSaved)));
       retry.hidden = taskFeedState !== 'error';
       clear.hidden = taskFeedState !== 'ready' || visible > 0 || allTasks.length === 0;
       if (taskFeedState === 'loading') message.textContent = 'Loading tasks…';
@@ -1493,6 +1493,45 @@
       else message.textContent = allTasks.length
         ? 'No tasks match these filters.'
         : 'No tasks yet.';
+    }
+
+    // Last successful list per person and scope, shown at once on the next open while the fresh list loads.
+    const taskFeedCacheKey = scope => `alfred:task-feed:v1:${userId ? `telegram:${userId}` : 'browser'}:${scope}`;
+    function readTaskFeedCache(scope) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(taskFeedCacheKey(scope)) || 'null');
+        if (!saved || !Array.isArray(saved.tasks) || saved.tasks.some(task => !task || typeof task.task !== 'string' || task.id == null)) return null;
+        return saved;
+      } catch (_) {
+        return null;
+      }
+    }
+    function writeTaskFeedCache(scope, json) {
+      try { localStorage.setItem(taskFeedCacheKey(scope), json); } catch (_) { /* storage can be full or unavailable */ }
+    }
+    let taskFeedShowingSaved = false; // saved rows are on screen while the fresh list loads; edits stay locked until it arrives
+    let taskFeedShownJson = null;
+    let taskFeedShownScope = null;
+    let bankingPreloadTimer = null;
+
+    function showTaskFeed(uniqueTasks, state = 'ready') {
+      const rows = uniqueTasks.map(renderApiTask);
+      if (taskRowObserver) taskRowObserver.disconnect();
+      document.querySelectorAll('.week-section .task-row[data-task-id]').forEach(row => {
+        (row.closest('.swipe-wrapper') || row).remove();
+      });
+      rows.forEach(row => {
+        const list = document.getElementById(row.dataset.status === 'done' ? 'list-42' : 'list-41');
+        list.insertBefore(row, list.querySelector('.inline-add-row'));
+        ensureSwipeWrapper(row);
+        if (taskRowObserver) taskRowObserver.observe(row);
+        else enhanceRow(row);
+      });
+      assignTaskNumbers();
+      taskFeedState = state;
+      document.getElementById('assignee-tab-all').disabled = !taskFeedCanViewAll;
+      applyAllFilters();
+      renderSidebarGroups();
     }
 
     async function loadTasks() {
@@ -1503,6 +1542,21 @@
       taskFeedRequest = controller;
       taskFeedScope = scope;
       taskFeedState = 'loading';
+      let showingSaved = taskFeedShownScope === scope && taskFeedShownJson !== null;
+      // The first call runs before the rest of this script has set up; draw saved rows right after it has.
+      await null;
+      if (taskFeedRequest !== controller) return;
+      if (!showingSaved) {
+        const saved = readTaskFeedCache(scope);
+        if (saved) {
+          taskFeedCanViewAll = saved.can_view_all === true;
+          taskFeedShownJson = JSON.stringify(saved);
+          taskFeedShownScope = scope;
+          showTaskFeed(saved.tasks, 'loading');
+          showingSaved = true;
+        }
+      }
+      taskFeedShowingSaved = showingSaved;
       updateTaskFeedStatus();
       const timeout = setTimeout(() => controller.abort(), 30000);
       try {
@@ -1510,7 +1564,7 @@
         const cursors = new Set();
         let cursor = null;
         do {
-          const params = new URLSearchParams({ scope, limit: '200' });
+          const params = new URLSearchParams({ scope, limit: '500' });
           if (scope === 'me' && userId) params.set('user_id', userId);
           if (cursor !== null) params.set('before_id', cursor);
           const response = await taskApiFetch('/api/tasks?' + params, { signal: controller.signal });
@@ -1530,24 +1584,18 @@
         } while (cursor !== null);
         if (taskFeedRequest !== controller) return;
         const uniqueTasks = Array.from(new Map(tasks.map(task => [String(task.id), task])).values());
-        const rows = uniqueTasks.map(renderApiTask);
-        // Replace the previous feed only after all pages have loaded successfully.
-        if (taskRowObserver) taskRowObserver.disconnect();
-        document.querySelectorAll('.week-section .task-row[data-task-id]').forEach(row => {
-          (row.closest('.swipe-wrapper') || row).remove();
-        });
-        rows.forEach(row => {
-          const list = document.getElementById(row.dataset.status === 'done' ? 'list-42' : 'list-41');
-          list.insertBefore(row, list.querySelector('.inline-add-row'));
-          ensureSwipeWrapper(row);
-          if (taskRowObserver) taskRowObserver.observe(row);
-          else enhanceRow(row);
-        });
-        assignTaskNumbers();
-        taskFeedState = 'ready';
-        document.getElementById('assignee-tab-all').disabled = !taskFeedCanViewAll;
-        applyAllFilters();
-        renderSidebarGroups();
+        const freshJson = JSON.stringify({ tasks: uniqueTasks, can_view_all: taskFeedCanViewAll });
+        // Replace the previous feed only after all pages have loaded successfully, and only when something changed.
+        if (showingSaved && freshJson === taskFeedShownJson) {
+          // Nothing changed: keep the rows and only unlock editing.
+          taskFeedState = 'ready';
+          applyAllFilters();
+        } else {
+          showTaskFeed(uniqueTasks);
+          taskFeedShownJson = freshJson;
+          taskFeedShownScope = scope;
+          writeTaskFeedCache(scope, freshJson);
+        }
       } catch (error) {
         if (taskFeedRequest !== controller) return;
         taskFeedState = 'error';
@@ -1557,6 +1605,8 @@
         if (taskFeedRequest === controller) {
           taskFeedRequest = null;
           updateTaskFeedStatus();
+          clearTimeout(bankingPreloadTimer);
+          bankingPreloadTimer = setTimeout(() => { if (window.ensureBankingFrame) window.ensureBankingFrame(); }, 1500);
         }
       }
     }
@@ -2896,6 +2946,11 @@
       }
     }
     bankingFrame.addEventListener('load', sendBankingIdentity);
+    // Banking loads when first opened, or quietly once tasks are on screen, so it never slows the task list.
+    function ensureBankingFrame() {
+      if (!bankingFrame.getAttribute('src')) bankingFrame.src = bankingFrame.dataset.src;
+    }
+    window.ensureBankingFrame = ensureBankingFrame;
     window.addEventListener('message', event => {
       if (event.origin === 'https://alfred.ai' && event.source === bankingFrame.contentWindow && event.data && event.data.type === 'alfred:telegram:ready') sendBankingIdentity();
     });
@@ -2954,6 +3009,7 @@
       moduleButton.setAttribute('aria-label', (isBank ? 'Alfred Bank' : 'Alfred Tasks') + '. Switch to ' + (isBank ? 'Alfred Tasks' : 'Alfred Bank'));
       if (remember) moduleButton.classList.add('changing');
       if (activeSection === 'banking') {
+        ensureBankingFrame();
         document.body.classList.add('banking-mode');
         titleToggle.childNodes[0].textContent = 'Alfred Bank ';
         navPlanning.style.display = 'none';
