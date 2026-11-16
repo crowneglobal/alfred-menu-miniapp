@@ -97,6 +97,21 @@
     .module-position-active { position: absolute; left: 0; top: 0; width: 8.05px; height: 8.05px; border-radius: 50%; background: currentColor; transition: transform 220ms; }
     .module-switch-button[data-state="bank"] .module-position-active { transform: translateX(13.05px); }
     .module-switch-button[data-state="site"] .module-position-active { transform: translateX(26.1px); }
+    /* Search from the page name (DRO 2026-11-16): a tiny magnifier beside the name, or press and hold the name. The
+       search field covers the name while searching, the way Telegram's does. */
+    .module-switch .module-switch-arrow { display: none; }
+    .title-search-open { position: absolute; top: 10px; left: calc(50% + var(--title-half, 78px)); width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #697162; opacity: .8; display: grid; place-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .title-search-open::after { content: ""; position: absolute; inset: -10px -6px; }
+    .title-search-open:focus-visible { outline: 2px solid #58634B; }
+    .title-search-inline { position: static; flex: 0 0 auto; margin-left: 4px; }
+    .title-search { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 8px); left: 12px; right: 12px; height: 40px; z-index: 400; display: none; align-items: center; gap: 6px; padding: 0 6px 0 12px; border: 1px solid #D5DBC8; border-radius: 20px; background: #F6F7EE; color: #283018; box-shadow: 0 4px 18px rgba(40,48,24,.16); }
+    html.telegram-fullscreen .title-search { top: calc(var(--app-device-safe-top) + var(--app-fallback-content-top) / 2 - 20px); left: 50%; right: auto; width: calc(100vw - 150px); max-width: 420px; transform: translateX(-50%); }
+    .title-search.open { display: flex; }
+    .title-search svg { flex: 0 0 auto; color: #697162; }
+    .title-search input { flex: 1; min-width: 0; height: 38px; border: 0; outline: 0 !important; box-shadow: none !important; background: transparent; color: inherit; font: inherit; font-size: 16px; }
+    .title-search input::-webkit-search-cancel-button { display: none; }
+    .title-search-close { flex: 0 0 auto; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: #E4E9D8; color: #4F5F3D; font-size: 18px; line-height: 28px; cursor: pointer; }
+    body.title-searching .module-switch, body.title-searching #app-title-row { visibility: hidden; }
     .module-switch-button.changing .module-switch-word { animation: module-ink-glide 220ms ease; }
     @keyframes module-ink-glide { 50% { opacity: .35; transform: translateX(2px); } }
     @media (prefers-reduced-motion: reduce) {
@@ -919,11 +934,18 @@
       <span class="module-switch-surface"><span class="module-switch-word">Alfred</span><span class="module-switch-arrow" aria-hidden="true">⇄</span></span>
       <span class="module-switch-cues" aria-hidden="true"><span class="module-position"></span><span class="module-position"></span><span class="module-position"></span><span class="module-position-active"></span></span>
     </button>
+    <button class="title-search-open" id="title-search-open" type="button" aria-label="Search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg></button>
   </nav>
+  <div class="title-search" id="title-search" role="search">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
+    <input id="title-search-input" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" placeholder="Search" aria-label="Search">
+    <button class="title-search-close" id="title-search-close" type="button" aria-label="Close search">×</button>
+  </div>
 
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
     <div id="app-title-row" style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
       <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks, Alfred Bank and www.Alfred.ai" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+      <button class="title-search-open title-search-inline" id="title-search-open-inline" type="button" aria-label="Search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg></button>
     </div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
@@ -3061,7 +3083,72 @@
         if (!siteFrame.getAttribute('src')) siteFrame.src = siteFrame.dataset.src;
       }
       if (framed) requestAnimationFrame(updateBankingTop);
+      closeTitleSearch();
+      requestAnimationFrame(placeTitleSearchIcon);
     }
+    // Search from the page name. One field for all three places: Tasks filters the task list, Bank feeds the bank's
+    // own quick search, and the website finds the words on the page.
+    const titleSearchBar = document.getElementById('title-search');
+    const titleSearchInput = document.getElementById('title-search-input');
+    const TITLE_SEARCH_HINTS = { planning: 'Search tasks', banking: 'Search bank', site: 'Find on this page' };
+    let titleHoldTimer = null, titleHoldFired = false, titleHoldStart = null;
+    function placeTitleSearchIcon() {
+      const word = document.querySelector('#module-switch-toggle .module-switch-surface');
+      const width = word ? word.getBoundingClientRect().width : 0;
+      if (width) document.getElementById('module-switch').style.setProperty('--title-half', (width / 2 - 2) + 'px');
+    }
+    function sendTitleSearch(query, submitted) {
+      if (activeSection === 'planning') { searchQuery = query; applyAllFilters(); return; }
+      const frame = document.getElementById(activeSection === 'banking' ? 'banking-frame' : 'site-frame');
+      try {
+        const inner = frame.contentWindow;
+        if (activeSection === 'banking') inner.dispatchEvent(new inner.CustomEvent('banking:quick-search', { detail: { query } }));
+        else if (submitted && query) inner.find(query, false, false, true);
+      } catch (_) { /* the page inside is not ready or not ours to search */ }
+    }
+    function openTitleSearch() {
+      if (titleSearchBar.classList.contains('open')) return;
+      titleSearchInput.value = '';
+      titleSearchInput.placeholder = TITLE_SEARCH_HINTS[activeSection] || 'Search';
+      titleSearchBar.classList.add('open');
+      document.body.classList.add('title-searching');
+      titleSearchInput.focus({ preventScroll: true });
+    }
+    function closeTitleSearch() {
+      if (!titleSearchBar.classList.contains('open')) return;
+      titleSearchBar.classList.remove('open');
+      document.body.classList.remove('title-searching');
+      titleSearchInput.value = '';
+      titleSearchInput.blur();
+      sendTitleSearch('', false);
+    }
+    document.getElementById('title-search-open').addEventListener('click', openTitleSearch);
+    document.getElementById('title-search-open-inline').addEventListener('click', openTitleSearch);
+    document.getElementById('title-search-close').addEventListener('click', closeTitleSearch);
+    titleSearchInput.addEventListener('input', () => sendTitleSearch(titleSearchInput.value.trim(), false));
+    titleSearchInput.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeTitleSearch();
+      if (event.key === 'Enter') { event.preventDefault(); sendTitleSearch(titleSearchInput.value.trim(), true); if (activeSection !== 'site') titleSearchInput.blur(); }
+    });
+    titleSearchInput.addEventListener('blur', () => { if (!titleSearchInput.value.trim()) setTimeout(() => { if (document.activeElement !== titleSearchInput) closeTitleSearch(); }, 150); });
+    // Press and hold the name to search; a short tap still moves to the next place.
+    function titleHoldTarget(event) { return event.target.closest && event.target.closest('#module-switch-toggle, #app-title-toggle'); }
+    function cancelTitleHold() { clearTimeout(titleHoldTimer); titleHoldTimer = null; titleHoldStart = null; }
+    document.addEventListener('pointerdown', event => {
+      if (!titleHoldTarget(event)) return;
+      titleHoldFired = false;
+      titleHoldStart = { x: event.clientX, y: event.clientY };
+      clearTimeout(titleHoldTimer);
+      titleHoldTimer = setTimeout(() => { titleHoldTimer = null; titleHoldFired = true; openTitleSearch(); }, 450);
+    }, true);
+    document.addEventListener('pointermove', event => { if (titleHoldStart && Math.hypot(event.clientX - titleHoldStart.x, event.clientY - titleHoldStart.y) > 10) cancelTitleHold(); }, true);
+    document.addEventListener('pointerup', cancelTitleHold, true);
+    document.addEventListener('pointercancel', cancelTitleHold, true);
+    document.addEventListener('contextmenu', event => { if (titleHoldTarget(event)) event.preventDefault(); }, true);
+    document.addEventListener('click', event => {
+      if (titleHoldFired && titleHoldTarget(event)) { titleHoldFired = false; event.stopImmediatePropagation(); event.preventDefault(); }
+    }, true);
+    window.addEventListener('resize', placeTitleSearchIcon);
     const appTitleToggle = document.getElementById('app-title-toggle');
     appTitleToggle.addEventListener('click', () => switchSection(nextSection()));
     appTitleToggle.addEventListener('keydown', event => {
