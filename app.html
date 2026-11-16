@@ -338,6 +338,12 @@
     .week-section.collapsed .week-chevron { transform: rotate(-90deg); }
     .task-list { overflow: hidden; }
     .week-section.collapsed .task-list { max-height: 0; }
+    /* Bug cards live apart from tasks: own header, folded until opened. */
+    .bug-section { margin-bottom: 20px; }
+    .bug-section.section-empty { display: none; }
+    .bug-section.collapsed .week-chevron { transform: rotate(-90deg); }
+    .bug-section.collapsed .task-list { max-height: 0; }
+    .label-bugs { background: rgba(196,88,60,0.16); color: #7A2E1C; }
 
     /* Group separator — clean text divider */
     .section-sep {
@@ -1049,6 +1055,14 @@
     </div>
   </div>
 
+  <!-- Bug cards: never mixed into the task sections above -->
+  <div class="bug-section collapsed section-empty" id="section-bugs">
+    <div class="week-label label-bugs" onclick="toggleCollapse('section-bugs')">
+      Bug cards <span id="bug-section-count"></span> <span class="week-chevron">▼</span>
+    </div>
+    <div class="task-list" id="list-bugs"></div>
+  </div>
+
   <div id="board-view" class="board-view" style="display:none">
     <div class="board-columns">
       <div class="board-col" id="col-stuck"><div class="board-col-header col-header-stuck" role="button" tabindex="0" aria-expanded="true"><span class="board-col-title">🔴 Stuck</span><span class="board-count" id="count-stuck">0</span><span class="board-chevron">⌄</span></div><div class="board-col-body" id="col-body-stuck"></div></div>
@@ -1458,6 +1472,7 @@
       row.dataset.assigneeId = String(t.assignee_id || '');
       row.dataset.comments = '[]';
       row.dataset.taskId = String(t.id);
+      row.dataset.bug = t.is_bug ? '1' : '';
       row.dataset.sourceUrl = String(t.source_url || '');
       row.innerHTML = [
         `<span class="drag-handle" aria-hidden="true" style="color:#999;font-size:14px;padding:0 2px 0 10px;cursor:grab;order:0;flex-shrink:0;touch-action:auto;user-select:none;">⠣</span>`,
@@ -1517,11 +1532,11 @@
     function showTaskFeed(uniqueTasks, state = 'ready') {
       const rows = uniqueTasks.map(renderApiTask);
       if (taskRowObserver) taskRowObserver.disconnect();
-      document.querySelectorAll('.week-section .task-row[data-task-id]').forEach(row => {
+      document.querySelectorAll('.week-section .task-row[data-task-id], #list-bugs .task-row').forEach(row => {
         (row.closest('.swipe-wrapper') || row).remove();
       });
       rows.forEach(row => {
-        const list = document.getElementById(row.dataset.status === 'done' ? 'list-42' : 'list-41');
+        const list = document.getElementById(row.dataset.bug ? 'list-bugs' : row.dataset.status === 'done' ? 'list-42' : 'list-41');
         list.insertBefore(row, list.querySelector('.inline-add-row'));
         ensureSwipeWrapper(row);
         if (taskRowObserver) taskRowObserver.observe(row);
@@ -1643,6 +1658,9 @@
         const visibleRows = sec.querySelectorAll('.task-row:not(.hidden)');
         sec.classList.toggle('section-empty', visibleRows.length === 0);
       });
+      const bugRows = document.querySelectorAll('#list-bugs .task-row:not(.hidden)').length;
+      document.getElementById('section-bugs').classList.toggle('section-empty', bugRows === 0);
+      document.getElementById('bug-section-count').textContent = bugRows ? '· ' + bugRows : '';
       // Week filter overrides
       document.getElementById('section-41').classList.toggle('week-hidden', weekFilter === '42');
       document.getElementById('section-42').classList.toggle('week-hidden', weekFilter === '41');
@@ -2813,7 +2831,7 @@
         todayView.classList.remove('open');
         document.getElementById('group-overview').hidden = true;
       }
-      ['section-41','section-42','section-group'].forEach(function(id) {
+      ['section-41','section-42','section-group','section-bugs'].forEach(function(id) {
         document.getElementById(id).style.display = active || boardActive || todayActive ? 'none' : '';
       });
       if (active) renderHomeDashboard();
@@ -2827,7 +2845,7 @@
       todayView.classList.toggle('open', active);
       const focus = document.querySelector('.focus-banner');
       if (focus) focus.style.display = active ? 'none' : (boardActive ? 'none' : '');
-      ['section-41','section-42','section-group'].forEach(id => {
+      ['section-41','section-42','section-group','section-bugs'].forEach(id => {
         document.getElementById(id).style.display = active || boardActive ? 'none' : '';
       });
       if (active) {
@@ -2908,7 +2926,7 @@
       boardView.style.display = boardActive ? 'block' : 'none';
       const focus = document.querySelector('.focus-banner');
       if (focus) focus.style.display = boardActive ? 'none' : '';
-      ['section-41','section-42','section-group'].forEach(id => {
+      ['section-41','section-42','section-group','section-bugs'].forEach(id => {
         document.getElementById(id).style.display = boardActive || todayActive ? 'none' : '';
       });
       if (boardActive) {
@@ -3056,7 +3074,7 @@
       boardView.style.display = 'none';
       const focus = document.querySelector('.focus-banner');
       if (focus) focus.style.display = '';
-      ['section-41','section-42','section-group'].forEach(id => {
+      ['section-41','section-42','section-group','section-bugs'].forEach(id => {
         document.getElementById(id).style.display = '';
       });
     }
