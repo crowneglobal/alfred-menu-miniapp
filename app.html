@@ -93,8 +93,10 @@
     .module-switch-arrow { font-size: 12px; font-weight: 500; opacity: .7; }
     .module-switch-cues { position: absolute; top: 35.53px; display: flex; gap: 5px; height: 8.05px; margin-top: 0; color: #697162; }
     .module-position { display: block; width: 8.05px; height: 8.05px; border: 1px solid currentColor; border-radius: 50%; opacity: .55; }
-    .module-position-active { position: absolute; left: 13.05px; top: 0; width: 8.05px; height: 8.05px; border-radius: 50%; background: currentColor; transition: transform 220ms; }
-    .module-switch-button[data-state="tasks"] .module-position-active { transform: translateX(-13.05px); }
+    /* Three places, one shown at a time (DRO 2026-11-16): Tasks, Bank, www.Alfred.ai. The filled bubble is the one open. */
+    .module-position-active { position: absolute; left: 0; top: 0; width: 8.05px; height: 8.05px; border-radius: 50%; background: currentColor; transition: transform 220ms; }
+    .module-switch-button[data-state="bank"] .module-position-active { transform: translateX(13.05px); }
+    .module-switch-button[data-state="site"] .module-position-active { transform: translateX(26.1px); }
     .module-switch-button.changing .module-switch-word { animation: module-ink-glide 220ms ease; }
     @keyframes module-ink-glide { 50% { opacity: .35; transform: translateX(2px); } }
     @media (prefers-reduced-motion: reduce) {
@@ -130,6 +132,12 @@
     body.banking-mode { padding: 0; }
     body.banking-mode .app-header { display: none; }
     body.banking-mode #view-banking {
+      top: var(--app-safe-top); right: var(--app-safe-right);
+      bottom: var(--app-safe-bottom); left: var(--app-safe-left);
+    }
+    /* The Alfred website, the third place: the same full frame as Banking. */
+    #view-site {
+      position: fixed; margin: 0; overflow: hidden;
       top: var(--app-safe-top); right: var(--app-safe-right);
       bottom: var(--app-safe-bottom); left: var(--app-safe-left);
     }
@@ -906,16 +914,16 @@
 </head>
 <body class="light">
 
-  <nav class="module-switch" id="module-switch" aria-label="Switch between Tasks and Banking">
+  <nav class="module-switch" id="module-switch" aria-label="Switch between Tasks, Bank and the Alfred website">
     <button class="module-switch-button" id="module-switch-toggle" data-state="tasks" type="button" aria-label="Alfred Tasks. Switch to Alfred Bank">
       <span class="module-switch-surface"><span class="module-switch-word">Alfred</span><span class="module-switch-arrow" aria-hidden="true">⇄</span></span>
-      <span class="module-switch-cues" aria-hidden="true"><span class="module-position"></span><span class="module-position"></span><span class="module-position-active"></span></span>
+      <span class="module-switch-cues" aria-hidden="true"><span class="module-position"></span><span class="module-position"></span><span class="module-position"></span><span class="module-position-active"></span></span>
     </button>
   </nav>
 
   <header class="app-header" style="flex-direction:column; align-items:stretch; gap:0; padding-bottom:4px; min-height:unset;">
     <div id="app-title-row" style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%;">
-      <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks and Alfred Bank" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
+      <div class="app-title" id="app-title-toggle" role="button" tabindex="0" aria-label="Switch between Alfred Tasks, Alfred Bank and www.Alfred.ai" style="text-align:center; flex:1; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;">Alfred <span id="title-arrow" style="font-size:14px; opacity:0.45; font-weight:400;">▾</span></div>
     </div>
     <div class="section-tabs" id="context-tabs" style="padding:0; background:none; margin-top:4px; width:100%;">
       <button class="header-sidebar-button" id="header-sidebar-button" type="button" aria-label="Open groups sidebar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h10M5 17h14"/></svg></button>
@@ -1078,6 +1086,11 @@
   <!-- COB banking test: trusted iframe parent is restricted server-side. -->
   <div id="view-banking" style="display:none">
     <iframe class="banking-frame" id="banking-frame" title="COB Banking" data-src="https://alfred.ai/banking/users/sign_in" allow="clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+
+  <!-- The Alfred AI website, shown inside the app as the third place. Loaded the first time it is opened. -->
+  <div id="view-site" style="display:none">
+    <iframe class="banking-frame" id="site-frame" title="Alfred AI website" data-src="https://alfred.ai/" referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </div>
 
   <!-- Bottom Sheet: handle + pinned row + expandable drawer -->
@@ -2988,12 +3001,13 @@
       const value = (new URLSearchParams(window.location.search).get('section') || window.location.hash.slice(1)).toLowerCase();
       if (value === 'bank' || value === 'banking') return 'banking';
       if (value === 'task' || value === 'tasks' || value === 'planning') return 'planning';
+      if (value === 'site' || value === 'web' || value === 'www' || value === 'website') return 'site';
       return null;
     })();
     function rememberedSection() {
       try {
         const value = localStorage.getItem(sectionStateKey);
-        return value === 'banking' || value === 'planning' ? value : null;
+        return value === 'banking' || value === 'planning' || value === 'site' ? value : null;
       } catch (_) {
         return null;
       }
@@ -3007,8 +3021,14 @@
     // Telegram updates its inset CSS variables asynchronously and on rotation.
     new ResizeObserver(updateBankingTop).observe(document.querySelector('.app-header'), { box: 'border-box' });
     window.addEventListener('resize', updateBankingTop);
+    // Three places, one shown at a time (DRO 2026-11-16): Tasks, Bank and the Alfred website. A tap on the name moves to
+    // the next one, and round again.
+    const SECTIONS = ['planning', 'banking', 'site'];
+    const SECTION_NAMES = { planning: 'Alfred Tasks', banking: 'Alfred Bank', site: 'www.Alfred.ai' };
+    const SECTION_STATES = { planning: 'tasks', banking: 'bank', site: 'site' };
+    function nextSection() { return SECTIONS[(SECTIONS.indexOf(activeSection) + 1) % SECTIONS.length]; }
     function switchSection(section, { remember = true } = {}) {
-      activeSection = section === 'banking' ? 'banking' : 'planning';
+      activeSection = SECTIONS.includes(section) ? section : 'planning';
       if (remember) {
         try { localStorage.setItem(sectionStateKey, activeSection); } catch (_) { /* storage can be unavailable */ }
       }
@@ -3018,46 +3038,40 @@
       const dateWeekBar = document.getElementById('date-week-bar');
       const sheet = document.getElementById('bottom-sheet');
       const moduleButton = document.getElementById('module-switch-toggle');
-      const isBank = activeSection === 'banking';
-      const title = isBank ? 'Alfred Bank' : 'Alfred';
+      const title = SECTION_NAMES[activeSection];
       moduleButton.classList.remove('changing');
       void moduleButton.offsetWidth;
-      moduleButton.dataset.state = isBank ? 'bank' : 'tasks';
+      moduleButton.dataset.state = SECTION_STATES[activeSection];
       moduleButton.querySelector('.module-switch-word').textContent = title;
-      moduleButton.setAttribute('aria-label', (isBank ? 'Alfred Bank' : 'Alfred Tasks') + '. Switch to ' + (isBank ? 'Alfred Tasks' : 'Alfred Bank'));
+      moduleButton.setAttribute('aria-label', title + '. Switch to ' + SECTION_NAMES[nextSection()]);
       if (remember) moduleButton.classList.add('changing');
-      if (activeSection === 'banking') {
-        ensureBankingFrame();
-        document.body.classList.add('banking-mode');
-        titleToggle.childNodes[0].textContent = 'Alfred Bank ';
-        navPlanning.style.display = 'none';
-        contextTabs.style.display = 'none';
-        dateWeekBar.style.display = 'none';
-        document.getElementById('view-planning').style.display = 'none';
-        document.getElementById('view-banking').style.display = '';
-        sheet.style.display = 'none';
-        requestAnimationFrame(updateBankingTop);
-      } else {
-        document.body.classList.remove('banking-mode');
-        titleToggle.childNodes[0].textContent = 'Alfred ';
-        dateWeekBar.style.display = '';
-        contextTabs.style.display = '';
-        navPlanning.style.display = 'flex';
-        document.getElementById('view-planning').style.display = '';
-        document.getElementById('view-banking').style.display = 'none';
-        sheet.style.display = '';
+      titleToggle.childNodes[0].textContent = title + ' ';
+      const framed = activeSection !== 'planning';
+      document.body.classList.toggle('banking-mode', framed);
+      document.getElementById('view-banking').style.display = activeSection === 'banking' ? '' : 'none';
+      document.getElementById('view-site').style.display = activeSection === 'site' ? '' : 'none';
+      document.getElementById('view-planning').style.display = framed ? 'none' : '';
+      navPlanning.style.display = framed ? 'none' : 'flex';
+      contextTabs.style.display = framed ? 'none' : '';
+      dateWeekBar.style.display = framed ? 'none' : '';
+      sheet.style.display = framed ? 'none' : '';
+      if (activeSection === 'banking') ensureBankingFrame();
+      if (activeSection === 'site') {
+        const siteFrame = document.getElementById('site-frame');
+        if (!siteFrame.getAttribute('src')) siteFrame.src = siteFrame.dataset.src;
       }
+      if (framed) requestAnimationFrame(updateBankingTop);
     }
     const appTitleToggle = document.getElementById('app-title-toggle');
-    appTitleToggle.addEventListener('click', () => switchSection(activeSection === 'planning' ? 'banking' : 'planning'));
+    appTitleToggle.addEventListener('click', () => switchSection(nextSection()));
     appTitleToggle.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        switchSection(activeSection === 'planning' ? 'banking' : 'planning');
+        switchSection(nextSection());
       }
     });
     document.getElementById('module-switch-toggle').addEventListener('click', () => {
-      switchSection(activeSection === 'planning' ? 'banking' : 'planning');
+      switchSection(nextSection());
     });
     window.addEventListener('message', event => {
       if (event.origin === 'https://alfred.ai' && event.data && event.data.type === 'alfred:switch:tasks') {
