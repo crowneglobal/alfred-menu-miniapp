@@ -3019,7 +3019,20 @@
 
     // ── Persistent module switcher ──
     const sectionStateKey = `alfred:last-section:${userId ? `telegram:${userId}` : 'browser'}`;
+    // A Telegram card's #P link (DRO 2026-11-17): t.me/Alfred4bot/app?startapp=bt_<bank record id> opens that
+    // transfer in the Bank, since the Master Wallet group has no app button at the top.
+    const linkedBankRecord = (() => {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const start = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param)
+        || new URLSearchParams(window.location.search).get('tgWebAppStartParam') || hash.get('tgWebAppStartParam') || '';
+      const found = /^bt_([0-9a-f-]{36})$/i.exec(start);
+      return found ? found[1] : null;
+    })();
+    if (linkedBankRecord) {
+      document.getElementById('banking-frame').dataset.src = 'https://alfred.ai/banking/dashboard?bt=' + encodeURIComponent(linkedBankRecord);
+    }
     const explicitSection = (() => {
+      if (linkedBankRecord) return 'banking';
       const value = (new URLSearchParams(window.location.search).get('section') || window.location.hash.slice(1)).toLowerCase();
       if (value === 'bank' || value === 'banking') return 'banking';
       if (value === 'task' || value === 'tasks' || value === 'planning') return 'planning';
