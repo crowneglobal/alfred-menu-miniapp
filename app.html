@@ -3029,7 +3029,16 @@
       return found ? found[1] : null;
     })();
     if (linkedBankRecord) {
-      document.getElementById('banking-frame').dataset.src = 'https://alfred.ai/banking/dashboard?bt=' + encodeURIComponent(linkedBankRecord);
+      // The Bank signs in through its usual page first (going straight to the dashboard skipped its Telegram
+      // sign-in, and the gate showed a blank page). Once it reports a view, it is told which transfer to open.
+      let linkedSent = false;
+      window.addEventListener('message', event => {
+        const frame = document.getElementById('banking-frame');
+        if (linkedSent || event.origin !== 'https://alfred.ai' || event.source !== frame.contentWindow) return;
+        if (!event.data || event.data.type !== 'alfred:banking:view') return;
+        linkedSent = true;
+        frame.contentWindow.postMessage({ type: 'alfred:banking:open-transfer', id: linkedBankRecord }, 'https://alfred.ai');
+      });
     }
     const explicitSection = (() => {
       if (linkedBankRecord) return 'banking';
