@@ -3025,8 +3025,9 @@
       const hash = new URLSearchParams(window.location.hash.slice(1));
       const start = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param)
         || new URLSearchParams(window.location.search).get('tgWebAppStartParam') || hash.get('tgWebAppStartParam') || '';
-      const found = /^bt_([0-9a-f-]{36})$/i.exec(start);
-      return found ? found[1] : null;
+      const found = /^(bt|ti)_([0-9a-f-]{36})$/i.exec(start);
+      // bt_: a transfer's sheet (card #P link). ti_: a Buy/Sell confirmation (DRO 2026-11-17: the bank opens only in the app).
+      return found ? { kind: found[1].toLowerCase(), id: found[2] } : null;
     })();
     if (linkedBankRecord) {
       // The Bank signs in through its usual page first (going straight to the dashboard skipped its Telegram
@@ -3037,7 +3038,8 @@
         if (linkedSent || event.origin !== 'https://alfred.ai' || event.source !== frame.contentWindow) return;
         if (!event.data || event.data.type !== 'alfred:banking:view') return;
         linkedSent = true;
-        frame.contentWindow.postMessage({ type: 'alfred:banking:open-transfer', id: linkedBankRecord }, 'https://alfred.ai');
+        frame.contentWindow.postMessage({ type: linkedBankRecord.kind === 'ti' ? 'alfred:banking:open-intent' : 'alfred:banking:open-transfer',
+                                          id: linkedBankRecord.id }, 'https://alfred.ai');
       });
     }
     const explicitSection = (() => {
